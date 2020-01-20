@@ -213,7 +213,7 @@ def roll_settings(weights):
     startitems = []
     for item in inventoryweights.keys():
         itemvalue = get_choice(item, inventoryweights)
-        if 'Progressive' in item and isinstance(itemvalue, int):
+        if item.startswith(('Progressive ', 'Small Key ', 'Rupee', 'Piece of Heart', 'Boss Heart Container', 'Sanctuary Heart Container', 'Arrow', 'Bombs ', 'Bomb ', 'Bottle')) and isinstance(itemvalue, int):
             for i in range(int(get_choice(item, inventoryweights))):
                 startitems.append(item)
         if get_choice(item, inventoryweights):
