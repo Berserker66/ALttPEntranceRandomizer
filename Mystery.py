@@ -212,8 +212,14 @@ def roll_settings(weights):
     inventoryweights = weights.get('startinventory', {})
     startitems = []
     for item in inventoryweights.keys():
+        itemvalue = get_choice(item, inventoryweights)
+        if 'Progressive' in item and isinstance(itemvalue, int):
+            for i in range(int(get_choice(item, inventoryweights))):
+                startitems.append(item)
         if get_choice(item, inventoryweights):
             startitems.append(item)
+    if glitches_required in ['no_logic'] and 'Pegasus Boots' not in startitems:
+        startitems.append('Pegasus Boots')
     ret.startinventory = ','.join(startitems)
 
     if 'rom' in weights:
