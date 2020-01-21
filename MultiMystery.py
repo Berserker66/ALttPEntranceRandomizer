@@ -40,6 +40,9 @@ race:bool= False
 #folder from which the player yaml files are pulled from
 player_files_folder:str = "Players"
 
+#Auto-start the MultiServer
+start_multi_server:bool = True
+
 #Version of python to use for Bonta Multiworld. Probably leave this as is, if you don't know what this does.
 #can be tagged for bitness, for example "3.8-32" would be latest installed 3.8 on 32 bits
 #special case: None -> use the python which was used to launch this file.
@@ -128,7 +131,8 @@ if __name__ == "__main__":
                             os.remove(file)
                             print(f"Removed file {file} that is now present in the zipfile")
 
-        subprocess.call(f"py -{py_version} MultiServer.py --multidata {os.path.join(outputpath, multidataname)}")
+        if start_multi_server:
+            subprocess.call(f"py -{py_version} MultiServer.py --multidata {os.path.join(outputpath, multidataname)}")
     except:
         import traceback
         traceback.print_exc()
