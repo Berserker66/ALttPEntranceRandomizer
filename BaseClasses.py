@@ -3,7 +3,7 @@ from enum import Enum, unique
 import logging
 import json
 from collections import OrderedDict
-from _vendor.collections_extended import bag
+from collections_extended import bag
 from EntranceShuffle import door_addresses
 from Utils import int16_as_bytes
 
