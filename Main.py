@@ -160,7 +160,7 @@ def main(args, seed=None):
                                 or world.enemy_health[player] != 'default' or world.enemy_damage[player] != 'default'
                                 or args.shufflepots[player] or sprite_random_on_hit)
 
-                rom = JsonRom(extendedmsu=args.extendedmsu[player]) if args.jsonout or use_enemizer else LocalRom(args.rom, extendedmsu=args.extendedmsu[player])
+                rom = JsonRom() if args.jsonout or use_enemizer else LocalRom(args.rom, extendedmsu=args.extendedmsu[player])
 
                 patch_rom(world, rom, player, team, use_enemizer)
 

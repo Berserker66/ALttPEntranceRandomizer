@@ -26,13 +26,12 @@ JAP10HASH = '03a63945398191337e896e5771f77173'
 
 class JsonRom(object):
 
-    def __init__(self, name=None, hash=None, extendedmsu=False):
+    def __init__(self, name=None, hash=None):
         self.name = name
         self.hash = hash
         self.orig_buffer = None
         self.patches = {}
         self.addresses = []
-        self.extendedmsu=extendedmsu
 
     def write_byte(self, address, value):
         self.write_bytes(address, [value])
