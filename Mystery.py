@@ -17,7 +17,6 @@ try:
 except ImportError:
     from yaml import Loader
 
-from Rom import Sprite
 from Rom import get_sprite_from_name
 from EntranceRandomizer import parse_arguments
 from Main import main as ERmain
@@ -231,8 +230,7 @@ def roll_settings(weights, path):
     if 'rom' in weights:
         romweights = weights['rom']
         ret.sprite = get_choice('sprite', romweights)
-        sprite = None if ret.sprite is None else Sprite(ret.sprite) if os.path.isfile(ret.sprite) else get_sprite_from_name(ret.sprite)
-        if sprite is None and ret.sprite is not None:
+        if ret.sprite is not None and not os.path.isfile(ret.sprite) and not get_sprite_from_name(ret.sprite):
             logging.Logger('').warning(f"Warning: In yaml file \"{path}\", The choson sprite, \"{ret.sprite}\" does not exist.")
         ret.disablemusic = get_choice('disablemusic', romweights)
         ret.extendedmsu = get_choice('extendedmsu', romweights)
