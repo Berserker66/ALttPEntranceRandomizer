@@ -170,7 +170,7 @@ def roll_settings(weights, path):
                 'pedestal': 'pedestal',
                 'triforce-hunt': 'triforcehunt'
                 }[goal]
-    ret.openpyramid = goal == 'fast_ganon'
+    ret.openpyramid = (goal == 'fast_ganon' && shuffle == 'vanilla')
 
     ret.crystals_gt = get_choice('tower_open')
 
