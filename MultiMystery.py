@@ -139,8 +139,21 @@ if __name__ == "__main__":
                         return False
                 return False
 
+            def get_alive_threads():
+                still_alive = []
+                for x in range(1,min(min_logical_seed,parallel_attempts)+1):
+                    success = dead_or_alive.get(x, None)
+                    if success is None:
+                        still_alive.append(str(x))
+                        if len(still_alive) == 8:
+                            still_alive.append("...")
+                            break
+                return ", ".join(still_alive) if len(still_alive) > 0 else "None"
+
+            min_logical_seed = parallel_attempts
             pbar = tqdm(concurrent.futures.as_completed(task_mapping.values()),
                                   total=len(task_mapping), unit="seeds")
+            pbar.set_description(f"Generating: {get_alive_threads()}")
             for task in pbar:
                 try:
                     result = task.result()
@@ -179,8 +192,11 @@ if __name__ == "__main__":
                             return task.task_id
                         break
                     else:
+                        min_logical_seed = min(min_logical_seed, task.task_id)
+                        if task.task_id <= min_logical_seed:
                         tqdm.write(msg+" However, waiting for an earlier logical seed that is still generating.")
                         cancel_remaining(task.task_id)
+                pbar.set_description(f"Generating: {get_alive_threads()}")
             pbar.close()
             pool.shutdown(False)
 
