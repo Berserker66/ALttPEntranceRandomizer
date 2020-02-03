@@ -194,10 +194,9 @@ if __name__ == "__main__":
                     else:
                         min_logical_seed = min(min_logical_seed, task.task_id)
                         if task.task_id <= min_logical_seed:
-                        tqdm.write(msg+" However, waiting for an earlier logical seed that is still generating.")
+                            tqdm.write(msg+" However, waiting for an earlier logical seed that is still generating.")
                         cancel_remaining(task.task_id)
                 pbar.set_description(f"Generating: {get_alive_threads()}")
-            pbar.close()
             pool.shutdown(False)
 
             task_id = check_if_done()
