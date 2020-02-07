@@ -198,10 +198,10 @@ def main(args, seed=None):
                         outfilepname += f"_{world.player_names[player][team].replace(' ', '_')}" if world.player_names[player][team] != 'Player %d' % player else ''
                     outfilesuffix = ('_%s_%s-%s-%s-%s%s_%s-%s%s%s%s%s' % (world.logic[player], world.difficulty[player], world.difficulty_adjustments[player],
                                                                               world.mode[player], world.goal[player],
-                                                                              "" if world.timer in ['none', 'display'] else "-" + world.timer,
+                                                                              "" if world.timer[player] in ['none', 'display'] else "-" + world.timer[player],
                                                                               world.shuffle[player], world.algorithm, mcsb_name,
                                                                               "-retro" if world.retro[player] else "",
-                                                                              "-prog_" + world.progressive if world.progressive in ['off', 'random'] else "",
+                                                                              "-prog_" + world.progressive[player] if world.progressive[player] in ['off', 'random'] else "",
                                                                               "-nohints" if not world.hints[player] else "")) if not args.outputname else ''
                     rom.write_to_file(output_path(f'{outfilebase}{outfilepname}{outfilesuffix}.sfc'))
 
