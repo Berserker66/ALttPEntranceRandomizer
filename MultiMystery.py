@@ -79,9 +79,11 @@ if __name__ == "__main__":
         else:
             basemysterycommand = f"py -{py_version} Mystery.py" #source
 
+        spoiler_option = " --create_spoiler" if  create_spoiler else ""
+        race_option = " --race" if race else ""
         basecommand = f"{basemysterycommand} --multi {len(player_files)} {player_string} " \
-                  f"--names {','.join(player_names)} --enemizercli {enemizer_path} " \
-                  "--create_spoiler" if create_spoiler else "" + " --race" if race else ""
+                  f"--names {','.join(player_names)} --enemizercli {enemizer_path}" \
+                  f"{spoiler_option}{race_option}"
         print(basecommand)
 
         import time
@@ -89,7 +91,7 @@ if __name__ == "__main__":
 
         start = time.perf_counter()
 
-        def get_working_seed():#is a function for automatic deallocation of resources that are no longer needed when the server starts
+        def get_working_seed():#is a function for automatic deallocation of resources that are no longer needed when the server starts            
             parallel_attempts = multi_mystery_options["parallel_attempts"]
 
             def cancel_remaining(starting_at:int = 0):
@@ -97,7 +99,7 @@ if __name__ == "__main__":
                     task_mapping[x].cancel()
 
             if parallel_attempts < 1:
-                import multiprocessing
+            import multiprocessing
                 parallel_attempts = multiprocessing.cpu_count()
 
             pool = concurrent.futures.ThreadPoolExecutor()
