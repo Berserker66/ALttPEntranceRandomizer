@@ -64,3 +64,5 @@ multi_mystery_options:
   #When using max_attempts, this controls if the first one that works in order of starting should be taken, or the first one in order of completion time should be taken
   #keep in mind, that turning this on, will skew the randomness into "simpler" seeds, as they generate quicker
   take_first_working: False
+  #When using max_attempts, this controls if all successful seeds will be kept.
+  keep_all_seeds: False
