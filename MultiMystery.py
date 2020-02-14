@@ -92,19 +92,23 @@ if __name__ == "__main__":
         start = time.perf_counter()
 
         def get_working_seed():#is a function for automatic deallocation of resources that are no longer needed when the server starts            
-            parallel_attempts = multi_mystery_options["parallel_attempts"]
+            cpu_threads = multi_mystery_options["cpu_threads"]
+            max_attempts = multi_mystery_options["max_attempts"]
 
             def cancel_remaining(starting_at:int = 0):
-                for x in range(starting_at + 1, parallel_attempts + 1):
+                for x in range(starting_at + 1, max_attempts + 1):
                     task_mapping[x].cancel()
 
-            if parallel_attempts < 1:
             import multiprocessing
-                parallel_attempts = multiprocessing.cpu_count()
+            if cpu_threads < 1:
+                cpu_threads = multiprocessing.cpu_count()
 
-            pool = concurrent.futures.ThreadPoolExecutor()
+            if max_attempts < 1:
+                max_attempts = multiprocessing.cpu_count()
+
+            pool = concurrent.futures.ThreadPoolExecutor(max_workers=cpu_threads)
             task_mapping = {}
-            for x in range(1, parallel_attempts+1):
+            for x in range(1, max_attempts+1):
                 folder = tempfile.TemporaryDirectory()
                 command = basecommand + f" --outputpath {folder.name}"
                 task = pool.submit(subprocess.run, command, capture_output=True, shell=False, text=True)
@@ -117,7 +121,7 @@ if __name__ == "__main__":
             dead_or_alive = {}
 
             def check_if_done():
-                for x in range(1, parallel_attempts+1):
+                for x in range(1, max_attempts+1):
                     result = dead_or_alive.get(x, None)
                     if result:
                         return x
@@ -127,16 +131,16 @@ if __name__ == "__main__":
 
             def get_alive_threads():
                 still_alive = []
-                for x in range(1,min(min_logical_seed,parallel_attempts)+1):
+                for x in range(1,min(min_logical_seed,max_attempts)+1):
                     success = dead_or_alive.get(x, None)
                     if success is None:
                         still_alive.append(str(x))
-                        if len(still_alive) == 8:
+                        if len(still_alive) == min(cpu_threads, 8):
                             still_alive.append("...")
                             break
                 return ", ".join(still_alive) if still_alive else "None"
 
-            min_logical_seed = parallel_attempts
+            min_logical_seed = max_attempts
             with tqdm(concurrent.futures.as_completed(task_mapping.values()),
                       total=len(task_mapping), unit="seed(s)",
                       desc=f"Generating: {get_alive_threads()}") as progressbar:
