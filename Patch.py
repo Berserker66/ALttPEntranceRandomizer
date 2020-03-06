@@ -15,6 +15,8 @@ def get_base_rom_bytes() -> bytes:
             options = Utils.parse_yaml(f.read())
         file_name = options["general_options"]["rom_file"]
         base_rom_bytes = load_bytes(file_name)
+        if len(base_rom_bytes) == 1049088:
+            base_rom_bytes = base_rom_bytes[512:]
     return base_rom_bytes
 
 
