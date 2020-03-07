@@ -6,6 +6,7 @@ import logging
 import zlib
 import collections
 import typing
+import os
 
 import ModuleUpdate
 ModuleUpdate.update()
@@ -582,10 +583,12 @@ async def main():
     parser.add_argument('--hint_cost', default=1000, type=int)
     parser.add_argument('--disable_item_cheat', default=False, action='store_true')
     args = parser.parse_args()
-    file_options = Utils.parse_yaml(open("host.yaml").read())["server_options"]
-    for key, value in file_options.items():
-        if value is not None:
-            setattr(args, key, value)
+
+    if os.path.exists('host.yaml'):
+        file_options = Utils.parse_yaml(open("host.yaml").read())["server_options"]
+        for key, value in file_options.items():
+            if value is not None:
+                setattr(args, key, value)
     logging.basicConfig(format='[%(asctime)s] %(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
 
     ctx = Context(args.host, args.port, args.password, args.location_check_points, args.hint_cost,
