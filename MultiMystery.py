@@ -175,7 +175,7 @@ if __name__ == "__main__":
                     except:
                         error = io.StringIO()
                         traceback.print_exc(file=error)
-                            errors.append(error.getvalue())
+                        errors.append(error.getvalue())
                         task.folder.cleanup()
                         dead_or_alive[task.task_id] = False
                         if "Please fix your yaml." in error.getvalue():
