@@ -163,7 +163,7 @@ if __name__ == "__main__":
             from tqdm import tqdm
             with tqdm(concurrent.futures.as_completed(task_mapping.values()),
                       total=len(task_mapping), unit="seeds(s)", 
-                      desc=f"0.0% Success rate" if keep_all_seeds else f"Generating: {get_alive_threads()}") as progressbar:
+                      desc=(f"0.0% Success rate, " if keep_all_seeds else "") + f"Generating: {get_alive_threads()}") as progressbar:
                 for task in progressbar:
                     try:
                         result = task.result()
@@ -175,7 +175,7 @@ if __name__ == "__main__":
                     except:
                         error = io.StringIO()
                         traceback.print_exc(file=error)
-                        errors.append(error.getvalue())
+                            errors.append(error.getvalue())
                         task.folder.cleanup()
                         dead_or_alive[task.task_id] = False
                         if "Please fix your yaml." in error.getvalue():
@@ -211,7 +211,7 @@ if __name__ == "__main__":
                             if task.task_id <= min_logical_seed:
                                 tqdm.write(msg+" However, waiting for an earlier logical seed that is still generating.")
                             cancel_remaining(task.task_id)
-                    progressbar.set_description(f"{(len(alive)/len(dead_or_alive))*100:.1f}% Success rate" if keep_all_seeds else f"Generating: {get_alive_threads()}")
+                    progressbar.set_description((f"{(len(alive)/len(dead_or_alive))*100:.1f}% Success rate, " if keep_all_seeds else "") + f"Generating: {get_alive_threads()}")
 
             pool.shutdown(False)
 
