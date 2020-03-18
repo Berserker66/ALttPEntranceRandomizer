@@ -66,3 +66,5 @@ multi_mystery_options:
   take_first_working: False
   #When using max_attempts, this controls if all successful seeds will be kept.
   keep_all_seeds: True
+  #When logging is desired, this specifies the path to output the logs to. null for no output logs.
+  log_output_path: "Output Logs"

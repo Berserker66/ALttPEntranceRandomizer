@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--outputpath')
     parser.add_argument('--race', action='store_true')
     parser.add_argument('--meta', default=None)
+    parser.add_argument('--log_output_path', help='Path to store output log')
 
     for player in range(1, multiargs.multi + 1):
         parser.add_argument(f'--p{player}', help=argparse.SUPPRESS)
@@ -107,9 +108,13 @@ def main():
                 self._writer(self._msg)
                 self._msg = ''
 
-    log = logging.getLogger("stderr")
-    sys.stderr = LoggerWriter(log.error)
-    logging.basicConfig(format='%(message)s', level=loglevel, filename=f"{seed}.log")
+    if args.log_output_path:
+        log = logging.getLogger("stderr")
+        sys.stderr = LoggerWriter(log.error)
+        os.makedirs(args.log_output_path, exist_ok=True)
+        logging.basicConfig(format='%(message)s', level=loglevel, filename=os.path.join(args.log_output_path, f"{seed}.log"))
+    else:
+        logging.basicConfig(format='%(message)s', level=loglevel)
 
     if args.rom:
         erargs.rom = args.rom
