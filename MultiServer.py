@@ -181,30 +181,31 @@ async def on_client_left(ctx: Context, client: Client):
 async def countdown(ctx: Context, timer):
     notify_all(ctx, f'[Server]: Starting countdown of {timer}s')
     if ctx.countdown_timer:
+        ctx.countdown_timer = timer  # timer is already running, set it to a different time
+    else:
         ctx.countdown_timer = timer
-        return
-
-    ctx.countdown_timer = timer
-    while ctx.countdown_timer > 0:
-        notify_all(ctx, f'[Server]: {ctx.countdown_timer}')
-        ctx.countdown_timer -= 1
-        await asyncio.sleep(1)
-    notify_all(ctx, f'[Server]: GO')
+        while ctx.countdown_timer > 0:
+            notify_all(ctx, f'[Server]: {ctx.countdown_timer}')
+            ctx.countdown_timer -= 1
+            await asyncio.sleep(1)
+        notify_all(ctx, f'[Server]: GO')
 
 def get_connected_players_string(ctx: Context):
-    auth_clients = [c for c in ctx.clients if c.auth]
-    if not auth_clients:
-        return f'No player connected, of {len(ctx.player_names)} expected players'
+    auth_clients = {(c.team, c.slot) for c in ctx.clients if c.auth}
 
-    auth_clients.sort(key=lambda c: (c.team, c.slot))
+    player_names = sorted(ctx.player_names.keys())
     current_team = -1
     text = ''
-    for c in auth_clients:
-        if c.team != current_team:
-            text += f':: Team #{c.team + 1}: '
-            current_team = c.team
-        text += f'{c.name} '
-    return f'Connected players ({len(auth_clients)} of {len(ctx.player_names)}) ' + text[:-1]
+    for team, slot in player_names:
+        player_name = ctx.player_names[team, slot]
+        if team != current_team:
+            text += f':: Team #{team + 1}: '
+            current_team = team
+        if (team, slot) in auth_clients:
+            text += f'{player_name} '
+        else:
+            text += f'({player_name}) '
+    return f'{len(auth_clients)} players of {len(ctx.player_names)} connected ' + text[:-1]
 
 
 def get_received_items(ctx: Context, team: int, player: int):
@@ -612,7 +613,7 @@ async def main():
     parser.add_argument('--location_check_points', default=1, type=int)
     parser.add_argument('--hint_cost', default=1000, type=int)
     parser.add_argument('--disable_item_cheat', default=False, action='store_true')
-    parser.add_argument('--disable_port_forward', default=False, action='store_true')
+    parser.add_argument('--port_forward', default=False, action='store_true')
     args = parser.parse_args()
 
     if os.path.exists('host.yaml'):
@@ -622,7 +623,7 @@ async def main():
                 setattr(args, key, value)
     logging.basicConfig(format='[%(asctime)s] %(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
     portforwardtask = None
-    if not args.disable_port_forward:
+    if args.port_forward:
         portforwardtask = asyncio.create_task(forward_port(args.port))
 
     ctx = Context(args.host, args.port, args.password, args.location_check_points, args.hint_cost,
