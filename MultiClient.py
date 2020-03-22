@@ -31,7 +31,7 @@ class ReceivedItem(typing.NamedTuple):
     player: int
 
 class Context:
-    def __init__(self, snes_address, server_address, password):
+    def __init__(self, snes_address, server_address, password, found_items):
         self.snes_address = snes_address
         self.server_address = server_address
 
@@ -64,6 +64,7 @@ class Context:
         self.awaiting_rom = False
         self.rom = None
         self.auth = None
+        self.found_items = found_items
 
 
 color_codes = {'reset': 0, 'bold': 1, 'underline': 4, 'black': 30, 'red': 31, 'green': 32, 'yellow': 33, 'blue': 34,
@@ -719,6 +720,12 @@ async def process_server_cmd(ctx : Context, cmd, args):
         logging.info(
             '%s sent %s to %s (%s)' % (player_sent, item, player_recvd, get_location_name_from_address(location)))
 
+    elif cmd == 'ItemFound':
+        player_sent, location, item = args
+        item = color(get_item_name_from_id(item), 'cyan' if player_sent != ctx.slot else 'green')
+        player_sent = color(ctx.player_names[player_sent], 'yellow' if player_sent != ctx.slot else 'magenta')
+        logging.info('%s found %s (%s)' % (player_sent, item, get_location_name_from_address(location)))
+
     elif cmd == 'Hint':
         hints = [Utils.Hint(*hint) for hint in args]
         for hint in hints:
@@ -744,8 +751,11 @@ async def server_auth(ctx: Context, password_requested):
         return
     ctx.awaiting_rom = False
     ctx.auth = ctx.rom.copy()
+    tags = ['Berserker']
+    if ctx.found_items:
+        tags.append('FoundItems')
     await send_msgs(ctx.socket, [['Connect', {
-        'password': ctx.password, 'rom': ctx.auth, 'version': [1, 2, 0], 'tags': ['Berserker']
+        'password': ctx.password, 'rom': ctx.auth, 'version': [1, 2, 0], 'tags': tags
     }]])
 
 async def console_input(ctx : Context):
@@ -818,6 +828,10 @@ async def console_loop(ctx : Context):
                 for location in [k for k, v in Regions.location_table.items() if type(v[0]) is int]:
                     if location not in ctx.locations_checked:
                         logging.info('Missing: ' + location)
+
+            elif precommand in ['showfounditems', 'hidefounditems']:
+                ctx.found_items = precommand == 'showfounditems'
+                asyncio.create_task(connect(ctx, None))
 
             elif precommand == "license":
                 with open("LICENSE") as f:
@@ -970,6 +984,7 @@ async def main():
     parser.add_argument('--connect', default=None, help='Address of the multiworld host.')
     parser.add_argument('--password', default=None, help='Password of the multiworld host.')
     parser.add_argument('--loglevel', default='info', choices=['debug', 'info', 'warning', 'error', 'critical'])
+    parser.add_argument('--founditems', default=False, action='store_true', help='Show items found by other players for themselves.')
     args = parser.parse_args()
 
     logging.basicConfig(format='%(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
@@ -981,7 +996,7 @@ async def main():
         logging.info(f"Wrote rom file to {romfile}")
         asyncio.create_task(run_game(romfile))
 
-    ctx = Context(args.snes, args.connect, args.password)
+    ctx = Context(args.snes, args.connect, args.password, args.founditems)
 
     input_task = asyncio.create_task(console_loop(ctx))
 
