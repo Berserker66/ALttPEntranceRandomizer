@@ -5,8 +5,6 @@ import logging
 import typing
 import urllib.parse
 import atexit
-import sys
-import os
 
 
 exit_func = atexit.register(input, "Press enter to close.")
@@ -721,10 +719,10 @@ async def process_server_cmd(ctx : Context, cmd, args):
             '%s sent %s to %s (%s)' % (player_sent, item, player_recvd, get_location_name_from_address(location)))
 
     elif cmd == 'ItemFound':
-        player_sent, location, item = args
-        item = color(get_item_name_from_id(item), 'cyan' if player_sent != ctx.slot else 'green')
-        player_sent = color(ctx.player_names[player_sent], 'yellow' if player_sent != ctx.slot else 'magenta')
-        logging.info('%s found %s (%s)' % (player_sent, item, get_location_name_from_address(location)))
+        found = ReceivedItem(*args)
+        item = color(get_item_name_from_id(found.item), 'cyan' if found.player != ctx.slot else 'green')
+        player_sent = color(ctx.player_names[found.player], 'yellow' if found.player != ctx.slot else 'magenta')
+        logging.info('%s found %s (%s)' % (player_sent, item, get_location_name_from_address(found.location)))
 
     elif cmd == 'Hint':
         hints = [Utils.Hint(*hint) for hint in args]
@@ -829,8 +827,13 @@ async def console_loop(ctx : Context):
                     if location not in ctx.locations_checked:
                         logging.info('Missing: ' + location)
 
-            elif precommand in ['showfounditems', 'hidefounditems']:
-                ctx.found_items = precommand == 'showfounditems'
+            elif precommand == "show_items":
+                if len(command) > 1:
+                    ctx.found_items = command[1].lower() in {"1", "true", "on"}
+                else:
+                    ctx.found_items = not ctx.found_items
+                logging.info(f"Set showing team items to {ctx.found_items}")
+                # don't like the reconnect here. Should maybe introduce an update_tags command to the network protocol
                 asyncio.create_task(connect(ctx, None))
 
             elif precommand == "license":

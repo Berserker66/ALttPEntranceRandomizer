@@ -6,7 +6,6 @@ import logging
 import zlib
 import collections
 import typing
-import os
 
 import ModuleUpdate
 
@@ -39,6 +38,10 @@ class Client:
         self.tags = []
         self.version = [0, 0, 0]
 
+    @property
+    def wants_item_notification(self):
+        return self.auth and "FoundItems" in self.tags
+
 
 class Context:
     def __init__(self, host: str, port: int, password: str, location_check_points: int, hint_cost: int,
@@ -57,7 +60,6 @@ class Context:
         self.countdown_timer = 0
         self.clients = []
         self.received_items = {}
-        self.found_items = {}
         self.location_checks = collections.defaultdict(set)
         self.hint_cost = hint_cost
         self.location_check_points = location_check_points
@@ -69,7 +71,6 @@ class Context:
         return {
             "rom_names": list(self.rom_names.items()),
             "received_items": tuple((k, v) for k, v in self.received_items.items()),
-            "found_items": tuple((k, v) for k, v in self.found_items.items()),
             "hints_used" : tuple((key,value) for key, value in self.hints_used.items()),
             "hints_sent" : tuple((key,tuple(value)) for key, value in self.hints_sent.items()),
             "location_checks" : tuple((key,tuple(value)) for key, value in self.location_checks.items())
@@ -78,11 +79,9 @@ class Context:
     def set_save(self, savedata: dict):
         rom_names = savedata["rom_names"]
         received_items = {tuple(k): [ReceivedItem(*i) for i in v] for k, v in savedata["received_items"]}
-        found_items = {tuple(k): [ReceivedItem(*i) for i in v] for k, v in savedata["found_items"]}
         if not all([self.rom_names[tuple(rom)] == (team, slot) for rom, (team, slot) in rom_names]):
             raise Exception('Save file mismatch, will start a new game')
         self.received_items = received_items
-        self.found_items = found_items
         self.hints_used.update({tuple(key): value for key, value in savedata["hints_used"]})
         self.hints_sent.update({tuple(key): set(value) for key, value in savedata["hints_sent"]})
         self.location_checks.update({tuple(key): set(value) for key, value in savedata["location_checks"]})
@@ -213,11 +212,8 @@ def get_connected_players_string(ctx: Context):
     return f'{len(auth_clients)} players of {len(ctx.player_names)} connected ' + text[:-1]
 
 
-def get_received_items(ctx: Context, team: int, player: int):
+def get_received_items(ctx: Context, team: int, player: int) -> typing.List[ReceivedItem]:
     return ctx.received_items.setdefault((team, player), [])
-
-def get_found_items(ctx: Context, team: int, player: int):
-    return ctx.found_items.setdefault((team, player), [])
 
 
 def tuplize_received_items(items):
@@ -241,32 +237,36 @@ def forfeit_player(ctx: Context, team: int, slot: int):
 
 
 def register_location_checks(ctx: Context, team: int, slot: int, locations):
-    ctx.location_checks[team, slot] |= set(locations)
+
 
     found_items = False
     for location in locations:
         if (location, slot) in ctx.locations:
             target_item, target_player = ctx.locations[(location, slot)]
-            found = False
-            recvd_items = get_received_items(ctx, team, target_player) if target_player != slot or ctx.remote_items else get_found_items(ctx, team, target_player)
+            if target_player != slot or slot in ctx.remote_items:
+                found = False
+                recvd_items = get_received_items(ctx, team, target_player)
+                for recvd_item in recvd_items:
+                    if recvd_item.location == location and recvd_item.player == slot:
+                        found = True
+                        break
 
-            for recvd_item in recvd_items:
-                if recvd_item.location == location and recvd_item.player == slot:
-                    found = True
-                    break
-
-            if not found:
-                new_item = ReceivedItem(target_item, location, slot)
-                recvd_items.append(new_item)
-                if slot == target_player:
-                    logging.info('(Team #%d) %s found %s (%s)' % (team + 1, ctx.player_names[(team, slot)], get_item_name_from_id(target_item), get_location_name_from_address(location)))
+                if not found:
+                    new_item = ReceivedItem(target_item, location, slot)
+                    recvd_items.append(new_item)
+                    if slot != target_player:
+                        broadcast_team(ctx, team, [['ItemSent', (slot, location, target_player, target_item)]])
+                    logging.info('(Team #%d) %s sent %s to %s (%s)' % (
+                    team + 1, ctx.player_names[(team, slot)], get_item_name_from_id(target_item),
+                    ctx.player_names[(team, target_player)], get_location_name_from_address(location)))
+                    found_items = True
+            elif target_player == slot:  # local pickup, notify clients of the pickup
+                if location not in ctx.location_checks[team, slot]:
                     for client in ctx.clients:
-                        if client.auth and client.team == team and "FoundItems" in client.tags:
-                            asyncio.create_task(send_msgs(client.socket, [['ItemFound', (slot, location, target_item)]]))
-                else:
-                    broadcast_team(ctx, team, [['ItemSent', (slot, location, target_player, target_item)]])
-                    logging.info('(Team #%d) %s sent %s to %s (%s)' % (team + 1, ctx.player_names[(team, slot)], get_item_name_from_id(target_item),  ctx.player_names[(team, target_player)], get_location_name_from_address(location)))
-                found_items = True
+                        if client.team == team and client.wants_item_notification:
+                            asyncio.create_task(
+                                send_msgs(client.socket, [['ItemFound', (target_item, location, slot)]]))
+    ctx.location_checks[team, slot] |= set(locations)
     send_new_items(ctx)
 
     if found_items:
