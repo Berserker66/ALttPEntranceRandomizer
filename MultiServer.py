@@ -319,7 +319,7 @@ def format_hint(ctx: Context, team: int, hint: Utils.Hint) -> str:
 
 def get_intended_text(input_text: str, possible_answers: typing.Iterable[str]= console_names) -> typing.Tuple[str, bool, str]:
     picks = fuzzy_process.extract(input_text, possible_answers, limit=2)
-    dif = picks[0][1] - picks[1][1]
+    dif = picks[0][1] - picks[1][1] if len(picks) > 1 else picks[0][1]
     if picks[0][1] == 100:
         return picks[0][0], True, "Perfect Match"
     elif picks[0][1] < 75:
