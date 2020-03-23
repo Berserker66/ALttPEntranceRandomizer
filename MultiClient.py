@@ -738,6 +738,11 @@ async def process_server_cmd(ctx : Context, cmd, args):
     elif cmd == 'Print':
         logging.info(args)
 
+def get_tags(ctx: Context):
+    tags = ['Berserker']
+    if ctx.found_items:
+        tags.append('FoundItems')
+    return tags
 
 async def server_auth(ctx: Context, password_requested):
     if password_requested and not ctx.password:
@@ -749,11 +754,8 @@ async def server_auth(ctx: Context, password_requested):
         return
     ctx.awaiting_rom = False
     ctx.auth = ctx.rom.copy()
-    tags = ['Berserker']
-    if ctx.found_items:
-        tags.append('FoundItems')
     await send_msgs(ctx.socket, [['Connect', {
-        'password': ctx.password, 'rom': ctx.auth, 'version': [1, 2, 0], 'tags': tags
+        'password': ctx.password, 'rom': ctx.auth, 'version': [1, 2, 0], 'tags': get_tags(ctx)
     }]])
 
 async def console_input(ctx : Context):
@@ -833,8 +835,7 @@ async def console_loop(ctx : Context):
                 else:
                     ctx.found_items = not ctx.found_items
                 logging.info(f"Set showing team items to {ctx.found_items}")
-                # don't like the reconnect here. Should maybe introduce an update_tags command to the network protocol
-                asyncio.create_task(connect(ctx, None))
+                asyncio.create_task(send_msgs(ctx.socket, [['UpdateTags', get_tags(ctx)]]))
 
             elif precommand == "license":
                 with open("LICENSE") as f:

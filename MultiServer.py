@@ -409,6 +409,12 @@ async def process_client_cmd(ctx: Context, client: Client, cmd, args):
         logging.info(f"{client.name} in team {client.team+1} scouted {', '.join([l[0] for l in locs])}")
         await send_msgs(client.socket, [['LocationInfo', [l[1:] for l in locs]]])
 
+    if cmd == 'UpdateTags':
+        if not args or type(args) is not list:
+            await send_msgs(client.socket, [['InvalidArguments', 'UpdateTags']])
+            return
+        client.tags = args
+
     if cmd == 'Say':
         if type(args) is not str or not args.isprintable():
             await send_msgs(client.socket, [['InvalidArguments', 'Say']])
