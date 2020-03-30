@@ -28,10 +28,10 @@ if __name__ == "__main__":
 
         ModuleUpdate.update()
 
-        from Utils import parse_yaml, get_public_ipv4
+        from Utils import get_options, get_public_ipv4
         from Patch import create_patch_file
 
-        options = parse_yaml(open("host.yaml").read())
+        options = get_options()
 
         multi_mystery_options = options["multi_mystery_options"]
         output_path = multi_mystery_options["output_path"]
