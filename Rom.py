@@ -1143,8 +1143,8 @@ def patch_rom(world, rom, player, team, enemized):
      #
     rom.write_byte(0x180045, ((0x01 if world.keyshuffle[player] else 0x00)
                               | (0x02 if world.bigkeyshuffle[player] else 0x00)
-                              | (0x04 if world.compassshuffle[player] else 0x00)
-                              | (0x08 if world.mapshuffle[player] else 0x00)))  # free roaming items in menu
+                              | (0x04 if world.mapshuffle[player] else 0x00)
+                              | (0x08 if world.compassshuffle[player] else 0x00)))  # free roaming items in menu
 
     # Map reveals
     reveal_bytes = {
