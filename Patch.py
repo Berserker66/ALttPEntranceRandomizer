@@ -66,11 +66,37 @@ def write_lzma(data: bytes, path: str):
         f.write(data)
 
 if __name__ == "__main__":
-    ipv4 = Utils.get_public_ipv4()
+    host = Utils.get_public_ipv4()
+    try:
+        options = Utils.get_options()['server_options']
+        if options['host']:
+            ipv4 = options['host'] + ":" + str(options['port'])
+        else:
+            ipv4 = host + ":" + options['port']
+    except:
+        ipv4 = host + ":38281"
+        
+
+    print(f"Host for patches to be created is {ipv4}")
     import sys
 
+    Processed = False
     for rom in sys.argv:
-        if rom.endswith(".sfc"):
-            print(f"Creating patch for {rom}")
-            result = create_patch_file(rom, ipv4)
-            print(f"Created patch {result}")
+        Processed |= rom.endswith(".sfc") or rom.endswith(".bmbp")
+        try:
+            if rom.endswith(".sfc"):
+                print(f"Creating patch for {rom}")
+                result = create_patch_file(rom, ipv4)
+                print(f"Created patch {result}")
+            elif rom.endswith(".bmbp"):
+                print(f"Applying patch {rom}")
+                data, target = create_rom_file(rom)
+                print(f"Created rom {target}.")
+                if 'server' in data:
+                    print(f"Host is {data['server']}")
+        except:
+            import traceback
+            traceback.print_exc()
+
+    if Processed:
+        input("Press enter to close.")
