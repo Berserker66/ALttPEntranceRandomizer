@@ -109,8 +109,9 @@ def get_boots_clip_exits_lw(inverted = False):
     yield 'Lake Hylia Island Clip Spot'
     yield 'Death Mountain Descent'
     yield 'Graveyard Ledge Clip Spot'
+    # TODO: This is not an OWG only entrance
     # Also requires a waterwalk setup, but the point still remains.
-    yield 'Waterfall of Wishing'
+    # yield 'Waterfall of Wishing'
 
     if not inverted:
         yield 'Spectacle Rock Clip Spot'
