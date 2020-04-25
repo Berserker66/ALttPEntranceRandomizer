@@ -1404,8 +1404,7 @@ def set_bunny_rules(world, player):
                             if location.name in OWGSets.get_superbunny_accessible_locations():
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance) and state.has_Mirror(player))
                                 continue
-                    else:
-                        continue
+                    continue
                 if new_region.is_dark_world:
                     queue.append((new_region, new_path))
                 else:
@@ -1500,8 +1499,7 @@ def set_inverted_bunny_rules(world, player):
                             if location.name in OWGSets.get_superbunny_accessible_locations():
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance) and state.has_Mirror(player))
                                 continue
-                    else:
-                        continue
+                    continue
                 if new_region.is_light_world:
                     queue.append((new_region, new_path))
                 else:
