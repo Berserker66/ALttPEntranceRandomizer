@@ -1353,7 +1353,7 @@ def set_bunny_rules(world, player):
     bunny_impassable_caves = ['Bumper Cave', 'Two Brothers House', 'Hookshot Cave', 'Skull Woods First Section (Right)', 'Skull Woods First Section (Left)', 'Skull Woods First Section (Top)', 'Turtle Rock (Entrance)', 'Turtle Rock (Second Section)', 'Turtle Rock (Big Chest)', 'Skull Woods Second Section (Drop)',
                               'Turtle Rock (Eye Bridge)', 'Sewers', 'Pyramid', 'Spiral Cave (Top)', 'Desert Palace Main (Inner)', 'Fairy Ascension Cave (Drop)']
 
-    bunny_accessible_locations = ['Link\'s Uncle', 'Sahasrahla', 'Sick Kid', 'Lost Woods Hideout', 'Lumberjack Tree', 'Checkerboard Cave', 'Potion Shop', 'Spectacle Rock Cave', 'Pyramid', 'Hype Cave - Generous Guy', 'Peg Cave', 'Bumper Cave Ledge', 'Dark Blacksmith Ruins', 'Spectacle Rock', 'Bombos Tablet']
+    bunny_accessible_locations = ['Link\'s Uncle', 'Sahasrahla', 'Sick Kid', 'Lost Woods Hideout', 'Lumberjack Tree', 'Checkerboard Cave', 'Potion Shop', 'Spectacle Rock Cave', 'Pyramid', 'Hype Cave - Generous Guy', 'Peg Cave', 'Bumper Cave Ledge', 'Dark Blacksmith Ruins']
 
 
     def path_to_access_rule(path, entrance):
@@ -1428,7 +1428,7 @@ def set_bunny_rules(world, player):
 
     # Add requirements for all locations that are actually in the dark world, except those available to the bunny, including dungeon revival
     for entrance in world.get_entrances():
-        if entrance.player == player and entrance.parent_region.is_dark_world:
+        if entrance.player == player and entrance.connected_region.is_dark_world:
             if world.logic[player] == 'owglitches':
                 if entrance.connected_region.type == RegionType.Dungeon:
                     if entrance.connected_region.name in OWGSets.get_invalid_bunny_revival_dungeons():
@@ -1524,7 +1524,7 @@ def set_inverted_bunny_rules(world, player):
 
     # Add requirements for all locations that are actually in the light world, except those available to the bunny, including dungeon revival
     for entrance in world.get_entrances():
-        if entrance.player == player and entrance.parent_region.is_light_world:
+        if entrance.player == player and entrance.connected_region.is_light_world:
             if world.logic[player] == 'owglitches':
                 if entrance.connected_region.type == RegionType.Dungeon:
                     if entrance.connected_region.name in OWGSets.get_invalid_bunny_revival_dungeons():
