@@ -1368,9 +1368,9 @@ def set_bunny_rules(world, player):
         if world.logic[player] == 'owglitches':
             if region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                 return lambda state: state.has_Mirror(player) or state.has_Pearl(player)
-            if not any([
-                None not in [location, connecting_entrance] and location.name in OWGSets.get_superbunny_accessible_locations() and connecting_entrance.name not in OWGSets.get_invalid_mirror_bunny_entrances_dw(),
-                not region.is_light_world]):
+            if (((location is None or location.name not in OWGSets.get_superbunny_accessible_locations())
+                    or (connecting_entrance is not None and connecting_entrance.name in OWGSets.get_invalid_bunny_revival_dungeons()))
+                    and not region.is_light_world):
                 return lambda state: state.has_Pearl(player)
         else:
             if not region.is_light_world:
@@ -1465,9 +1465,9 @@ def set_inverted_bunny_rules(world, player):
         if world.logic[player] == 'owglitches':
             if region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                 return lambda state: state.has_Mirror(player) or state.has_Pearl(player)
-            if not any([
-                None not in [location, connecting_entrance] and location.name in OWGSets.get_superbunny_accessible_locations() and connecting_entrance.name not in OWGSets.get_invalid_mirror_bunny_entrances_lw(),
-                not region.is_dark_world]):
+            if (((location is None or location.name not in OWGSets.get_superbunny_accessible_locations())
+                    or (connecting_entrance is not None and connecting_entrance.name in OWGSets.get_invalid_bunny_revival_dungeons()))
+                    and not region.is_dark_world):
                 return lambda state: state.has_Pearl(player)
         else:
             if not region.is_dark_world:
