@@ -30,17 +30,13 @@ class TestInvertedDeathMountain(TestInverted):
             ["Blacksmith", False, []],
             ["Blacksmith", False, [], ['Progressive Glove', 'Magic Mirror']],
             ["Blacksmith", True, ['Progressive Glove', 'Progressive Glove', 'Moon Pearl']],
-            #@todo: Can get this without moon pearl
-            #["Blacksmith", True, ['Beat Agahnim 1', 'Magic Mirror']],
-            ["Blacksmith", True, ['Beat Agahnim 1', 'Magic Mirror', 'Moon Pearl']],
+            ["Blacksmith", True, ['Beat Agahnim 1', 'Magic Mirror']],
             ["Blacksmith", True, ['Progressive Glove', 'Hammer', 'Magic Mirror', 'Moon Pearl']],
 
             ["Purple Chest", False, []],
             ["Purple Chest", False, [], ['Progressive Glove', 'Magic Mirror']],
             ["Purple Chest", True, ['Progressive Glove', 'Progressive Glove', 'Moon Pearl']],
-            # @todo: Can get this without moon pearl
-            #["Purple Chest", True, ['Beat Agahnim 1', 'Magic Mirror']],
-            ["Purple Chest", True, ['Beat Agahnim 1', 'Magic Mirror', 'Moon Pearl']],
+            ["Purple Chest", True, ['Beat Agahnim 1', 'Magic Mirror']],
             ["Purple Chest", True, ['Progressive Glove', 'Hammer', 'Magic Mirror', 'Moon Pearl']],
         ])
 

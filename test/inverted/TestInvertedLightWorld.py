@@ -11,9 +11,7 @@ class TestInvertedLightWorld(TestInverted):
             ["Master Sword Pedestal", False, [], ['Green Pendant']],
             ["Master Sword Pedestal", False, [], ['Red Pendant']],
             ["Master Sword Pedestal", False, [], ['Blue Pendant']],
-            # @todo: Can get this without moon pearl
-            # ["Master Sword Pedestal", True, ['Green Pendant', 'Red Pendant', 'Blue Pendant', 'Beat Agahnim 1']],
-            ["Master Sword Pedestal", True, ['Green Pendant', 'Red Pendant', 'Blue Pendant', 'Beat Agahnim 1', 'Moon Pearl']],
+            ["Master Sword Pedestal", True, ['Green Pendant', 'Red Pendant', 'Blue Pendant', 'Beat Agahnim 1']],
             ["Master Sword Pedestal", True, ['Green Pendant', 'Red Pendant', 'Blue Pendant', 'Moon Pearl', 'Progressive Glove', 'Hammer']],
             ["Master Sword Pedestal", True, ['Green Pendant', 'Red Pendant', 'Blue Pendant', 'Moon Pearl', 'Progressive Glove', 'Progressive Glove']],
 
@@ -111,9 +109,7 @@ class TestInvertedLightWorld(TestInverted):
             ["Blind's Hideout - Far Right", True, ['Moon Pearl', 'Progressive Glove', 'Progressive Glove']],
 
             ["Bottle Merchant", False, []],
-            #@todo: Can get this without moon pearl
-            #["Bottle Merchant", True, ['Beat Agahnim 1']],
-            ["Bottle Merchant", True, ['Beat Agahnim 1', 'Moon Pearl']],
+            ["Bottle Merchant", True, ['Beat Agahnim 1']],
             ["Bottle Merchant", True, ['Moon Pearl', 'Progressive Glove', 'Hammer']],
             ["Bottle Merchant", True, ['Moon Pearl', 'Progressive Glove', 'Progressive Glove']],
 
