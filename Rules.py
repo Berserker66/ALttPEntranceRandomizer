@@ -73,6 +73,8 @@ def set_rules(world, player):
     set_trock_key_rules(world, player)
 
     set_rule(ganons_tower, lambda state: state.has_crystals(world.crystals_needed_for_gt[player], player))
+    if world.mode != 'inverted' and world.logic == 'owglitches':
+        add_rule(world.get_entrance('Ganons Tower', player), lambda state: state.world.get_entrance('Ganons Tower Ascent', player).can_reach(state), 'or')
 
     if world.mode[player] != 'inverted':
         set_bunny_rules(world, player)
