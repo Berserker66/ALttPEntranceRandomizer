@@ -55,7 +55,6 @@ def get_invalid_mirror_bunny_entrances_lw():
 
     yield 'Bonk Rock Cave'
     yield 'Bonk Fairy (Light)'
-    yield 'Blinds Hideout'
     yield '50 Rupee Cave'
     yield '20 Rupee Cave'
     yield 'Checkerboard Cave'
