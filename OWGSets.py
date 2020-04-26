@@ -47,10 +47,6 @@ def get_invalid_mirror_bunny_entrances_dw():
 def get_invalid_mirror_bunny_entrances_lw():
     """
     Light World entrances that can't be superbunny-mirrored into.
-
-    A couple of these, like Blind's Hideout, are odd cases where the pixel
-    leading into the entrance prevents mirror superbunnying - generally due to
-    there being stairs there. 
     """
 
     yield 'Bonk Rock Cave'
@@ -63,9 +59,10 @@ def get_invalid_mirror_bunny_entrances_lw():
     yield 'Light World Bomb Hut'
     yield 'Mini Moldorm Cave'
     yield 'Ice Rod Cave'
-    yield 'Hyrule Castle Secret Entrance Stairs'
     yield 'Sanctuary Grave'
     yield 'Kings Grave'
+    #todo: you can for insanity shuffle
+    yield 'Hyrule Castle Secret Entrance Stairs'
     yield 'Tower of Hera'
 
 
@@ -91,6 +88,15 @@ def get_superbunny_accessible_locations():
     yield 'Pyramid Fairy - Right'
     yield 'Superbunny Cave - Top'
     yield 'Superbunny Cave - Bottom'
+    yield 'Blind\'s Hideout - Left'
+    yield 'Blind\'s Hideout - Right'
+    yield 'Blind\'s Hideout - Far Left'
+    yield 'Blind\'s Hideout - Far Right'
+    yield 'Kakariko Well - Left'
+    yield 'Kakariko Well - Middle'
+    yield 'Kakariko Well - Right'
+    yield 'Kakariko Well - Bottom'
+    yield 'Library'
 
 
 def get_boots_clip_exits_lw(inverted = False):

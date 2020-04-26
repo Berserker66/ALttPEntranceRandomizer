@@ -566,7 +566,7 @@ def inverted_rules(world, player):
     set_rule(world.get_entrance('Dark Death Mountain Teleporter (East)', player), lambda state: state.can_lift_heavy_rocks(player) and state.has('Hammer', player) and state.has_Pearl(player))  # bunny cannot use hammer
     set_rule(world.get_entrance('East Death Mountain (Top)', player), lambda state: state.has('Hammer', player) and state.has_Pearl(player))  # bunny can not use hammer
 
-    set_rule(world.get_location('Catfish', player), lambda state: state.can_lift_rocks(player) or (state.has('Flippers', player) and state.has_Mirror(player) and state.has_Pearl(player) and state.can_reach('Light World', 'Region', player)))
+    set_rule(world.get_entrance('Catfish Entrance Rock', player), lambda state: state.can_lift_rocks(player))
     set_rule(world.get_entrance('Northeast Dark World Broken Bridge Pass', player), lambda state: ((state.can_lift_rocks(player) or state.has('Hammer', player)) or state.has('Flippers', player)))
     set_rule(world.get_entrance('East Dark World Broken Bridge Pass', player), lambda state: (state.can_lift_rocks(player) or state.has('Hammer', player)))
     set_rule(world.get_entrance('South Dark World Bridge', player), lambda state: state.has('Hammer', player))
@@ -616,7 +616,7 @@ def inverted_rules(world, player):
     set_rule(world.get_entrance('East Dark World Mirror Spot', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('West Dark World Mirror Spot', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('South Dark World Mirror Spot', player), lambda state: state.has_Mirror(player))
-    set_rule(world.get_entrance('Northeast Dark World Mirror Spot', player), lambda state: state.has_Mirror(player))
+    set_rule(world.get_entrance('Catfish Mirror Spot', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('Potion Shop Mirror Spot', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('Shopping Mall Mirror Spot', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('Maze Race Mirror Spot', player), lambda state: state.has_Mirror(player))
@@ -1404,7 +1404,7 @@ def set_bunny_rules(world, player):
                     # For OWG, establish superbunny and revival rules.
                     if world.logic[player] == 'owglitches' and entrance.name not in OWGSets.get_invalid_mirror_bunny_entrances_dw():
                         if location is not None and location.name in OWGSets.get_superbunny_accessible_locations():
-                            if new_region.name == 'Superbunny Cave (Bottom)':
+                            if new_region.name == 'Superbunny Cave (Bottom)' or region.name == 'Kakariko Well (top)':
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance))
                             else:
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance) and state.has_Mirror(player))
@@ -1442,8 +1442,6 @@ def set_bunny_rules(world, player):
                     continue
                 if entrance.connected_region.name == 'Turtle Rock (Entrance)':
                     add_rule(world.get_entrance('Turtle Rock Entrance Gap', player), get_rule_to_add(entrance.connected_region, None, entrance))
-                if entrance.name in OWGSets.get_invalid_mirror_bunny_entrances_dw():
-                    continue
             for location in entrance.connected_region.locations:
                 if world.logic[player] == 'owglitches' and entrance.name in OWGSets.get_invalid_mirror_bunny_entrances_dw():
                     add_rule(location, get_rule_to_add(entrance.connected_region, location, entrance))
@@ -1457,7 +1455,7 @@ def set_inverted_bunny_rules(world, player):
     # Note spiral cave may be technically passible, but it would be too absurd to require since OHKO mode is a thing.
     bunny_impassable_caves = ['Bumper Cave', 'Two Brothers House', 'Hookshot Cave', 'Skull Woods First Section (Right)', 'Skull Woods First Section (Left)', 'Skull Woods First Section (Top)', 'Turtle Rock (Entrance)', 'Turtle Rock (Second Section)', 'Turtle Rock (Big Chest)', 'Skull Woods Second Section (Drop)',
                               'Turtle Rock (Eye Bridge)', 'Sewers', 'Pyramid', 'Spiral Cave (Top)', 'Desert Palace Main (Inner)', 'Fairy Ascension Cave (Drop)', 'The Sky']
-    bunny_accessible_locations = ['Link\'s Uncle', 'Sahasrahla', 'Sick Kid', 'Lost Woods Hideout', 'Lumberjack Tree', 'Checkerboard Cave', 'Potion Shop', 'Spectacle Rock Cave', 'Pyramid', 'Hype Cave - Generous Guy', 'Peg Cave', 'Bumper Cave Ledge', 'Dark Blacksmith Ruins', 'Spectacle Rock', 'Bombos Tablet', 'Ether Tablet', 'Purple Chest', 'Blacksmith', 'Missing Smith', 'Master Sword Pedestal', 'Bottle Merchant']
+    bunny_accessible_locations = ['Link\'s Uncle', 'Sahasrahla', 'Sick Kid', 'Lost Woods Hideout', 'Lumberjack Tree', 'Checkerboard Cave', 'Potion Shop', 'Spectacle Rock Cave', 'Pyramid', 'Hype Cave - Generous Guy', 'Peg Cave', 'Bumper Cave Ledge', 'Dark Blacksmith Ruins', 'Spectacle Rock', 'Bombos Tablet', 'Ether Tablet', 'Purple Chest', 'Blacksmith', 'Missing Smith', 'Master Sword Pedestal', 'Bottle Merchant', 'Sunken Treasure', 'Desert Ledge']
 
     def path_to_access_rule(path, entrance):
         return lambda state: state.can_reach(entrance) and all(rule(state) for rule in path)
@@ -1505,7 +1503,7 @@ def set_inverted_bunny_rules(world, player):
                     # For OWG, establish superbunny and revival rules.
                     if world.logic[player] == 'owglitches' and entrance.name not in OWGSets.get_invalid_mirror_bunny_entrances_lw():
                         if location is not None and location.name in OWGSets.get_superbunny_accessible_locations():
-                            if new_region.name == 'Superbunny Cave (Bottom)':
+                            if new_region.name == 'Superbunny Cave (Bottom)' or region.name == 'Kakariko Well (top)':
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance))
                             else:
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance) and state.has_Mirror(player))
@@ -1543,8 +1541,6 @@ def set_inverted_bunny_rules(world, player):
                     continue
                 if entrance.connected_region.name == 'Turtle Rock (Entrance)':
                     add_rule(world.get_entrance('Turtle Rock Entrance Gap', player), get_rule_to_add(entrance.connected_region, None, entrance))
-                if entrance.name in OWGSets.get_invalid_mirror_bunny_entrances_lw():
-                    continue
             for location in entrance.connected_region.locations:
                 if world.logic[player] == 'owglitches' and entrance.name in OWGSets.get_invalid_mirror_bunny_entrances_lw():
                     add_rule(location, get_rule_to_add(entrance.connected_region, location, entrance))

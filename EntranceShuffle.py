@@ -3216,7 +3216,7 @@ inverted_mandatory_connections = [('Lake Hylia Central Island Pier', 'Lake Hylia
                                   ('West Dark World Mirror Spot', 'West Dark World'),
                                   ('South Dark World Mirror Spot', 'South Dark World'),
                                   ('Potion Shop Mirror Spot', 'Northeast Dark World'),
-                                  ('Northeast Dark World Mirror Spot', 'Northeast Dark World'),
+                                  ('Catfish Mirror Spot', 'Catfish'),
                                   ('Shopping Mall Mirror Spot', 'Dark Lake Hylia Ledge'),
                                   ('Skull Woods Mirror Spot', 'Skull Woods Forest (West)'),
                                   ('DDM Flute', 'The Sky'),
