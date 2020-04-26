@@ -58,6 +58,8 @@ def set_rules(world, player):
     
     if world.mode[player] != 'inverted':
         set_big_bomb_rules(world, player)
+        if world.logic == 'owglitches':
+            add_rule(world.get_entrance('Pyramid Fairy', player), lambda state: state.can_reach('Dark Death Mountain (West Bottom)', 'Region', player) and state.has_Mirror(player), 'or')
     else:
         set_inverted_big_bomb_rules(world, player)
 
@@ -601,7 +603,6 @@ def inverted_rules(world, player):
     set_rule(world.get_entrance('Dark Death Mountain Ledge Mirror Spot (East)', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('Dark Death Mountain Ledge Mirror Spot (West)', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('Laser Bridge Mirror Spot', player), lambda state: state.has_Mirror(player))
-    set_rule(world.get_entrance('Superbunny Cave Exit (Bottom)', player), lambda state: False)  # Cannot get to bottom exit from top. Just exists for shuffling
     set_rule(world.get_entrance('Floating Island Mirror Spot', player), lambda state: state.has_Mirror(player))
     set_rule(world.get_entrance('Turtle Rock', player), lambda state: state.has_sword(player) and state.has_turtle_rock_medallion(player) and state.can_reach('Turtle Rock (Top)', 'Region', player)) # sword required to cast magic (!)
     
@@ -777,11 +778,10 @@ def overworld_glitches_rules(world, player):
 
     # Regions that require the boots and some other stuff.
     if world.mode[player] != 'inverted':
-        set_rule(world.get_entrance('Dark Desert Teleporter', player), lambda state: (state.has('Flute', player) or state.can_boots_clip_dw(player)) and state.can_lift_heavy_rocks(player))
-        set_rule(world.get_entrance('Turtle Rock Teleporter', player), lambda state: (state.can_boots_clip_dw(player) or state.can_lift_heavy_rocks(player)) and state.has('Hammer', player))
+        set_rule(world.get_entrance('Dark Desert Teleporter', player), lambda state: (state.has('Flute', player) or state.can_boots_clip_lw(player)) and state.can_lift_heavy_rocks(player))
+        set_rule(world.get_entrance('Turtle Rock Teleporter', player), lambda state: (state.can_boots_clip_lw(player) or state.can_lift_heavy_rocks(player)) and state.has('Hammer', player))
         add_rule(world.get_entrance('Catfish Exit Rock', player), lambda state: state.can_boots_clip_dw(player), 'or')
         add_rule(world.get_entrance('East Dark World Broken Bridge Pass', player), lambda state: state.can_boots_clip_dw(player), 'or')
-        add_rule(world.get_entrance('Pyramid Fairy', player), lambda state: state.can_reach('Dark Death Mountain (West Bottom)', 'Region', player) and state.has_Mirror(player))
     else:
         add_rule(world.get_entrance('South Dark World Teleporter', player), lambda state: state.has_Boots(player) and state.can_lift_rocks(player), 'or')
 
@@ -1355,7 +1355,6 @@ def set_bunny_rules(world, player):
 
     bunny_accessible_locations = ['Link\'s Uncle', 'Sahasrahla', 'Sick Kid', 'Lost Woods Hideout', 'Lumberjack Tree', 'Checkerboard Cave', 'Potion Shop', 'Spectacle Rock Cave', 'Pyramid', 'Hype Cave - Generous Guy', 'Peg Cave', 'Bumper Cave Ledge', 'Dark Blacksmith Ruins']
 
-
     def path_to_access_rule(path, entrance):
         return lambda state: state.can_reach(entrance) and all(rule(state) for rule in path)
 
@@ -1400,11 +1399,15 @@ def set_bunny_rules(world, player):
                 if not new_region.is_light_world:
                     # For OWG, establish superbunny and revival rules.
                     if world.logic[player] == 'owglitches' and entrance.name not in OWGSets.get_invalid_mirror_bunny_entrances_dw():
-                        for location in entrance.connected_region.locations:
-                            if location.name in OWGSets.get_superbunny_accessible_locations():
+                        if location is not None and location.name in OWGSets.get_superbunny_accessible_locations():
+                            if new_region.name == 'Superbunny Cave (Bottom)':
+                                possible_options.append(lambda state: path_to_access_rule(new_path, entrance))
+                            else:
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance) and state.has_Mirror(player))
-                                continue
-                    continue
+                        if new_region.type != RegionType.Cave:
+                            continue
+                    else:
+                        continue
                 if new_region.is_dark_world:
                     queue.append((new_region, new_path))
                 else:
@@ -1495,11 +1498,15 @@ def set_inverted_bunny_rules(world, player):
                 if not new_region.is_dark_world:
                     # For OWG, establish superbunny and revival rules.
                     if world.logic[player] == 'owglitches' and entrance.name not in OWGSets.get_invalid_mirror_bunny_entrances_lw():
-                        for location in entrance.connected_region.locations:
-                            if location.name in OWGSets.get_superbunny_accessible_locations():
+                        if location is not None and location.name in OWGSets.get_superbunny_accessible_locations():
+                            if new_region.name == 'Superbunny Cave (Bottom)':
+                                possible_options.append(lambda state: path_to_access_rule(new_path, entrance))
+                            else:
                                 possible_options.append(lambda state: path_to_access_rule(new_path, entrance) and state.has_Mirror(player))
-                                continue
-                    continue
+                        if new_region.type != RegionType.Cave:
+                            continue
+                    else:
+                        continue
                 if new_region.is_light_world:
                     queue.append((new_region, new_path))
                 else:
