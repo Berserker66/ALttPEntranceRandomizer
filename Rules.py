@@ -1365,6 +1365,8 @@ def set_bunny_rules(world, player):
         # In OWG, a location can potentially be superbunny-mirror accessible or
         # bunny revival accessible.
         if world.logic[player] == 'owglitches':
+            if region.name == 'Swamp Palace (Entrance)':
+                return lambda state: state.has_Pearl(player)
             if region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                 return lambda state: state.has_Mirror(player) or state.has_Pearl(player)
             if (((location is None or location.name not in OWGSets.get_superbunny_accessible_locations())
@@ -1465,6 +1467,8 @@ def set_inverted_bunny_rules(world, player):
         # In OWG, a location can potentially be superbunny-mirror accessible or
         # bunny revival accessible.
         if world.logic[player] == 'owglitches':
+            if region.name == 'Swamp Palace (Entrance)':
+                return lambda state: state.has_Pearl(player)
             if region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                 return lambda state: state.has_Mirror(player) or state.has_Pearl(player)
             if (((location is None or location.name not in OWGSets.get_superbunny_accessible_locations())
