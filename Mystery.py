@@ -185,7 +185,6 @@ def main():
                     important[option] = player_settings
                 else:
                     logging.debug(f"No player settings defined for option '{option}'")
-        print(args.outputpath)
         if args.outputpath:
             os.makedirs(args.outputpath, exist_ok=True)
         with open(os.path.join(args.outputpath if args.outputpath else ".", f"mystery_result_{seed}.yaml"), "wt") as f:
