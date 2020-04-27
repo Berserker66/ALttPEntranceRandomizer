@@ -6,7 +6,7 @@ class TestInvertedLightWorld(TestInverted):
         super().setUp()
 
     def testLostWoods(self):
-        self.run_tests([
+        self.run_location_tests([
             ["Master Sword Pedestal", False, []],
             ["Master Sword Pedestal", False, [], ['Green Pendant']],
             ["Master Sword Pedestal", False, [], ['Red Pendant']],
@@ -35,7 +35,7 @@ class TestInvertedLightWorld(TestInverted):
         ])
 
     def testKakariko(self):
-        self.run_tests([
+        self.run_location_tests([
             ["Kakariko Tavern", False, []],
             ["Kakariko Tavern", False, [], ['Moon Pearl']],
             ["Kakariko Tavern", True, ['Moon Pearl', 'Beat Agahnim 1']],
@@ -167,7 +167,7 @@ class TestInvertedLightWorld(TestInverted):
         ])
 
     def testSouthLightWorld(self):
-        self.run_tests([
+        self.run_location_tests([
             ["Desert Ledge", False, []],
             ["Desert Ledge", False, [], ['Book of Mudora']],
             ["Desert Ledge", False, [], ['Moon Pearl']],
@@ -247,7 +247,7 @@ class TestInvertedLightWorld(TestInverted):
         ])
 
     def testZoraArea(self):
-        self.run_tests([
+        self.run_location_tests([
             ["King Zora", False, []],
             ["King Zora", False, [], ['Progressive Glove', 'Flippers']],
             ["King Zora", False, [], ['Moon Pearl']],
@@ -280,7 +280,7 @@ class TestInvertedLightWorld(TestInverted):
         ])
     
     def testLightWorld(self):
-        self.run_tests([
+        self.run_location_tests([
             ["Link's Uncle", False, []],
             ["Link's Uncle", False, [], ['Moon Pearl']],
             ["Link's Uncle", True, ['Moon Pearl', 'Beat Agahnim 1']],

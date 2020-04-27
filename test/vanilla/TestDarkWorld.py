@@ -155,12 +155,12 @@ class TestDarkWorld(TestVanilla):
             ["Mire Shed - Left", False, []],
             ["Mire Shed - Left", False, [], ['Progressive Glove']],
             ["Mire Shed - Left", False, [], ['Moon Pearl']],
-            ["Mire Shed - Left", False, [], ['Ocarina']],
-            ["Mire Shed - Left", True, ['Moon Pearl', 'Ocarina', 'Progressive Glove', 'Progressive Glove']],
+            ["Mire Shed - Left", False, [], ['Flute']],
+            ["Mire Shed - Left", True, ['Moon Pearl', 'Flute', 'Progressive Glove', 'Progressive Glove']],
 
             ["Mire Shed - Right", False, []],
             ["Mire Shed - Right", False, [], ['Progressive Glove']],
             ["Mire Shed - Right", False, [], ['Moon Pearl']],
-            ["Mire Shed - Right", False, [], ['Ocarina']],
-            ["Mire Shed - Right", True, ['Moon Pearl', 'Ocarina', 'Progressive Glove', 'Progressive Glove']],
+            ["Mire Shed - Right", False, [], ['Flute']],
+            ["Mire Shed - Right", True, ['Moon Pearl', 'Flute', 'Progressive Glove', 'Progressive Glove']],
         ])

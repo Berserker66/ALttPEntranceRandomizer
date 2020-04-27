@@ -4,18 +4,19 @@ from EntranceShuffle import link_inverted_entrances
 from InvertedRegions import create_inverted_regions
 from ItemList import generate_itempool, difficulties
 from Items import ItemFactory
-from Regions import mark_light_world_regions
+from Regions import mark_light_world_regions, create_shops
 from Rules import set_rules
 from test.TestBase import TestBase
 
 
 class TestInvertedOWG(TestBase):
     def setUp(self):
-        self.world = World(1, 'vanilla', 'owglitches', 'inverted', 'random', 'normal', 'normal', 'none', 'on', 'ganon', 'balanced', 'items',
-                           True, False, False, False, False, False, None, 'none', False)
-        self.world.difficulty_requirements = difficulties['normal']
+        self.world = World(1, {1:'vanilla'}, {1:'owglitches'}, {1:'inverted'}, {1:'random'}, {1:'normal'}, {1:'normal'}, {1:False}, {1:'on'}, {1:'ganon'}, 'balanced',  {1:'items'},
+                           True,  {1:False}, False, None,  {1:False})
+        self.world.difficulty_requirements[1] = difficulties['normal']
         create_inverted_regions(self.world, 1)
         create_dungeons(self.world, 1)
+        create_shops(self.world, 1)
         link_inverted_entrances(self.world, 1)
         generate_itempool(self.world, 1)
         self.world.required_medallions[1] = ['Ether', 'Quake']
@@ -25,5 +26,5 @@ class TestInvertedOWG(TestBase):
         self.world.get_location('Agahnim 2', 1).item = None
         self.world.precollected_items.clear()
         self.world.itempool.append(ItemFactory('Pegasus Boots', 1))
-        mark_light_world_regions(self.world)
+        mark_light_world_regions(self.world, 1)
         set_rules(self.world, 1)

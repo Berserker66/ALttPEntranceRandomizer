@@ -18,7 +18,7 @@ class TestDungeons(TestVanillaOWG):
             ["Desert Palace - Map Chest", False, []],
             ["Desert Palace - Map Chest", True, ['Pegasus Boots']],
             ["Desert Palace - Map Chest", True, ['Book of Mudora']],
-            ["Desert Palace - Map Chest", True, ['Ocarina', 'Progressive Glove', 'Progressive Glove', 'Magic Mirror']],
+            ["Desert Palace - Map Chest", True, ['Flute', 'Progressive Glove', 'Progressive Glove', 'Magic Mirror']],
 
             ["Desert Palace - Boss", False, []],
             ["Desert Palace - Boss", False, [], ['Small Key (Desert Palace)']],
@@ -28,14 +28,14 @@ class TestDungeons(TestVanillaOWG):
             ["Desert Palace - Boss", True, ['Small Key (Desert Palace)', 'Pegasus Boots', 'Fire Rod', 'Big Key (Desert Palace)']],
 
             ["Tower of Hera - Basement Cage", False, []],
-            ["Tower of Hera - Basement Cage", False, [], ['Pegasus Boots', "Ocarina", "Progressive Glove"]],
-            ["Tower of Hera - Basement Cage", False, [], ['Pegasus Boots', "Ocarina", "Lamp"]],
+            ["Tower of Hera - Basement Cage", False, [], ['Pegasus Boots', "Flute", "Progressive Glove"]],
+            ["Tower of Hera - Basement Cage", False, [], ['Pegasus Boots', "Flute", "Lamp"]],
             ["Tower of Hera - Basement Cage", False, [], ['Pegasus Boots', "Magic Mirror", "Hammer"]],
             ["Tower of Hera - Basement Cage", False, [], ['Pegasus Boots', "Magic Mirror", "Hookshot"]],
             ["Tower of Hera - Basement Cage", True, ['Pegasus Boots']],
-            ["Tower of Hera - Basement Cage", True, ["Ocarina", "Magic Mirror"]],
+            ["Tower of Hera - Basement Cage", True, ["Flute", "Magic Mirror"]],
             ["Tower of Hera - Basement Cage", True, ["Progressive Glove", "Lamp", "Magic Mirror"]],
-            ["Tower of Hera - Basement Cage", True, ["Ocarina", "Hookshot", "Hammer"]],
+            ["Tower of Hera - Basement Cage", True, ["Flute", "Hookshot", "Hammer"]],
             ["Tower of Hera - Basement Cage", True, ["Progressive Glove", "Lamp", "Magic Mirror"]],
 
             ["Castle Tower - Room 03", False, []],
@@ -59,7 +59,7 @@ class TestDungeons(TestVanillaOWG):
             ["Swamp Palace - Entrance", False, [], ['Moon Pearl']],
             ["Swamp Palace - Entrance", False, [], ['Flippers']],
             ["Swamp Palace - Entrance", True, ['Magic Mirror', 'Moon Pearl', 'Flippers', 'Pegasus Boots']],
-            ["Swamp Palace - Entrance", True, ['Magic Mirror', 'Moon Pearl', 'Flippers', 'Ocarina']],
+            ["Swamp Palace - Entrance", True, ['Magic Mirror', 'Moon Pearl', 'Flippers', 'Flute']],
             ["Swamp Palace - Entrance", True, ['Magic Mirror', 'Moon Pearl', 'Flippers', 'Hammer', 'Progressive Glove']],
             ["Swamp Palace - Entrance", True, ['Magic Mirror', 'Moon Pearl', 'Flippers', 'Progressive Glove', 'Progressive Glove']],
 

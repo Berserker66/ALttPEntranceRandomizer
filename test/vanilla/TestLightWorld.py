@@ -144,9 +144,9 @@ class TestLightWorld(TestVanilla):
 
             ["Checkerboard Cave", False, []],
             ["Checkerboard Cave", False, [], ['Progressive Glove']],
-            ["Checkerboard Cave", False, [], ['Ocarina']],
+            ["Checkerboard Cave", False, [], ['Flute']],
             ["Checkerboard Cave", False, [], ['Magic Mirror']],
-            ["Checkerboard Cave", True, ['Ocarina', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
+            ["Checkerboard Cave", True, ['Flute', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
 
             ["Mini Moldorm Cave - Generous Guy", True, []],
 
@@ -163,11 +163,11 @@ class TestLightWorld(TestVanilla):
             ["Maze Race", True, []],
 
             ["Desert Ledge", False, []],
-            ["Desert Ledge", False, [], ['Book of Mudora', 'Ocarina']],
+            ["Desert Ledge", False, [], ['Book of Mudora', 'Flute']],
             ["Desert Ledge", False, [], ['Book of Mudora', 'Magic Mirror']],
             ["Desert Ledge", False, ['Progressive Glove'], ['Book of Mudora', 'Progressive Glove']],
             ["Desert Ledge", True, ['Book of Mudora']],
-            ["Desert Ledge", True, ['Ocarina', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
+            ["Desert Ledge", True, ['Flute', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
 
             ["Lake Hylia Island", False, []],
             ["Lake Hylia Island", False, [], ['Magic Mirror']],

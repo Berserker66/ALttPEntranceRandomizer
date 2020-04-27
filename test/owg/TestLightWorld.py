@@ -112,10 +112,10 @@ class TestLightWorld(TestVanillaOWG):
 
             ["Cave 45", False, []],
             ["Cave 45", False, [], ['Pegasus Boots', 'Magic Mirror']],
-            ["Cave 45", False, [], ['Pegasus Boots', 'Moon Pearl', 'Ocarina', 'Lamp']],
-            ["Cave 45", False, [], ['Pegasus Boots', 'Moon Pearl', 'Ocarina', 'Progressive Glove']],
+            ["Cave 45", False, [], ['Pegasus Boots', 'Moon Pearl', 'Flute', 'Lamp']],
+            ["Cave 45", False, [], ['Pegasus Boots', 'Moon Pearl', 'Flute', 'Progressive Glove']],
             ["Cave 45", True, ['Pegasus Boots']],
-            ["Cave 45", True, ['Ocarina', 'Magic Mirror']],
+            ["Cave 45", True, ['Flute', 'Magic Mirror']],
             ["Cave 45", True, ['Progressive Glove', 'Lamp', 'Magic Mirror']],
             ["Cave 45", True, ['Moon Pearl', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
             ["Cave 45", True, ['Moon Pearl', 'Magic Mirror', 'Progressive Glove', 'Hammer']],
@@ -135,10 +135,10 @@ class TestLightWorld(TestVanillaOWG):
 
             ["Checkerboard Cave", False, []],
             ["Checkerboard Cave", False, [], ['Progressive Glove']],
-            ["Checkerboard Cave", False, [], ['Pegasus Boots', 'Ocarina']],
+            ["Checkerboard Cave", False, [], ['Pegasus Boots', 'Flute']],
             ["Checkerboard Cave", False, [], ['Pegasus Boots', 'Magic Mirror']],
             ["Checkerboard Cave", True, ['Pegasus Boots', 'Progressive Glove']],
-            ["Checkerboard Cave", True, ['Ocarina', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
+            ["Checkerboard Cave", True, ['Flute', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
 
             ["Mini Moldorm Cave - Generous Guy", True, []],
 
@@ -155,12 +155,12 @@ class TestLightWorld(TestVanillaOWG):
             ["Maze Race", True, []],
 
             ["Desert Ledge", False, []],
-            ["Desert Ledge", False, [], ['Pegasus Boots', 'Book of Mudora', 'Ocarina']],
+            ["Desert Ledge", False, [], ['Pegasus Boots', 'Book of Mudora', 'Flute']],
             ["Desert Ledge", False, [], ['Pegasus Boots', 'Book of Mudora', 'Magic Mirror']],
             ["Desert Ledge", False, ['Progressive Glove'], ['Pegasus Boots', 'Book of Mudora', 'Progressive Glove']],
             ["Desert Ledge", True, ['Pegasus Boots']],
             ["Desert Ledge", True, ['Book of Mudora']],
-            ["Desert Ledge", True, ['Ocarina', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
+            ["Desert Ledge", True, ['Flute', 'Magic Mirror', 'Progressive Glove', 'Progressive Glove']],
 
             ["Lake Hylia Island", False, []],
             ["Lake Hylia Island", False, [], ['Pegasus Boots', 'Magic Mirror']],
