@@ -2997,6 +2997,7 @@ mandatory_connections = [('Lake Hylia Central Island Pier', 'Lake Hylia Central 
                          ('Floating Island Clip Spot', 'Death Mountain Floating Island (Light World)'),
                          ('Dark Death Mountain Ledge Clip Spot', 'Dark Death Mountain Ledge'),
                          ('Zora Descent Clip Spot', 'Zoras River'),
+                         #todo: Entrances shouldn't lead to multiple regions.  This currently works, but it's fragile
                          ('Graveyard Ledge Clip Spot', 'Graveyard Ledge'),
                          ('Graveyard Ledge Clip Spot', 'Kings Grave Area'),
                          ('Desert Northern Cliffs', 'Desert Ledge'),

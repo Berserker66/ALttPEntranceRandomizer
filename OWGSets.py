@@ -98,6 +98,7 @@ def get_superbunny_accessible_locations():
     yield 'Kakariko Well - Bottom'
     yield 'Kakariko Tavern'
     yield 'Library'
+    yield 'Spiral Cave'
 
 
 def get_boots_clip_exits_lw(inverted = False):
