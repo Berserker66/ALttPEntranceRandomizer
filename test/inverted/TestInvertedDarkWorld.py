@@ -1,7 +1,7 @@
 from test.inverted.TestInverted import TestInverted
 
 
-class TestInvertedDeathMountain(TestInverted):
+class TestInvertedDarkWorld(TestInverted):
 
     def testNorthWest(self):
         self.run_tests([

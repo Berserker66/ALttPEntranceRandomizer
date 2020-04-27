@@ -52,6 +52,7 @@ class TestDungeons(TestVanillaOWG):
             ["Palace of Darkness - Shooter Room", True, ['Moon Pearl', 'Hammer', 'Progressive Glove']],
             #todo: Qirn jump in logic?
             #["Palace of Darkness - Shooter Room", True, ['Moon Pearl', 'Progressive Glove', 'Progressive Glove']],
+            ["Palace of Darkness - Shooter Room", True, ['Moon Pearl', 'Progressive Glove', 'Progressive Glove', 'Flippers']],
 
             ["Swamp Palace - Entrance", False, []],
             ["Swamp Palace - Entrance", False, [], ['Magic Mirror']],
