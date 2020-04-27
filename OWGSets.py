@@ -177,3 +177,4 @@ def get_invalid_bunny_revival_dungeons():
     yield 'Tower of Hera (Bottom)'
     yield 'Swamp Palace (Entrance)'
     yield 'Turtle Rock (Entrance)'
+    yield 'Sanctuary'

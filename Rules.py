@@ -1437,7 +1437,7 @@ def set_bunny_rules(world, player):
         if entrance.player == player and entrance.connected_region.is_dark_world:
             if world.logic[player] == 'owglitches':
                 if entrance.connected_region.type == RegionType.Dungeon:
-                    if entrance.connected_region.name in OWGSets.get_invalid_bunny_revival_dungeons():
+                    if entrance.parent_region.type != RegionType.Dungeon and entrance.connected_region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                         add_rule(entrance, get_rule_to_add(entrance.connected_region, None, entrance))
                     continue
                 if entrance.connected_region.name == 'Turtle Rock (Entrance)':
@@ -1536,7 +1536,7 @@ def set_inverted_bunny_rules(world, player):
         if entrance.player == player and entrance.connected_region.is_light_world:
             if world.logic[player] == 'owglitches':
                 if entrance.connected_region.type == RegionType.Dungeon:
-                    if entrance.connected_region.name in OWGSets.get_invalid_bunny_revival_dungeons():
+                    if entrance.parent_region.type != RegionType.Dungeon and entrance.connected_region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                         add_rule(entrance, get_rule_to_add(entrance.connected_region, None, entrance))
                     continue
                 if entrance.connected_region.name == 'Turtle Rock (Entrance)':
