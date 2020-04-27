@@ -96,6 +96,7 @@ def get_superbunny_accessible_locations():
     yield 'Kakariko Well - Middle'
     yield 'Kakariko Well - Right'
     yield 'Kakariko Well - Bottom'
+    yield 'Kakariko Tavern'
     yield 'Library'
 
 
