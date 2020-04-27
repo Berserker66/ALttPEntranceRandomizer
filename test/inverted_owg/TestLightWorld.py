@@ -23,9 +23,7 @@ class TestLightWorld(TestInvertedOWG):
             ["King's Tomb", False, []],
             ["King's Tomb", False, [], ['Pegasus Boots']],
             ["King's Tomb", False, [], ['Moon Pearl']],
-            #todo: This clip isn't in logic
-            #["King's Tomb", True, ['Pegasus Boots', 'Magic Mirror', 'Moon Pearl']],
-            ["King's Tomb", True, ['Pegasus Boots', 'Progressive Glove', 'Progressive Glove', 'Moon Pearl']],
+            ["King's Tomb", True, ['Pegasus Boots', 'Magic Mirror', 'Moon Pearl']],
 
             ["Floodgate Chest", False, []],
             ["Floodgate Chest", True, ['Moon Pearl', 'Pegasus Boots']],
