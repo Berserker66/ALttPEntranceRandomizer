@@ -1371,6 +1371,8 @@ def set_bunny_rules(world, player):
                 return lambda state: state.has_Pearl(player)
             if region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                 return lambda state: state.has_Mirror(player) or state.has_Pearl(player)
+            if region.type == RegionType.Dungeon:
+                return lambda state: True
             if (((location is None or location.name not in OWGSets.get_superbunny_accessible_locations())
                     or (connecting_entrance is not None and connecting_entrance.name in OWGSets.get_invalid_bunny_revival_dungeons()))
                     and not region.is_light_world):
@@ -1471,6 +1473,8 @@ def set_inverted_bunny_rules(world, player):
                 return lambda state: state.has_Pearl(player)
             if region.name in OWGSets.get_invalid_bunny_revival_dungeons():
                 return lambda state: state.has_Mirror(player) or state.has_Pearl(player)
+            if region.type == RegionType.Dungeon:
+                return lambda state: True
             if (((location is None or location.name not in OWGSets.get_superbunny_accessible_locations())
                     or (connecting_entrance is not None and connecting_entrance.name in OWGSets.get_invalid_bunny_revival_dungeons()))
                     and not region.is_dark_world):
