@@ -32,8 +32,7 @@ class TestLightWorld(TestInvertedOWG):
             ["Kakariko Tavern", False, []],
             ["Kakariko Tavern", False, [], ['Moon Pearl', 'Magic Mirror']],
             ["Kakariko Tavern", True, ['Moon Pearl', 'Pegasus Boots']],
-            #todo: superbunny south not in logic
-            #["Kakariko Tavern", True, ['Magic Mirror', 'Pegasus Boots']],
+            ["Kakariko Tavern", True, ['Magic Mirror', 'Pegasus Boots']],
             ["Kakariko Tavern", True, ['Beat Agahnim 1', 'Moon Pearl']],
             ["Kakariko Tavern", True, ['Beat Agahnim 1', 'Magic Mirror']],
 
