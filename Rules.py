@@ -58,7 +58,7 @@ def set_rules(world, player):
     
     if world.mode[player] != 'inverted':
         set_big_bomb_rules(world, player)
-        if world.logic == 'owglitches':
+        if world.logic[player] == 'owglitches':
             add_rule(world.get_entrance('Pyramid Fairy', player), lambda state: state.can_reach('Dark Death Mountain (West Bottom)', 'Region', player) and state.has_Mirror(player), 'or')
     else:
         set_inverted_big_bomb_rules(world, player)
@@ -73,7 +73,7 @@ def set_rules(world, player):
     set_trock_key_rules(world, player)
 
     set_rule(ganons_tower, lambda state: state.has_crystals(world.crystals_needed_for_gt[player], player))
-    if world.mode != 'inverted' and world.logic == 'owglitches':
+    if world.mode[player] != 'inverted' and world.logic[player] == 'owglitches':
         add_rule(world.get_entrance('Ganons Tower', player), lambda state: state.world.get_entrance('Ganons Tower Ascent', player).can_reach(state), 'or')
 
     if world.mode[player] != 'inverted':
