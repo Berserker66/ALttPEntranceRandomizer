@@ -73,7 +73,8 @@ def get_superbunny_accessible_locations():
 
     yield 'Waterfall of Wishing - Left'
     yield 'Waterfall of Wishing - Right'
-    yield 'King\'s Tomb', 'Floodgate'
+    yield 'King\'s Tomb'
+    yield 'Floodgate'
     yield 'Floodgate Chest'
     yield 'Cave 45'
     yield 'Bonk Rock Cave'
