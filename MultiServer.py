@@ -478,7 +478,6 @@ class CommandProcessor(metaclass=CommandMeta):
         self.output(f"Could not find command {raw}. Known commands: {', '.join(self.commands)}")
 
     def _error_parsing_command(self, exception: Exception):
-        raise Exception
         self.output(str(exception))
 
 
