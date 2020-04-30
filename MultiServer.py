@@ -159,6 +159,7 @@ class Context(Node):
         await super(Context, self).disconnect(endpoint)
         await on_client_disconnected(self, endpoint)
 
+
 def update_aliases(ctx: Context, team: int, client: typing.Optional[Client] = None):
     cmd = json.dumps([["AliasUpdate",
                        [(key[1], ctx.get_aliased_name(*key)) for key, value in ctx.player_names.items() if
@@ -192,6 +193,7 @@ async def server(websocket, path, ctx: Context):
     finally:
         await ctx.disconnect(client)
 
+
 async def on_client_connected(ctx: Context, client: Client):
     await ctx.send_msgs(client, [['RoomInfo', {
         'password': ctx.password is not None,
@@ -202,6 +204,7 @@ async def on_client_connected(ctx: Context, client: Client):
         'tags': ['Berserker'],
         'version': Utils._version_tuple
     }]])
+
 
 async def on_client_disconnected(ctx: Context, client: Client):
     if client.auth:
@@ -215,8 +218,10 @@ async def on_client_joined(ctx: Context, client: Client):
                                                                 ".".join(str(x) for x in client.version),
                                                                 client.tags))
 
+
 async def on_client_left(ctx: Context, client: Client):
     ctx.notify_all("%s (Team #%d) has left the game" % (client.name, client.team + 1))
+
 
 async def countdown(ctx: Context, timer):
     ctx.notify_all(f'[Server]: Starting countdown of {timer}s')
@@ -229,6 +234,7 @@ async def countdown(ctx: Context, timer):
             ctx.countdown_timer -= 1
             await asyncio.sleep(1)
         ctx.notify_all(f'[Server]: GO')
+
 
 def get_players_string(ctx: Context):
     auth_clients = {(c.team, c.slot) for c in ctx.endpoints if c.auth}
@@ -279,6 +285,7 @@ def get_remaining(ctx: Context, team: int, slot: int) -> typing.List[int]:
         if location_slot == slot and location not in ctx.location_checks[team, slot]:
             items.append(ctx.locations[location, slot][0])  # item ID
     return sorted(items)
+
 
 def register_location_checks(ctx: Context, team: int, slot: int, locations):
     ctx.client_activity_timers[team, slot] = datetime.datetime.now(datetime.timezone.utc)
@@ -784,7 +791,6 @@ async def process_client_cmd(ctx: Context, client: Client, cmd, args):
             ctx.notify_all(ctx.get_aliased_name(client.team, client.slot) + ': ' + args)
             print(args)
             client.messageprocessor(args)
-
 
 
 def set_password(ctx: Context, password):

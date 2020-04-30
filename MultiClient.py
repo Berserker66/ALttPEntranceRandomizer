@@ -5,6 +5,7 @@ import logging
 import urllib.parse
 import atexit
 import time
+import functools
 
 from Utils import get_item_name_from_id, get_location_name_from_address, ReceivedItem
 
@@ -19,7 +20,9 @@ import websockets
 import prompt_toolkit
 import typing
 from prompt_toolkit.patch_stdout import patch_stdout
-from NetUtils import Endpoint
+from NetUtils import Endpoint, Node
+import WebUiServer
+import WebUiClient
 
 import Regions
 import Utils
@@ -43,6 +46,7 @@ class Context():
         self.input_queue = asyncio.Queue()
         self.input_requests = 0
 
+        self.ui_node = WebUiClient.WebUiClient()
         self.snes_socket = None
         self.snes_state = SNES_DISCONNECTED
         self.snes_attached_device = None
@@ -371,6 +375,7 @@ async def snes_connect(ctx : Context, address):
             if problem not in seen_problems:
                 seen_problems.add(problem)
                 logging.error(f"Error connecting to QUsb2snes ({problem})")
+
                 if len(seen_problems) == 1:
                     # this is the first problem. Let's try launching QUsb2snes if it isn't already running
                     qusb2snes_path = Utils.get_options()["general_options"]["qusb2snes"]
@@ -1096,6 +1101,29 @@ async def run_game(romfile):
     webbrowser.open(romfile)
 
 
+async def websocket_server(websocket: websockets.WebSocketServerProtocol, path, ctx: Context):
+    endpoint = Endpoint(websocket)
+    ctx.ui_node.endpoints.append(endpoint)
+    process_command = ClientCommandProcessor(ctx)
+    try:
+        async for incoming_data in websocket:
+            try:
+                data = json.loads(incoming_data)
+                if ('type' not in data) or ('content' not in data):
+                    raise Exception('Invalid data received in websocket')
+                elif data['type'] == 'webStatus':
+                    if data['content'] == 'connections':
+                        await ctx.ui_node.send_connection_status(ctx)
+                elif data['type'] == 'webCommand':
+                    process_command(data['content'])
+            except json.JSONDecodeError:
+                pass
+    except Exception as e:
+        if not isinstance(e, websockets.WebSocketException):
+            logging.exception(e)
+    finally:
+        await ctx.ui_node.disconnect(endpoint)
+
 async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('diff_file', default="", type=str, nargs="?",
@@ -1138,7 +1166,10 @@ async def main():
 
     ctx = Context(args.snes, args.connect, args.password, args.founditems)
 
-    input_task = asyncio.create_task(console_loop(ctx))
+    WebUiServer.start_server()
+    ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
+                                 'localhost', 5190, ping_timeout=None, ping_interval=None)
+    await ui_socket
 
     await snes_connect(ctx, ctx.snes_address)
 
@@ -1164,8 +1195,6 @@ async def main():
     while ctx.input_requests > 0:
         ctx.input_queue.put_nowait(None)
         ctx.input_requests -= 1
-
-    await input_task
 
 if __name__ == '__main__':
     colorama.init()
