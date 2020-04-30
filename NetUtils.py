@@ -14,9 +14,9 @@ class Node:
         self.endpoints = []
 
     def broadcast_all(self, msgs):
+        msgs = json.dumps(msgs)
         for endpoint in self.endpoints:
-            if endpoint.auth:
-                asyncio.create_task(self.send_msgs(endpoint, msgs))
+            asyncio.create_task(self.send_json_msgs(endpoint, msgs))
 
     async def send_msgs(self, endpoint: Endpoint, msgs):
         if not endpoint.socket or not endpoint.socket.open or endpoint.socket.closed:

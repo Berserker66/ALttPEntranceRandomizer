@@ -149,6 +149,12 @@ class Context(Node):
             if client.auth and client.team == team:
                 asyncio.create_task(self.send_msgs(client, msgs))
 
+    def broadcast_all(self, msgs):
+        msgs = json.dumps(msgs)
+        for endpoint in self.endpoints:
+            if endpoint.auth:
+                asyncio.create_task(self.send_json_msgs(endpoint, msgs))
+
     async def disconnect(self, endpoint):
         await super(Context, self).disconnect(endpoint)
         await on_client_disconnected(self, endpoint)
