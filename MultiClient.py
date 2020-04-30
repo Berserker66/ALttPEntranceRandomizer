@@ -19,12 +19,20 @@ import websockets
 import prompt_toolkit
 import typing
 from prompt_toolkit.patch_stdout import patch_stdout
+from NetUtils import Endpoint
 
 import Regions
 import Utils
 
 
-class Context:
+def create_named_task(coro, *args, name=None):
+    if not name:
+        name = coro.__name__
+        print(name)
+    return asyncio.create_task(coro, *args, name=name)
+
+
+class Context():
     def __init__(self, snes_address, server_address, password, found_items):
         self.snes_address = snes_address
         self.server_address = server_address
@@ -45,7 +53,7 @@ class Context:
         self.snes_write_buffer = []
 
         self.server_task = None
-        self.socket = None
+        self.server: typing.Optional[Endpoint] = None
         self.password = password
         self.server_version = (0, 0, 0)
 
@@ -63,6 +71,23 @@ class Context:
         self.finished_game = False
         self.slow_mode = False
 
+    @property
+    def endpoints(self):
+        if self.server:
+            return [self.server]
+        else:
+            return []
+
+    async def disconnect(self):
+        if self.server and not self.server.socket.closed:
+            await self.server.socket.close()
+        if self.server_task is not None:
+            await self.server_task
+
+    async def send_msgs(self, msgs):
+        if not self.server or not self.server.socket.open or self.server.socket.closed:
+            return
+        await self.server.socket.send(json.dumps(msgs))
 
 color_codes = {'reset': 0, 'bold': 1, 'underline': 4, 'black': 30, 'red': 31, 'green': 32, 'yellow': 33, 'blue': 34,
                'magenta': 35, 'cyan': 36, 'white': 37, 'black_bg': 40, 'red_bg': 41, 'green_bg': 42, 'yellow_bg': 43,
@@ -590,7 +615,7 @@ async def send_msgs(websocket, msgs):
     await websocket.send(json.dumps(msgs))
 
 async def server_loop(ctx : Context, address = None):
-    if ctx.socket is not None:
+    if ctx.server and ctx.server.socket:
         logging.error('Already connected')
         return
 
@@ -618,11 +643,12 @@ async def server_loop(ctx : Context, address = None):
 
     logging.info('Connecting to multiworld server at %s' % address)
     try:
-        ctx.socket = await websockets.connect(address, port=port, ping_timeout=None, ping_interval=None)
+        socket = await websockets.connect(address, port=port, ping_timeout=None, ping_interval=None)
+        ctx.server = Endpoint(socket)
         logging.info('Connected')
         ctx.server_address = address
 
-        async for data in ctx.socket:
+        async for data in ctx.server.socket:
             for msg in json.loads(data):
                 cmd, args = (msg[0], msg[1]) if len(msg) > 1 else (msg, None)
                 await process_server_cmd(ctx, cmd, args)
@@ -641,7 +667,8 @@ async def server_loop(ctx : Context, address = None):
         ctx.items_received = []
         ctx.locations_info = {}
         ctx.server_version = (0, 0, 0)
-        socket, ctx.socket = ctx.socket, None
+        socket, ctx.server.socket = ctx.server.socket, None
+        ctx.server = None
         if socket is not None and not socket.closed:
             await socket.close()
         ctx.server_task = None
@@ -713,7 +740,7 @@ async def process_server_cmd(ctx : Context, cmd, args):
         if ctx.locations_scouted:
             msgs.append(['LocationScouts', list(ctx.locations_scouted)])
         if msgs:
-            await send_msgs(ctx.socket, msgs)
+            await ctx.send_msgs(msgs)
 
     elif cmd == 'ReceivedItems':
         start_index, items = args
@@ -723,7 +750,7 @@ async def process_server_cmd(ctx : Context, cmd, args):
             sync_msg = [['Sync']]
             if ctx.locations_checked:
                 sync_msg.append(['LocationChecks', [Regions.location_table[loc][0] for loc in ctx.locations_checked]])
-            await send_msgs(ctx.socket, sync_msg)
+            await ctx.send_msgs(sync_msg)
         if start_index == len(ctx.items_received):
             for item in items:
                 ctx.items_received.append(ReceivedItem(*item))
@@ -787,7 +814,7 @@ async def server_auth(ctx: Context, password_requested):
         return
     ctx.awaiting_rom = False
     ctx.auth = ctx.rom.copy()
-    await send_msgs(ctx.socket, [['Connect', {
+    await ctx.send_msgs([['Connect', {
         'password': ctx.password, 'rom': ctx.auth, 'version': Utils._version_tuple, 'tags': get_tags(ctx)
     }]])
 
@@ -796,15 +823,10 @@ async def console_input(ctx : Context):
     return await ctx.input_queue.get()
 
 
-async def disconnect(ctx: Context):
-    if ctx.socket is not None and not ctx.socket.closed:
-        await ctx.socket.close()
-    if ctx.server_task is not None:
-        await ctx.server_task
 
 
 async def connect(ctx: Context, address=None):
-    await disconnect(ctx)
+    await ctx.disconnect()
     ctx.server_task = asyncio.create_task(server_loop(ctx, address))
 
 
@@ -844,7 +866,7 @@ class ClientCommandProcessor(CommandProcessor):
     def _cmd_disconnect(self) -> bool:
         """Disconnect from a MultiWorld Server"""
         self.ctx.server_address = None
-        asyncio.create_task(disconnect(self.ctx))
+        asyncio.create_task(self.ctx.disconnect())
         return True
 
     def _cmd_received(self) -> bool:
@@ -878,7 +900,7 @@ class ClientCommandProcessor(CommandProcessor):
         else:
             self.ctx.found_items = not self.ctx.found_items
         logging.info(f"Set showing team items to {self.ctx.found_items}")
-        asyncio.create_task(send_msgs(self.ctx.socket, [['UpdateTags', get_tags(self.ctx)]]))
+        asyncio.create_task(self.ctx.send_msgs([['UpdateTags', get_tags(self.ctx)]]))
         return True
 
     def _cmd_slow_mode(self, toggle: str = ""):
@@ -891,7 +913,7 @@ class ClientCommandProcessor(CommandProcessor):
         logging.info(f"Setting slow mode to {self.ctx.slow_mode}")
 
     def default(self, raw: str):
-        asyncio.create_task(send_msgs(self.ctx.socket, [['Say', raw]]))
+        asyncio.create_task(self.ctx.send_msgs([['Say', raw]]))
 
 
 async def console_loop(ctx: Context):
@@ -974,7 +996,7 @@ async def track_locations(ctx : Context, roomid, roomdata):
                 if misc_data[offset - 0x3c6] & mask != 0 and location not in ctx.locations_checked:
                     new_check(location)
 
-    await send_msgs(ctx.socket, [['LocationChecks', new_locations]])
+    await ctx.send_msgs([['LocationChecks', new_locations]])
 
 async def game_watcher(ctx : Context):
     prev_game_timer = 0
@@ -1000,7 +1022,7 @@ async def game_watcher(ctx : Context):
 
         if ctx.auth and ctx.auth != ctx.rom:
             logging.warning("ROM change detected, please reconnect to the multiworld server")
-            await disconnect(ctx)
+            await ctx.disconnect()
 
         gamemode = await snes_read(ctx, WRAM_START + 0x10, 1)
         gameend = await snes_read(ctx, SAVEDATA_START + 0x443, 1)
@@ -1013,7 +1035,7 @@ async def game_watcher(ctx : Context):
         if gameend[0]:
             if not ctx.finished_game:
                 try:
-                    await send_msgs(ctx.socket, [['GameFinished', '']])
+                    await ctx.send_msgs([['GameFinished', '']])
                     ctx.finished_game = True
                 except Exception as ex:
                     logging.exception(ex)
@@ -1065,7 +1087,7 @@ async def game_watcher(ctx : Context):
         if scout_location > 0 and scout_location not in ctx.locations_scouted:
             ctx.locations_scouted.add(scout_location)
             logging.info(f'Scouting item at {list(Regions.location_table.keys())[scout_location - 1]}')
-            await send_msgs(ctx.socket, [['LocationScouts', [scout_location]]])
+            await ctx.send_msgs([['LocationScouts', [scout_location]]])
         await track_locations(ctx, roomid, roomdata)
 
 
@@ -1125,15 +1147,14 @@ async def main():
 
     watcher_task = asyncio.create_task(game_watcher(ctx))
 
-
     await ctx.exit_event.wait()
     ctx.server_address = None
     ctx.snes_reconnect_address = None
 
     await watcher_task
 
-    if ctx.socket is not None and not ctx.socket.closed:
-        await ctx.socket.close()
+    if ctx.server is not None and not ctx.server.socket.closed:
+        await ctx.server.socket.close()
     if ctx.server_task is not None:
         await ctx.server_task
 
