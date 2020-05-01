@@ -1,5 +1,6 @@
 let monitorFontSize = 16;
 let webSocketAddress = 'ws://localhost:5190'; // AOL Instant Messenger port (RIP)
+let webServerAddress = null;
 let webSocket = null;
 
 function appendMonitorText(str){
@@ -89,7 +90,7 @@ function setMonitorHeight(){
         document.getElementById('web-input-monitor').style.height = (window.innerHeight - 119 - 23 - 20) + 'px';
 }
 
-function updateConnectionStatus(snes, server){
+function updateConnectionStatusUi(snes, server){
     let snesStatus = document.getElementById('qusb2snes');
     let multiServer = document.getElementById('multi-server');
 
@@ -112,17 +113,37 @@ function updateConnectionStatus(snes, server){
     }
 }
 
+function serverConnect(event=null){
+    if (event) { event.preventDefault(); }
+    if (!webServerAddress || !!event) {
+        webServerAddress = prompt("Please enter multiworld server address:");
+    }
+    sendSocketData('webConfig', { serverAddress: webServerAddress });
+}
+
 function handleIncomingMessage(message){
     const data = JSON.parse(message.data);
     switch (data.type){
         case 'connections':
-            updateConnectionStatus(parseInt(data.content.snes, 10) === 3, parseInt(data.content.server, 10) === 1);
+            updateConnectionStatusUi(parseInt(data.content.snes, 10) === 3, parseInt(data.content.server, 10) === 1);
             break;
-        case 'item-check':
+        case 'serverAddress':
+            serverConnect();
+            break;
+        case 'itemFound':
             appendMonitorCheck(data.content.item, data.content.location, data.content.finder, data.content.findee);
             break;
         default:
             appendMonitorText(data.content.toString());
+    }
+}
+
+function sendSocketData(type, data) {
+    if (webSocket) {
+        webSocket.send(JSON.stringify({
+            type: type,
+            content: data,
+        }));
     }
 }
 
@@ -145,13 +166,13 @@ window.onload = () => {
     webSocket.onclose = (event) => { console.log(event); };
     webSocket.onopen = () => {
         appendMonitorText("Websocket connected");
-        webSocket.send(JSON.stringify({
-            type: 'webStatus',
-            content: 'connections',
-        }));
+        sendSocketData('webStatus', 'connections');
 
         // Listener for command input
         document.getElementById('web-input').addEventListener('keydown', appendMonitorCommand);
+
+        // Listener for connect button
+        document.getElementById('server-connect').addEventListener('click', serverConnect);
     };
 
     // Handle incoming messages

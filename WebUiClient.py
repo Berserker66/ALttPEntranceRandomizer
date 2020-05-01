@@ -1,5 +1,4 @@
-import asyncio
-import json
+import logging
 
 from NetUtils import Node
 from MultiClient import Context
@@ -13,22 +12,42 @@ class WebUiClient(Node):
     def build_message(msg_type: str, content: dict) -> dict:
         return {'type': msg_type, 'content': content}
 
-    async def send_error_message(self, message):
-        self.broadcast_all(self.build_message('error', message))
+    def log_info(self, message, *args, **kwargs):
+        self.broadcast_all(self.build_message('info', message))
+        logging.info(message, *args, **kwargs)
 
-    async def send_chat_message(self, message):
+    def log_warning(self, message, *args, **kwargs):
+        self.broadcast_all(self.build_message('warning', message))
+        logging.warning(message, *args, **kwargs)
+
+    def log_error(self, message, *args, **kwargs):
+        self.broadcast_all(self.build_message('error', message))
+        logging.error(message)
+
+    def log_critical(self, message, *args, **kwargs):
+        self.broadcast_all(self.build_message('critical', message))
+        logging.critical(message, *args, **kwargs)
+
+    def send_chat_message(self, message):
         self.broadcast_all(self.build_message('chat', message))
 
-    async def send_connection_status(self, ctx: Context):
+    def send_connection_status(self, ctx: Context):
         self.broadcast_all(self.build_message('connections', {
             'snes': ctx.snes_state,
             'server': 1 if ctx.server is not None and not ctx.server.socket.closed else 0,
         }))
 
-    async def send_item_check(self, finder, findee, item, location):
-        self.broadcast_all(self.build_message('item-found', {
+    def poll_for_server_ip(self):
+        self.broadcast_all(self.build_message('serverAddress', {}))
+
+    def send_item_check(self, finder, findee, item, location):
+        self.broadcast_all(self.build_message('itemFound', {
             'finder': finder,
             'findee': findee,
             'item': item,
             'location': location,
         }))
+
+
+class WaitingForUiException(Exception):
+    pass
