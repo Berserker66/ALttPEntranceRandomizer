@@ -88,6 +88,7 @@ class Context():
     async def disconnect(self):
         if self.server and not self.server.socket.closed:
             await self.server.socket.close()
+            self.ui_node.send_connection_status(self)
         if self.server_task is not None:
             await self.server_task
 
@@ -693,6 +694,7 @@ async def server_loop(ctx: Context, address=None):
         ctx.server_task = None
         if ctx.server_address:
             ctx.ui_node.log_info(f"... reconnecting in {RECONNECT_DELAY}s")
+            ctx.ui_node.send_connection_status(ctx)
             asyncio.create_task(server_autoreconnect(ctx))
 
 
