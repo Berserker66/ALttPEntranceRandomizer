@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Berserker Multiworld Web GUI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}" />
+    <script type="application/ecmascript" src="{{ url_for('static', filename='index.js') }}"></script>
+</head>
+<body>
+<div id="web-gui">
+    <div id="header-bar">
+        <h2>Berserker's Multiworld Web GUI (v{{ version }})</h2>
+        <div id="accessibility">
+            <div id="accessibility-left">
+                <table>
+                    <tbody>
+                        <tr>
+                            <td>QUsb2Snes:</td>
+                            <td><span id="qusb2snes">Not Connected</span></td>
+                        </tr>
+                        <tr>
+                            <td>MultiServer:</td>
+                            <td>
+                                <span id="multi-server">Not Connected</span>
+                                &nbsp;
+                                (<a id="server-connect" href="#">Connect</a>)
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="accessibility-right">
+                Text size:
+                <button id="decrease-text-size">-</button>
+                <span id="text-size">1</span>
+                <button id="increase-text-size">+</button>
+            </div>
+        </div>
+    </div>
+    <div id="content-main">
+        <div id="web-input-monitor"></div>
+        <div id="web-input-wrapper">
+            <label for="web-input">Command: </label>
+            <input id="web-input" />
+        </div>
+    </div>
+</div>
+</body>
+</html>
