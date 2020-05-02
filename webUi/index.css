@@ -58,7 +58,7 @@ body{
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    background: linear-gradient(#088d47, #11722c);
+    background: linear-gradient(#1b7423, #2a5c2b);
     border-left: 2px solid #eae703;
     border-right: 2px solid #eae703;
     border-bottom: 2px solid #eae703;
@@ -71,6 +71,11 @@ body{
     width: calc(100% - 0.5em);
     padding: 0.15em 0.25em 0.25em;
     border-bottom: 1px solid #eae703;
+}
+
+#web-input-monitor div.user-command{
+    color: #ffffff;
+    background-color: #159242;
 }
 
 #web-input-wrapper{
@@ -88,7 +93,7 @@ body{
     margin-left: 0.5em;
 }
 
-.item-span{ color: red }
-.location-span{ color: yellow }
-.finder-span{ color: orange }
-.findee-span{ color: pink }
+.item-span{ color: #29c9e4; }
+.location-span{ color: #ffff00; }
+.finder-span{ color: #0cff27; }
+.recipient-span{ color: #ffc0cb; }
