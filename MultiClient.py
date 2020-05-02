@@ -547,9 +547,9 @@ async def snes_read(ctx : Context, address, size):
                 break
 
         if len(data) != size:
-            ctx.ui_node.log_error('Error reading %s, requested %d bytes, received %d' % (hex(address), size, len(data)))
+            logging.error('Error reading %s, requested %d bytes, received %d' % (hex(address), size, len(data)))
             if len(data):
-                ctx.ui_node.log_error(str(data))
+                logging.error(str(data))
             if ctx.snes_socket is not None and not ctx.snes_socket.closed:
                 await ctx.snes_socket.close()
             return None
@@ -866,6 +866,9 @@ from MultiServer import CommandProcessor
 class ClientCommandProcessor(CommandProcessor):
     def __init__(self, ctx: Context):
         self.ctx = ctx
+
+    def output(self, text: str):
+        self.ctx.ui_node.log_info(text)
 
     def _cmd_exit(self) -> bool:
         """Close connections and client"""
