@@ -49,7 +49,10 @@ class WebUiClient(Node):
         }))
 
     def notify_item_found(self, finder: str, item: str, location: str):
-        self.broadcast_all(self.build_message('itemFound', {
+        pass
+
+    def notify_item_received(self, finder: str, item: str, location: str):
+        self.broadcast_all(self.build_message('itemReceived', {
             'finder': finder,
             'item': item,
             'location': location,

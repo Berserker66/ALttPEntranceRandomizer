@@ -1101,7 +1101,9 @@ async def game_watcher(ctx : Context):
 
         if recv_index < len(ctx.items_received) and recv_item == 0:
             item = ctx.items_received[recv_index]
-            ctx.ui_node.log_info('Received %s from %s (%s) (%d/%d in list)' % (
+            ctx.ui_node.notify_item_received(ctx.player_names[item.player], get_item_name_from_id(item.item),
+                                             get_location_name_from_address(item.location))
+            logging.info('Received %s from %s (%s) (%d/%d in list)' % (
                 color(get_item_name_from_id(item.item), 'red', 'bold'), color(ctx.player_names[item.player], 'yellow'),
                 get_location_name_from_address(item.location), recv_index + 1, len(ctx.items_received)))
             recv_index += 1

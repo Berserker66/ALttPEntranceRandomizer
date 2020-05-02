@@ -68,9 +68,27 @@ function appendItemCheck(item, location, finder, recipient=null){
     monitor.scrollTo(0, monitor.scrollHeight);
 }
 
-function appendHint(finder, recipient, item, location){
-    console.log(`${finder} ${recipient} ${item} ${location}`);
+function appendItemReceived(finder, item, location) {
+    // Identify monitor, create message div
+    let monitor = document.getElementById('web-input-monitor');
+    let newMsg = document.createElement('div');
 
+    const finderSpan = buildFinderSpan(finder, true);
+    const itemSpan = buildItemSpan(item);
+    const locationSpan = buildLocationSpan(location);
+
+    newMsg.appendChild(finderSpan);
+    newMsg.append(' found your ');
+    newMsg.appendChild(itemSpan);
+    newMsg.append(' in ');
+    newMsg.appendChild(locationSpan);
+    monitor.appendChild(newMsg);
+
+    // Scroll to the bottom to keep new messages in view
+    monitor.scrollTo(0, monitor.scrollHeight);
+}
+
+function appendHint(finder, recipient, item, location) {
     // Identify monitor, create message div
     let monitor = document.getElementById('web-input-monitor');
     let newMsg = document.createElement('div');
@@ -184,8 +202,8 @@ function handleIncomingMessage(message){
         case 'itemSent':
             appendItemCheck(data.content.item, data.content.location, data.content.finder, data.content.recipient);
             break;
-        case 'itemFound':
-            appendItemCheck(data.content.item, data.content.location, data.content.finder);
+        case 'itemReceived':
+            appendItemReceived(data.content.finder, data.content.item, data.content.location);
             break;
         case 'hint':
             appendHint(data.content.finder, data.content.recipient, data.content.item, data.content.location);
