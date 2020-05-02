@@ -98,7 +98,7 @@ function appendItemFound(finder, item, location) {
     const locationSpan = buildLocationSpan(location);
 
     newMsg.appendChild(finderSpan);
-    newMsg.append(' found ');
+    newMsg.append(' found their own ');
     newMsg.appendChild(itemSpan);
     newMsg.append(' in ');
     newMsg.appendChild(locationSpan);
