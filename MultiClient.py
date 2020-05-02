@@ -648,7 +648,7 @@ async def server_loop(ctx: Context, address=None):
         except Exception as e:
             logging.debug(f"Could not find cached server address. {e}")
 
-    # Wait for the user to provide a snes address
+    # Wait for the user to provide a multiworld server address
     if not address:
         ctx.ui_node.log_info('Please connect to a multiworld server using the button above.')
         ctx.ui_node.poll_for_server_ip()
@@ -709,7 +709,7 @@ async def server_autoreconnect(ctx: Context):
         ctx.server_task = asyncio.create_task(server_loop(ctx))
 
 
-async def process_server_cmd(ctx : Context, cmd, args):
+async def process_server_cmd(ctx: Context, cmd, args):
     if cmd == 'RoomInfo':
         ctx.ui_node.log_info('--------------------------------')
         ctx.ui_node.log_info('Room Information:')
