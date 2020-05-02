@@ -88,6 +88,26 @@ function appendItemReceived(finder, item, location) {
     monitor.scrollTo(0, monitor.scrollHeight);
 }
 
+function appendItemFound(finder, item, location) {
+    // Identify monitor, create message div
+    let monitor = document.getElementById('web-input-monitor');
+    let newMsg = document.createElement('div');
+
+    const finderSpan = buildFinderSpan(finder, true);
+    const itemSpan = buildItemSpan(item);
+    const locationSpan = buildLocationSpan(location);
+
+    newMsg.appendChild(finderSpan);
+    newMsg.append(' found ');
+    newMsg.appendChild(itemSpan);
+    newMsg.append(' in ');
+    newMsg.appendChild(locationSpan);
+    monitor.appendChild(newMsg);
+
+    // Scroll to the bottom to keep new messages in view
+    monitor.scrollTo(0, monitor.scrollHeight);
+}
+
 function appendHint(finder, recipient, item, location) {
     // Identify monitor, create message div
     let monitor = document.getElementById('web-input-monitor');
@@ -205,11 +225,14 @@ function handleIncomingMessage(message){
         case 'itemReceived':
             appendItemReceived(data.content.finder, data.content.item, data.content.location);
             break;
+        case 'itemFound':
+            appendItemFound(data.content.finder, data.content.item, data.content.location);
+            break;
         case 'hint':
             appendHint(data.content.finder, data.content.recipient, data.content.item, data.content.location);
             break;
         default:
-            appendMonitorText(data.content.toString());
+            appendMonitorText(typeof(data.content) !== 'string' ? JSON.stringify(data.content) : data.content);
     }
 }
 

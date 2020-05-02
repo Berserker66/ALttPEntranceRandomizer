@@ -445,16 +445,16 @@ async def snes_connect(ctx: Context, address):
                 break
 
         ctx.ui_node.log_info("Attaching to " + device)
-        ctx.ui_node.send_connection_status(ctx)
 
         Attach_Request = {
-            "Opcode" : "Attach",
-            "Space" : "SNES",
-            "Operands" : [device]
+            "Opcode": "Attach",
+            "Space": "SNES",
+            "Operands": [device]
         }
         await ctx.snes_socket.send(json.dumps(Attach_Request))
         ctx.snes_state = SNES_ATTACHED
         ctx.snes_attached_device = (devices.index(device), device)
+        ctx.ui_node.send_connection_status(ctx)
 
         if 'SD2SNES'.lower() in device.lower() or (len(device) == 4 and device[:3] == 'COM'):
             ctx.ui_node.log_info("SD2SNES Detected")
@@ -496,7 +496,7 @@ async def snes_autoreconnect(ctx: Context):
         await snes_connect(ctx, ctx.snes_reconnect_address)
 
 
-async def snes_recv_loop(ctx : Context):
+async def snes_recv_loop(ctx: Context):
     try:
         async for msg in ctx.snes_socket:
             ctx.snes_recv_queue.put_nowait(msg)
@@ -513,6 +513,7 @@ async def snes_recv_loop(ctx : Context):
         ctx.snes_state = SNES_DISCONNECTED
         ctx.snes_recv_queue = asyncio.Queue()
         ctx.hud_message_queue = []
+        ctx.ui_node.send_connection_status(ctx)
 
         ctx.rom = None
 
