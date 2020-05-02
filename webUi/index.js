@@ -21,8 +21,9 @@ function appendMonitorCommand(event){
     webSocket.send(JSON.stringify({ type: 'webCommand', content: event.target.value }));
 
     // Append command to monitor
-    let monitor = document.getElementById('web-input-monitor');
-    let newMsg = document.createElement('div');
+    const monitor = document.getElementById('web-input-monitor');
+    const newMsg = document.createElement('div');
+    newMsg.className = 'user-command';
     newMsg.innerText = event.target.value;
     event.target.value = null;
     monitor.appendChild(newMsg);
@@ -31,42 +32,92 @@ function appendMonitorCommand(event){
     monitor.scrollTo(0, monitor.scrollHeight);
 }
 
-function appendMonitorCheck(item, location, finder, findee){
+function appendItemCheck(item, location, finder, recipient=null){
     // Identify monitor, create message div
     let monitor = document.getElementById('web-input-monitor');
     let newMsg = document.createElement('div');
-    
-    // Create item span
-    let itemSpan = document.createElement('span');
-    itemSpan.innerText = item;
-    itemSpan.className = 'item-span';
-    
-    // Create location span
-    let locationSpan = document.createElement('span');
-    locationSpan.innerText = location;
-    locationSpan.className = 'location-span';
-    
-    // Create finder span
-    let finderSpan = document.createElement('span');
-    finderSpan.innerText = finder;
-    finderSpan.className = 'finder-span';
-    
-    // Create findee span
-    let findeeSpan = document.createElement('span');
-    findeeSpan.innerText = findee + "'s";
-    findeeSpan.className = 'findee-span';
 
-    // Build check message and append to monitor
-    newMsg.appendChild(finder);
-    newMsg.append(' found ');
-    newMsg.appendChild(findee);
-    newMsg.appendChild(item);
-    newMsg.append(' in ');
-    newMsg.append(location);
+    // Build spans
+    const finderSpan = buildFinderSpan(finder);
+    const itemSpan = buildItemSpan(item);
+    const locationSpan = buildLocationSpan(location);
+
+    // Found someone else's item
+    if (recipient !== null) {
+        const recipientSpan = buildRecipientSpan(recipient, true);
+
+        // Build check message and append to monitor
+        newMsg.appendChild(finderSpan);
+        newMsg.append(' found ');
+        newMsg.appendChild(recipientSpan);
+        newMsg.appendChild(itemSpan);
+        newMsg.append(' at ');
+        newMsg.append(locationSpan);
+        monitor.appendChild(newMsg);
+    }else{
+        // Found your own item
+        newMsg.appendChild(finderSpan);
+        newMsg.append(' found their own ');
+        newMsg.appendChild(itemSpan);
+        newMsg.append(' at ');
+        newMsg.appendChild(locationSpan);
+        monitor.appendChild(newMsg);
+    }
+
+    // Scroll to the bottom to keep new messages in view
+    monitor.scrollTo(0, monitor.scrollHeight);
+}
+
+function appendHint(finder, recipient, item, location){
+    console.log(`${finder} ${recipient} ${item} ${location}`);
+
+    // Identify monitor, create message div
+    let monitor = document.getElementById('web-input-monitor');
+    let newMsg = document.createElement('div');
+
+    const finderSpan = buildFinderSpan(finder, true);
+    const recipientSpan = buildRecipientSpan(recipient, true);
+    const itemSpan = buildItemSpan(item);
+    const locationSpan = buildLocationSpan(location);
+
+    newMsg.appendChild(recipientSpan);
+    newMsg.appendChild(itemSpan);
+    newMsg.append(' can be found in ');
+    newMsg.appendChild(finderSpan);
+    newMsg.append(' world at ');
+    newMsg.appendChild(locationSpan);
     monitor.appendChild(newMsg);
 
     // Scroll to the bottom to keep new messages in view
     monitor.scrollTo(0, monitor.scrollHeight);
+}
+
+function buildItemSpan(item) {
+    const itemSpan = document.createElement('span');
+    itemSpan.innerText = item;
+    itemSpan.className = 'item-span';
+    return itemSpan;
+}
+
+function buildLocationSpan(location) {
+    const locationSpan = document.createElement('span');
+    locationSpan.innerText = location;
+    locationSpan.className = 'location-span';
+    return locationSpan;
+}
+
+function buildFinderSpan(finder, possessive=false) {
+    const finderSpan = document.createElement('span');
+    finderSpan.innerText = finder + `${possessive ? "'s" : ''} `;
+    finderSpan.className = 'finder-span';
+    return finderSpan;
+}
+
+function buildRecipientSpan(recipient, possessive=false) {
+    const recipientSpan = document.createElement('span');
+    recipientSpan.innerText = recipient + `${possessive ? "'s" : ''} `;
+    recipientSpan.className = 'recipient-span';
+    return recipientSpan;
 }
 
 function increaseText(){
@@ -130,8 +181,14 @@ function handleIncomingMessage(message){
         case 'serverAddress':
             serverConnect();
             break;
+        case 'itemSent':
+            appendItemCheck(data.content.item, data.content.location, data.content.finder, data.content.recipient);
+            break;
         case 'itemFound':
-            appendMonitorCheck(data.content.item, data.content.location, data.content.finder, data.content.findee);
+            appendItemCheck(data.content.item, data.content.location, data.content.finder);
+            break;
+        case 'hint':
+            appendHint(data.content.finder, data.content.recipient, data.content.item, data.content.location);
             break;
         default:
             appendMonitorText(data.content.toString());

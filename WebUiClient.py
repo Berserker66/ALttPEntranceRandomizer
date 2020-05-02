@@ -40,10 +40,25 @@ class WebUiClient(Node):
     def poll_for_server_ip(self):
         self.broadcast_all(self.build_message('serverAddress', {}))
 
-    def send_item_check(self, finder, findee, item, location):
+    def notify_item_sent(self, finder, recipient, item, location):
+        self.broadcast_all(self.build_message('itemSent', {
+            'finder': finder,
+            'recipient': recipient,
+            'item': item,
+            'location': location,
+        }))
+
+    def notify_item_found(self, finder: str, item: str, location: str):
         self.broadcast_all(self.build_message('itemFound', {
             'finder': finder,
-            'findee': findee,
+            'item': item,
+            'location': location,
+        }))
+
+    def send_hint(self, finder, recipient, item, location):
+        self.broadcast_all(self.build_message('hint', {
+            'finder': finder,
+            'recipient': recipient,
             'item': item,
             'location': location,
         }))
