@@ -636,6 +636,7 @@ async def send_msgs(websocket, msgs):
 
 async def server_loop(ctx: Context, address=None):
     ctx.ui_node.send_connection_status(ctx)
+    cached_address = None
     if ctx.server and ctx.server.socket:
         ctx.ui_node.log_error('Already connected')
         return
@@ -644,7 +645,7 @@ async def server_loop(ctx: Context, address=None):
         address = ctx.server_address
     if address is None:  # see if this is an old connection
         try:
-            address = Utils.persistent_load()["servers"]["default"]
+            address = cached_address = Utils.persistent_load()["servers"]["default"]
         except Exception as e:
             logging.debug(f"Could not find cached server address. {e}")
 
@@ -675,7 +676,11 @@ async def server_loop(ctx: Context, address=None):
     except WebUiClient.WaitingForUiException:
         pass
     except ConnectionRefusedError:
-        ctx.ui_node.log_error('Connection refused by the multiworld server')
+        if cached_address:
+            ctx.ui_node.log_error('Unable to connect to multiworld server at cached address. '
+                                  'Please use the connect button above.')
+        else:
+            ctx.ui_node.log_error('Connection refused by the multiworld server')
     except (OSError, websockets.InvalidURI):
         ctx.ui_node.log_error('Failed to connect to the multiworld server')
     except Exception as e:
@@ -688,10 +693,9 @@ async def server_loop(ctx: Context, address=None):
         ctx.items_received = []
         ctx.locations_info = {}
         ctx.server_version = (0, 0, 0)
-        socket, ctx.server.socket = ctx.server.socket, None
+        if ctx.server and ctx.server.socket is not None:
+            await ctx.server.socket.close()
         ctx.server = None
-        if socket is not None and not socket.closed:
-            await socket.close()
         ctx.server_task = None
         if ctx.server_address:
             ctx.ui_node.log_info(f"... reconnecting in {RECONNECT_DELAY}s")
