@@ -445,16 +445,16 @@ async def snes_connect(ctx: Context, address):
                 break
 
         ctx.ui_node.log_info("Attaching to " + device)
-        ctx.ui_node.send_connection_status(ctx)
 
         Attach_Request = {
-            "Opcode" : "Attach",
-            "Space" : "SNES",
-            "Operands" : [device]
+            "Opcode": "Attach",
+            "Space": "SNES",
+            "Operands": [device]
         }
         await ctx.snes_socket.send(json.dumps(Attach_Request))
         ctx.snes_state = SNES_ATTACHED
         ctx.snes_attached_device = (devices.index(device), device)
+        ctx.ui_node.send_connection_status(ctx)
 
         if 'SD2SNES'.lower() in device.lower() or (len(device) == 4 and device[:3] == 'COM'):
             ctx.ui_node.log_info("SD2SNES Detected")
@@ -496,7 +496,7 @@ async def snes_autoreconnect(ctx: Context):
         await snes_connect(ctx, ctx.snes_reconnect_address)
 
 
-async def snes_recv_loop(ctx : Context):
+async def snes_recv_loop(ctx: Context):
     try:
         async for msg in ctx.snes_socket:
             ctx.snes_recv_queue.put_nowait(msg)
@@ -513,6 +513,7 @@ async def snes_recv_loop(ctx : Context):
         ctx.snes_state = SNES_DISCONNECTED
         ctx.snes_recv_queue = asyncio.Queue()
         ctx.hud_message_queue = []
+        ctx.ui_node.send_connection_status(ctx)
 
         ctx.rom = None
 
@@ -546,9 +547,9 @@ async def snes_read(ctx : Context, address, size):
                 break
 
         if len(data) != size:
-            ctx.ui_node.log_error('Error reading %s, requested %d bytes, received %d' % (hex(address), size, len(data)))
+            logging.error('Error reading %s, requested %d bytes, received %d' % (hex(address), size, len(data)))
             if len(data):
-                ctx.ui_node.log_error(str(data))
+                logging.error(str(data))
             if ctx.snes_socket is not None and not ctx.snes_socket.closed:
                 await ctx.snes_socket.close()
             return None
@@ -635,6 +636,7 @@ async def send_msgs(websocket, msgs):
 
 async def server_loop(ctx: Context, address=None):
     ctx.ui_node.send_connection_status(ctx)
+    cached_address = None
     if ctx.server and ctx.server.socket:
         ctx.ui_node.log_error('Already connected')
         return
@@ -643,11 +645,11 @@ async def server_loop(ctx: Context, address=None):
         address = ctx.server_address
     if address is None:  # see if this is an old connection
         try:
-            address = Utils.persistent_load()["servers"]["default"]
+            address = cached_address = Utils.persistent_load()["servers"]["default"]
         except Exception as e:
             logging.debug(f"Could not find cached server address. {e}")
 
-    # Wait for the user to provide a snes address
+    # Wait for the user to provide a multiworld server address
     if not address:
         ctx.ui_node.log_info('Please connect to a multiworld server using the button above.')
         ctx.ui_node.poll_for_server_ip()
@@ -674,7 +676,11 @@ async def server_loop(ctx: Context, address=None):
     except WebUiClient.WaitingForUiException:
         pass
     except ConnectionRefusedError:
-        ctx.ui_node.log_error('Connection refused by the multiworld server')
+        if cached_address:
+            ctx.ui_node.log_error('Unable to connect to multiworld server at cached address. '
+                                  'Please use the connect button above.')
+        else:
+            ctx.ui_node.log_error('Connection refused by the multiworld server')
     except (OSError, websockets.InvalidURI):
         ctx.ui_node.log_error('Failed to connect to the multiworld server')
     except Exception as e:
@@ -687,10 +693,9 @@ async def server_loop(ctx: Context, address=None):
         ctx.items_received = []
         ctx.locations_info = {}
         ctx.server_version = (0, 0, 0)
-        socket, ctx.server.socket = ctx.server.socket, None
+        if ctx.server and ctx.server.socket is not None:
+            await ctx.server.socket.close()
         ctx.server = None
-        if socket is not None and not socket.closed:
-            await socket.close()
         ctx.server_task = None
         if ctx.server_address:
             ctx.ui_node.log_info(f"... reconnecting in {RECONNECT_DELAY}s")
@@ -708,7 +713,7 @@ async def server_autoreconnect(ctx: Context):
         ctx.server_task = asyncio.create_task(server_loop(ctx))
 
 
-async def process_server_cmd(ctx : Context, cmd, args):
+async def process_server_cmd(ctx: Context, cmd, args):
     if cmd == 'RoomInfo':
         ctx.ui_node.log_info('--------------------------------')
         ctx.ui_node.log_info('Room Information:')
@@ -865,6 +870,9 @@ from MultiServer import CommandProcessor
 class ClientCommandProcessor(CommandProcessor):
     def __init__(self, ctx: Context):
         self.ctx = ctx
+
+    def output(self, text: str):
+        self.ctx.ui_node.log_info(text)
 
     def _cmd_exit(self) -> bool:
         """Close connections and client"""
@@ -1101,7 +1109,9 @@ async def game_watcher(ctx : Context):
 
         if recv_index < len(ctx.items_received) and recv_item == 0:
             item = ctx.items_received[recv_index]
-            ctx.ui_node.log_info('Received %s from %s (%s) (%d/%d in list)' % (
+            ctx.ui_node.notify_item_received(ctx.player_names[item.player], get_item_name_from_id(item.item),
+                                             get_location_name_from_address(item.location))
+            logging.info('Received %s from %s (%s) (%d/%d in list)' % (
                 color(get_item_name_from_id(item.item), 'red', 'bold'), color(ctx.player_names[item.player], 'yellow'),
                 get_location_name_from_address(item.location), recv_index + 1, len(ctx.items_received)))
             recv_index += 1
