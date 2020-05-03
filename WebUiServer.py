@@ -4,7 +4,7 @@ import multiprocessing
 
 
 def flask_server():
-    mw_gui = Flask(__name__, static_folder='webUi', template_folder='webUi')
+    mw_gui = Flask(__name__, static_folder='webUi/public', template_folder='webUi/public')
 
     @mw_gui.route("/", methods=['GET'])
     def base_request():
