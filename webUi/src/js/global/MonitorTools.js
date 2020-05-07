@@ -2,10 +2,10 @@ import React from 'react';
 import md5 from 'crypto-js/md5';
 
 const finderSpan = (finder, possessive = false) => (
-  <span className="finder-span">{finder}{possessive ? "'" : null}</span>
+  <span className="finder-span">{finder}{possessive ? "'s" : null}</span>
 );
 const recipientSpan = (recipient, possessive = false) => (
-  <span className="recipient-span">{recipient}{possessive ? "'" : null}</span>
+  <span className="recipient-span">{recipient}{possessive ? "'s" : null}</span>
 );
 const itemSpan = (item) => <span className="item-span">{item}</span>;
 const locationSpan = (location) => <span className="location-span">{location}</span>;
