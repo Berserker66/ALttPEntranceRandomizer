@@ -7,12 +7,14 @@ import WebUI from './WebUI/containers/WebUI';
 import '../styles/index.scss';
 
 // Redux reducers
-import monitor from './Monitor/Redux/reducers/monitorReducer';
 import webUI from './WebUI/Redux/reducers/webUIReducer';
+import gameState from './global/Redux/reducers/gameStateReducer';
+import monitor from './Monitor/Redux/reducers/monitorReducer';
 
 const store = createStore(combineReducers({
-  monitor,
   webUI,
+  gameState,
+  monitor,
 }), composeWithDevTools());
 
 const App = () => (

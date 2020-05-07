@@ -4,12 +4,13 @@
   "description": "",
   "main": "index.jsx",
   "scripts": {
-    "run": "webpack --mode production --config webpack.config.js",
+    "build": "webpack --mode production --config webpack.config.js",
     "dev": "webpack --mode development --config webpack.dev.js --watch"
   },
   "author": "LegendaryLinux",
   "license": "MIT",
   "dependencies": {
+    "crypto-js": "^4.0.0",
     "css-loader": "^3.5.3",
     "lodash-es": "^4.17.15",
     "prop-types": "^15.7.2",

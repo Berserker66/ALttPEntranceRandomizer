@@ -29,6 +29,8 @@ module.exports = {
     "react/jsx-curly-spacing": [2, { "when": "always" }],
     "react/prop-types": 0,
     "react/button-has-type": 0,
-    "max-len": [2, { code: 120 }]
+    "max-len": [2, { code: 120 }],
+    "operator-linebreak": [2, "after"],
+    "no-console": [2, { allow: ["error", "warn"] }],
   },
 };

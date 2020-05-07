@@ -1,13 +1,16 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import WebSocketUtils from '../../global/WebSocketUtils';
 import '../../../styles/Monitor/containers/MonitorControls.scss';
 
 // Redux actions
 import setMonitorFontSize from '../Redux/actions/setMonitorFontSize';
+import WebSocketUtils from "../../global/WebSocketUtils";
 
 const mapReduxStateToProps = (reduxState) => ({
   fontSize: reduxState.monitor.fontSize,
+  webSocket: reduxState.webUI.webSocket,
+  snesConnected: reduxState.gameState.connections.snesConnected,
+  serverConnected: reduxState.gameState.connections.serverConnected,
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -17,23 +20,6 @@ const mapDispatchToProps = (dispatch) => ({
 });
 
 class MonitorControls extends Component {
-  constructor(props) {
-    super(props);
-    this.localRef = React.createRef();
-    this.state = {
-      snesConnected: false,
-      serverConnected: false,
-    };
-  }
-
-  componentDidMount() {
-    WebSocketUtils.attachSocketListener(this.localRef.current, this.handleSocketMessage);
-  }
-
-  handleSocketMessage = (event) => {
-    console.log(event);
-  };
-
   increaseTextSize = () => {
     if (this.props.fontSize >= 25) return;
     this.props.updateFontSize(this.props.fontSize + 1);
@@ -44,26 +30,39 @@ class MonitorControls extends Component {
     this.props.updateFontSize(this.props.fontSize - 1);
   };
 
+  jankServerPrompt = () => {
+    const serverAddress = prompt('Enter multiworld server address:');
+    if (!serverAddress) return;
+    this.props.webSocket.send(WebSocketUtils.formatSocketData('webConfig', { serverAddress }));
+  };
+
   render() {
     return (
-      <div id="monitor-controls" ref={ this.localRef }>
+      <div id="monitor-controls">
         <div id="connection-status">
           <table id="connection-status-table">
             <tbody>
               <tr>
                 <td>SNES Status:</td>
                 <td>
-                  <span className={ this.state.snesConnected ? 'connected' : 'not-connected' }>
-                    { this.state.snesConnected ? 'Connected' : 'Not Connected' }
+                  <span className={ this.props.snesConnected ? 'connected' : 'not-connected' }>
+                    { this.props.snesConnected ? 'Connected' : 'Not Connected' }
                   </span>
                 </td>
               </tr>
               <tr>
                 <td>Server Status:</td>
                 <td>
-                  <span className={ this.state.serverConnected ? 'connected' : 'not-connected' }>
-                    { this.state.serverConnected ? 'Connected' : 'Not Connected' }
-                  </span>
+                  {
+                    this.props.snesConnected && !this.props.serverConnected ?
+                      (
+                        <button onClick={ this.jankServerPrompt }>Enter Address</button>
+                      ) : (
+                        <span className={ this.props.serverConnected ? 'connected' : 'not-connected' }>
+                          { this.props.serverConnected ? 'Connected' : 'Not Connected' }
+                        </span>
+                      )
+                  }
                 </td>
               </tr>
             </tbody>

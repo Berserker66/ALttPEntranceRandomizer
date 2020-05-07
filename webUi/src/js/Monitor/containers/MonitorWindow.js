@@ -1,10 +1,12 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import WebSocketUtils from '../../global/WebSocketUtils';
 import '../../../styles/Monitor/containers/MonitorWindow.scss';
 
 const mapReduxStateToProps = (reduxState) => ({
   fontSize: reduxState.monitor.fontSize,
-  webSocket: reduxState.webSocket,
+  webSocket: reduxState.webUI.webSocket,
+  messageLog: reduxState.monitor.messageLog,
 });
 
 class MonitorWindow extends Component {
@@ -41,6 +43,7 @@ class MonitorWindow extends Component {
     // Set monitor height
     const newMonitorHeight = window.innerHeight - monitorDimensions.top - commandDimensions.height - 30;
     this.monitorRef.current.style.height = `${newMonitorHeight}px`;
+    this.scrollToBottom();
   };
 
   scrollToBottom = () => {
@@ -56,14 +59,16 @@ class MonitorWindow extends Component {
     newMsg.className = 'user-command';
     this.monitorRef.current.appendChild(newMsg);
     this.scrollToBottom();
+    this.props.webSocket.send(WebSocketUtils.formatSocketData('webCommand', event.target.value));
     this.commandInputRef.current.value = '';
-    this.props.webSocket.send(event.target.value);
   };
 
   render() {
     return (
       <div id="monitor-window-wrapper">
-        <div id="monitor-window" ref={ this.monitorRef } />
+        <div id="monitor-window" ref={ this.monitorRef }>
+          { this.props.messageLog }
+        </div>
         <div id="command-wrapper" ref={ this.commandRef }>
           Command: <input onKeyDown={ this.sendCommand } ref={ this.commandInputRef } />
         </div>
