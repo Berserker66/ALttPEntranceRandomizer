@@ -651,7 +651,7 @@ async def server_loop(ctx: Context, address=None):
 
     # Wait for the user to provide a multiworld server address
     if not address:
-        ctx.ui_node.log_info('Please connect to a multiworld server using the button above.')
+        logging.info('Please connect to a multiworld server.')
         ctx.ui_node.poll_for_server_ip()
         return
 
