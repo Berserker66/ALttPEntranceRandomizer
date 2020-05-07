@@ -22,9 +22,9 @@ class MonitorTools {
   )
 
   /** Received item from another player */
-  static receivedItem = (finder, item, location) => (
+  static receivedItem = (finder, item, location, itemIndex, queueLength) => (
     <div key={ md5(`${finder}${item}${location}`) }>
-      {finderSpan(finder)} found your {itemSpan(item)} at {locationSpan(location)}
+      {finderSpan(finder)} found your {itemSpan(item)} at {locationSpan(location)} ({itemIndex}/{queueLength} in queue)
     </div>
   )
 
@@ -36,10 +36,10 @@ class MonitorTools {
   )
 
   /** Hint message */
-  static hintMessage = (finder, recipient, item, location) => (
+  static hintMessage = (finder, recipient, item, location, found) => (
     <div key={ md5(`${finder}${recipient}${item}${location}`) }>
       {recipientSpan(recipient, true)} {itemSpan(item)} can be found in {finderSpan(finder, true)}
-      world at {locationSpan(location)}
+      world at {locationSpan(location)} { found ? '(Found)' : null}
     </div>
   )
 }

@@ -55,19 +55,22 @@ class WebUiClient(Node):
             'location': location,
         }))
 
-    def notify_item_received(self, finder: str, item: str, location: str):
+    def notify_item_received(self, finder: str, item: str, location: str, item_index: int, queue_length: int):
         self.broadcast_all(self.build_message('itemReceived', {
             'finder': finder,
             'item': item,
             'location': location,
+            'itemIndex': item_index,
+            'queueLength': queue_length
         }))
 
-    def send_hint(self, finder, recipient, item, location):
+    def send_hint(self, finder, recipient, item, location, found):
         self.broadcast_all(self.build_message('hint', {
             'finder': finder,
             'recipient': recipient,
             'item': item,
             'location': location,
+            'found': 1 if found else 0,
         }))
 
 

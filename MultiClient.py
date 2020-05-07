@@ -815,7 +815,8 @@ async def process_server_cmd(ctx: Context, cmd, args):
         hints = [Utils.Hint(*hint) for hint in args]
         for hint in hints:
             ctx.ui_node.send_hint(ctx.player_names[hint.finding_player], ctx.player_names[hint.receiving_player],
-                                  get_item_name_from_id(hint.item), get_location_name_from_address(hint.location))
+                                  get_item_name_from_id(hint.item), get_location_name_from_address(hint.location),
+                                  hint.found)
             item = color(get_item_name_from_id(hint.item), 'green' if hint.found else 'cyan')
             player_find = color(ctx.player_names[hint.finding_player],
                                 'yellow' if hint.finding_player != ctx.slot else 'magenta')
@@ -910,7 +911,10 @@ class ClientCommandProcessor(CommandProcessor):
         """List all received items"""
         self.ctx.ui_node.log_info('Received items:')
         for index, item in enumerate(self.ctx.items_received, 1):
-            self.ctx.ui_node.log_info('%s from %s (%s) (%d/%d in list)' % (
+            self.ctx.ui_node.notify_item_received(self.ctx.player_names[item.player], get_item_name_from_id(item.item),
+                                                  get_location_name_from_address(item.location), index,
+                                                  len(self.ctx.items_received))
+            logging.info('%s from %s (%s) (%d/%d in list)' % (
                 color(get_item_name_from_id(item.item), 'red', 'bold'),
                 color(self.ctx.player_names[item.player], 'yellow'),
                 get_location_name_from_address(item.location), index, len(self.ctx.items_received)))
@@ -1110,7 +1114,8 @@ async def game_watcher(ctx : Context):
         if recv_index < len(ctx.items_received) and recv_item == 0:
             item = ctx.items_received[recv_index]
             ctx.ui_node.notify_item_received(ctx.player_names[item.player], get_item_name_from_id(item.item),
-                                             get_location_name_from_address(item.location))
+                                             get_location_name_from_address(item.location), recv_index + 1,
+                                             len(ctx.items_received))
             logging.info('Received %s from %s (%s) (%d/%d in list)' % (
                 color(get_item_name_from_id(item.item), 'red', 'bold'), color(ctx.player_names[item.player], 'yellow'),
                 get_location_name_from_address(item.location), recv_index + 1, len(ctx.items_received)))
