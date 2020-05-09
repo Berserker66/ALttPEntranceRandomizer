@@ -220,8 +220,7 @@ async def on_client_joined(ctx: Context, client: Client):
 
 
 async def on_client_left(ctx: Context, client: Client):
-    ctx.notify_all("%s (Team #%d) has left the game" % (client.name, client.team + 1))
-
+    ctx.notify_all("%s (Team #%d) has left the game" % (ctx.get_aliased_name(client.team, client.slot), client.team + 1))
 
 async def countdown(ctx: Context, timer):
     ctx.notify_all(f'[Server]: Starting countdown of {timer}s')
@@ -518,10 +517,10 @@ class ClientMessageProcessor(CommandProcessor):
 
     def _cmd_forfeit(self) -> bool:
         """Surrender and send your remaining items out to their recipients"""
-        if self.ctx.forfeit_mode == "enabled":
+        if "enabled" in self.ctx.forfeit_mode:
             forfeit_player(self.ctx, self.client.team, self.client.slot)
             return True
-        elif self.ctx.forfeit_mode == "disabled":
+        elif "disabled" in self.ctx.forfeit_mode:
             self.output(
                 "Sorry, client forfeiting has been disabled on this server. You can ask the server admin for a /forfeit")
             return False
@@ -618,7 +617,7 @@ class ClientMessageProcessor(CommandProcessor):
             if usable:
                 new_item = ReceivedItem(Items.item_table[item_name][3], -1, self.client.slot)
                 get_received_items(self.ctx, self.client.team, self.client.slot).append(new_item)
-                self.ctx.notify_all('Cheat console: sending "' + item_name + '" to ' + self.client.name)
+                self.ctx.notify_all('Cheat console: sending "' + item_name + '" to ' + self.ctx.get_aliased_name(self.client.team, self.client.slot))
                 send_new_items(self.ctx)
                 return True
             else:
@@ -778,10 +777,11 @@ async def process_client_cmd(ctx: Context, client: Client, cmd, args):
 
         elif cmd == 'GameFinished':
             if ctx.client_game_state[client.team, client.slot] != CLIENT_GOAL:
-                finished_msg = f'{client.name} (Team #{client.team + 1}) has found the triforce.'
+                finished_msg = f'{ctx.get_aliased_name(client.team, client.slot)} (Team #{client.team + 1}) has found the triforce.'
                 ctx.notify_all(finished_msg)
-                print(finished_msg)
                 ctx.client_game_state[client.team, client.slot] = CLIENT_GOAL
+                if "auto" in ctx.forfeit_mode:
+                    forfeit_player(ctx, client.team, client.slot)
 
         if cmd == 'Say':
             if type(args) is not str or not args.isprintable():
@@ -789,7 +789,6 @@ async def process_client_cmd(ctx: Context, client: Client, cmd, args):
                 return
 
             ctx.notify_all(ctx.get_aliased_name(client.team, client.slot) + ': ' + args)
-            print(args)
             client.messageprocessor(args)
 
 
@@ -814,7 +813,7 @@ class ServerCommandProcessor(CommandProcessor):
         for client in self.ctx.endpoints:
             if client.auth and client.name.lower() == player_name.lower() and client.socket and not client.socket.closed:
                 asyncio.create_task(client.socket.close())
-                self.output(f"Kicked {client.name}")
+                self.output(f"Kicked {self.ctx.get_aliased_name(client.team, client.slot)}")
                 return True
 
         self.output(f"Could not find player {player_name} to kick")
@@ -890,7 +889,7 @@ class ServerCommandProcessor(CommandProcessor):
                     if client.name == seeked_player:
                         new_item = ReceivedItem(Items.item_table[item][3], -1, client.slot)
                         get_received_items(self.ctx, client.team, client.slot).append(new_item)
-                        self.ctx.notify_all('Cheat console: sending "' + item + '" to ' + client.name)
+                        self.ctx.notify_all('Cheat console: sending "' + item + '" to ' + self.ctx.get_aliased_name(client.team, client.slot))
                         send_new_items(self.ctx)
                         return True
             else:
@@ -987,6 +986,7 @@ def parse_args() -> argparse.Namespace:
                              enabled:  !forfeit is always available
                              disabled: !forfeit is never available
                              goal:     !forfeit can be used after goal completion
+                             auto-enabled: !forfeit is available and automatically triggered on goal completion
                              ''')
     parser.add_argument('--remaining_mode', default=defaults["remaining_mode"], nargs='?',
                         choices=['enabled', 'disabled', "goal"], help='''\
@@ -1019,7 +1019,7 @@ async def main(args: argparse.Namespace):
             ctx.data_filename = tkinter.filedialog.askopenfilename(filetypes=(("Multiworld data","*multidata"),))
 
         with open(ctx.data_filename, 'rb') as f:
-            jsonobj = json.loads(zlib.decompress(f.read()).decode("utf-8"))
+            jsonobj = json.loads(zlib.decompress(f.read()).decode("utf-8-sig"))
             for team, names in enumerate(jsonobj['names']):
                 for player, name in enumerate(names, 1):
                     ctx.player_names[(team, player)] = name
@@ -1027,7 +1027,7 @@ async def main(args: argparse.Namespace):
             ctx.remote_items = set(jsonobj['remote_items'])
             ctx.locations = {tuple(k): tuple(v) for k, v in jsonobj['locations']}
     except Exception as e:
-        logging.error('Failed to read multiworld data (%s)' % e)
+        logging.exception('Failed to read multiworld data (%s)' % e)
         return
 
     ip = args.host if args.host else Utils.get_public_ipv4()
