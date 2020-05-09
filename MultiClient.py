@@ -359,8 +359,8 @@ SNES_CONNECTED = 2
 SNES_ATTACHED = 3
 
 
-async def snes_connect(ctx: Context, address):
-    if ctx.snes_socket is not None:
+async def snes_connect(ctx: Context, address, poll_only=False):
+    if ctx.snes_socket is not None and poll_only is False:
         ctx.ui_node.log_error('Already connected to snes')
         return
 
@@ -369,7 +369,7 @@ async def snes_connect(ctx: Context, address):
 
     address = f"ws://{address}" if "://" not in address else address
 
-    ctx.ui_node.log_info("Connecting to QUsb2snes at %s ..." % address)
+    logging.info("Connecting to QUsb2snes at %s ..." % address)
     seen_problems = set()
     while ctx.snes_state == SNES_CONNECTING:
         try:
@@ -395,7 +395,8 @@ async def snes_connect(ctx: Context, address):
                         subprocess.Popen(qusb2snes_path, cwd=os.path.dirname(qusb2snes_path))
                     else:
                         ctx.ui_node.log_info(
-                            f"Attempt to start (Q)Usb2Snes was aborted as path {qusb2snes_path} was not found, please start it yourself if it is not running")
+                            f"Attempt to start (Q)Usb2Snes was aborted as path {qusb2snes_path} was not found, "
+                            f"please start it yourself if it is not running")
 
             await asyncio.sleep(1)
         else:
@@ -411,38 +412,36 @@ async def snes_connect(ctx: Context, address):
         devices = reply['Results'] if 'Results' in reply and len(reply['Results']) > 0 else None
 
         if not devices:
-            ctx.ui_node.log_info('No SNES device found, waiting for device. '
-                                 'Run QUsb2Snes and connect it to the multibridge.')
+            ctx.ui_node.log_info('No SNES device found. Ensure QUsb2Snes is running and connect it to the multibridge.')
             while not devices:
                 await asyncio.sleep(1)
                 await ctx.snes_socket.send(json.dumps(DeviceList_Request))
                 reply = json.loads(await ctx.snes_socket.recv())
                 devices = reply['Results'] if 'Results' in reply and len(reply['Results']) > 0 else None
 
-        ctx.ui_node.log_info("Available devices:")
-        for id, device in enumerate(devices):
-            ctx.ui_node.log_info("[%d] %s" % (id + 1, device))
+        ctx.ui_node.send_device_list(devices)
+
+        # Support for polling available SNES devices without attempting to attach
+        if poll_only:
+            if len(devices) > 1:
+                ctx.ui_node.log_info("Multiple SNES devices available. Please select a device to use.")
+            await snes_disconnect(ctx)
+            return
 
         device = None
         if len(devices) == 1:
             device = devices[0]
+        elif ctx.ui_node.manual_snes and ctx.ui_node.manual_snes in devices:
+            device = ctx.ui_node.manual_snes
         elif ctx.snes_reconnect_address:
             if ctx.snes_attached_device[1] in devices:
                 device = ctx.snes_attached_device[1]
             else:
                 device = devices[ctx.snes_attached_device[0]]
         else:
-            while True:
-                ctx.ui_node.log_info("Select a device:")
-                choice = await console_input(ctx)
-                if choice is None:
-                    raise Exception('Abort input')
-                if not choice.isdigit() or int(choice) < 1 or int(choice) > len(devices):
-                    ctx.ui_node.log_warning("Invalid choice (%s)" % choice)
-                    continue
+            await snes_disconnect(ctx)
+            return
 
-                device = devices[int(choice) - 1]
-                break
 
         ctx.ui_node.log_info("Attaching to " + device)
 
@@ -484,6 +483,13 @@ async def snes_connect(ctx: Context, address):
         else:
             ctx.ui_node.log_error(f"Error connecting to snes, attempt again in {RECONNECT_DELAY}s")
             asyncio.create_task(snes_autoreconnect(ctx))
+
+
+async def snes_disconnect(ctx: Context):
+    if ctx.snes_socket:
+        if not ctx.snes_socket.closed:
+            await ctx.snes_socket.close()
+        ctx.snes_socket = None
 
 
 async def snes_autoreconnect(ctx: Context):
@@ -549,7 +555,9 @@ async def snes_read(ctx : Context, address, size):
         if len(data) != size:
             logging.error('Error reading %s, requested %d bytes, received %d' % (hex(address), size, len(data)))
             if len(data):
-                logging.error(str(data))
+                ctx.ui_node.log_error(str(data))
+                ctx.ui_node.log_warning('Unable to connect to SNES Device because QUsb2Snes broke temporarily.'
+                                        'Try un-selecting and re-selecting the SNES Device.')
             if ctx.snes_socket is not None and not ctx.snes_socket.closed:
                 await ctx.snes_socket.close()
             return None
@@ -1152,13 +1160,30 @@ async def websocket_server(websocket: websockets.WebSocketServerProtocol, path, 
                 data = json.loads(incoming_data)
                 if ('type' not in data) or ('content' not in data):
                     raise Exception('Invalid data received in websocket')
+
                 elif data['type'] == 'webStatus':
                     if data['content'] == 'connections':
                         ctx.ui_node.send_connection_status(ctx)
+                    elif data['content'] == 'devices':
+                        await snes_disconnect(ctx)
+                        await snes_connect(ctx, ctx.snes_address, True)
+
                 elif data['type'] == 'webConfig':
                     if 'serverAddress' in data['content']:
                         ctx.server_address = data['content']['serverAddress']
                         await connect(ctx, data['content']['serverAddress'])
+                    elif 'deviceId' in data['content']:
+                        # Allow a SNES disconnect via UI sending -1 as new device
+                        if data['content']['deviceId'] == "-1":
+                            ctx.ui_node.manual_snes = None
+                            ctx.snes_reconnect_address = None
+                            await snes_disconnect(ctx)
+                            return
+
+                        await snes_disconnect(ctx)
+                        ctx.ui_node.manual_snes = data['content']['deviceId']
+                        await snes_connect(ctx, ctx.snes_address)
+
                 elif data['type'] == 'webCommand':
                     process_command(data['content'])
             except json.JSONDecodeError:
@@ -1218,7 +1243,7 @@ async def main():
     await ui_socket
     webbrowser.open('http://localhost:5050')
 
-    await snes_connect(ctx, ctx.snes_address)
+    # await snes_connect(ctx, ctx.snes_address)
 
     if ctx.server_task is None:
         ctx.server_task = asyncio.create_task(server_loop(ctx))

@@ -3,6 +3,7 @@ import MonitorTools from './MonitorTools';
 // Redux actions
 import appendMessage from '../Monitor/Redux/actions/appendMessage';
 import updateGameState from './Redux/actions/updateGameState';
+import setAvailableDevices from '../WebUI/Redux/actions/setAvailableDevices';
 
 class WebSocketUtils {
   static formatSocketData = (eventType, content) => JSON.stringify({
@@ -24,10 +25,15 @@ class WebSocketUtils {
         case 'connections':
           return updateGameState({
             connections: {
+              snesDevice: data.content.snesDevice ? data.content.snesDevice : '',
               snesConnected: parseInt(data.content.snes, 10) === 3,
+              serverAddress: data.content.serverAddress ? data.content.serverAddress.replace(/^.*\/\//, '') : null,
               serverConnected: parseInt(data.content.server, 10) === 1,
             },
           });
+
+        case 'availableDevices':
+          return setAvailableDevices(data.content.devices);
 
         // Client unable to automatically connect to multiworld server
         case 'serverAddress':

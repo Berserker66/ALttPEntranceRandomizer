@@ -2,11 +2,13 @@ import logging
 
 from NetUtils import Node
 from MultiClient import Context
+import Utils
 
 
 class WebUiClient(Node):
     def __init__(self):
         super().__init__()
+        self.manual_snes = None
 
     @staticmethod
     def build_message(msg_type: str, content: dict) -> dict:
@@ -32,9 +34,20 @@ class WebUiClient(Node):
         self.broadcast_all(self.build_message('chat', message))
 
     def send_connection_status(self, ctx: Context):
+        cache = Utils.persistent_load()
+        cached_address = cache["servers"]["default"] if cache else None
+        server_address = ctx.server_address if ctx.server_address else cached_address if cached_address else None
+
         self.broadcast_all(self.build_message('connections', {
+            'snesDevice': ctx.snes_attached_device[1] if ctx.snes_attached_device else None,
             'snes': ctx.snes_state,
+            'serverAddress': server_address,
             'server': 1 if ctx.server is not None and not ctx.server.socket.closed else 0,
+        }))
+
+    def send_device_list(self, devices):
+        self.broadcast_all(self.build_message('availableDevices', {
+            'devices': devices,
         }))
 
     def poll_for_server_ip(self):
