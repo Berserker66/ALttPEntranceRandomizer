@@ -50,6 +50,7 @@ def manifest_creation():
     json.dump(manifest, open(manifestpath, "wt"), indent=4)
     print("Created Manifest")
 
+
 scripts = {"MultiClient.py" : "BerserkerMultiClient",
            "MultiMystery.py" : "BerserkerMultiMystery",
            "MultiServer.py" : "BerserkerMultiServer",

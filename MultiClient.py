@@ -7,6 +7,7 @@ import atexit
 import time
 import functools
 import webbrowser
+import multiprocessing
 
 from Utils import get_item_name_from_id, get_location_name_from_address, ReceivedItem
 
@@ -1199,6 +1200,7 @@ async def websocket_server(websocket: websockets.WebSocketServerProtocol, path, 
 
 
 async def main():
+    multiprocessing.freeze_support()
     parser = argparse.ArgumentParser()
     parser.add_argument('diff_file', default="", type=str, nargs="?",
                         help='Path to a Berserker Multiworld Binary Patch file')
