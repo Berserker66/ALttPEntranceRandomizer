@@ -2,10 +2,10 @@ import React from 'react';
 import md5 from 'crypto-js/md5';
 
 const finderSpan = (finder, possessive = false) => (
-  <span className="finder-span">{finder}{possessive ? "'" : null}</span>
+  <span className="finder-span">{finder}{possessive ? "'s" : null}</span>
 );
 const recipientSpan = (recipient, possessive = false) => (
-  <span className="recipient-span">{recipient}{possessive ? "'" : null}</span>
+  <span className="recipient-span">{recipient}{possessive ? "'s" : null}</span>
 );
 const itemSpan = (item) => <span className="item-span">{item}</span>;
 const locationSpan = (location) => <span className="location-span">{location}</span>;
@@ -22,9 +22,9 @@ class MonitorTools {
   )
 
   /** Received item from another player */
-  static receivedItem = (finder, item, location) => (
+  static receivedItem = (finder, item, location, itemIndex, queueLength) => (
     <div key={ md5(`${finder}${item}${location}`) }>
-      {finderSpan(finder)} found your {itemSpan(item)} at {locationSpan(location)}
+      {finderSpan(finder)} found your {itemSpan(item)} at {locationSpan(location)} ({itemIndex}/{queueLength} in queue)
     </div>
   )
 
@@ -36,10 +36,10 @@ class MonitorTools {
   )
 
   /** Hint message */
-  static hintMessage = (finder, recipient, item, location) => (
+  static hintMessage = (finder, recipient, item, location, found) => (
     <div key={ md5(`${finder}${recipient}${item}${location}`) }>
       {recipientSpan(recipient, true)} {itemSpan(item)} can be found in {finderSpan(finder, true)}
-      world at {locationSpan(location)}
+      world at {locationSpan(location)} { found ? '(Found)' : null}
     </div>
   )
 }

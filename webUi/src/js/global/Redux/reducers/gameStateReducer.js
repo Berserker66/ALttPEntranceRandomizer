@@ -2,7 +2,9 @@ import _assign from 'lodash-es/assign';
 
 const initialState = {
   connections: {
+    snesDevice: '',
     snesConnected: false,
+    serverAddress: null,
     serverConnected: false,
   },
   hints: {

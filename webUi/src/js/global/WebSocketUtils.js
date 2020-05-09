@@ -3,6 +3,7 @@ import MonitorTools from './MonitorTools';
 // Redux actions
 import appendMessage from '../Monitor/Redux/actions/appendMessage';
 import updateGameState from './Redux/actions/updateGameState';
+import setAvailableDevices from '../WebUI/Redux/actions/setAvailableDevices';
 
 class WebSocketUtils {
   static formatSocketData = (eventType, content) => JSON.stringify({
@@ -24,10 +25,15 @@ class WebSocketUtils {
         case 'connections':
           return updateGameState({
             connections: {
+              snesDevice: data.content.snesDevice ? data.content.snesDevice : '',
               snesConnected: parseInt(data.content.snes, 10) === 3,
+              serverAddress: data.content.serverAddress ? data.content.serverAddress.replace(/^.*\/\//, '') : null,
               serverConnected: parseInt(data.content.server, 10) === 1,
             },
           });
+
+        case 'availableDevices':
+          return setAvailableDevices(data.content.devices);
 
         // Client unable to automatically connect to multiworld server
         case 'serverAddress':
@@ -41,14 +47,14 @@ class WebSocketUtils {
 
         case 'itemReceived':
           return appendMessage(MonitorTools.receivedItem(data.content.finder, data.content.item,
-            data.content.location));
+            data.content.location, data.content.itemIndex, data.content.queueLength));
 
         case 'itemFound':
           return appendMessage(MonitorTools.foundItem(data.content.finder, data.content.item, data.content.location));
 
         case 'hint':
           return appendMessage(MonitorTools.hintMessage(data.content.finder, data.content.recipient,
-            data.content.item, data.content.location));
+            data.content.item, data.content.location), parseInt(data.content.found, 10) === 1);
 
         // The client prints several types of messages to the console
         case 'critical':

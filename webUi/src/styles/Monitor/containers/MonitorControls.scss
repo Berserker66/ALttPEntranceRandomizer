@@ -6,21 +6,29 @@
   margin-top: 0.5em;
   padding-bottom: 0.5em;
 
-  #connection-status-table{
-    td{
-      padding-right: 0.5em;
+  #connection-status{
+    display: flex;
+    flex-direction: row;
 
-      .connected{
-        color: #008000;
+    #snes-connection, #server-connection{
+      margin-right: 1em;
+      table{
+        td{
+          padding-right: 0.5em;
+        }
       }
+    }
 
-      .not-connected{
-        color: #ff0000;
-      }
+    .connected{
+      color: #008000;
+    }
 
-      button{
-        border-radius: 3px;
-      }
+    .not-connected{
+      color: #ff0000;
+    }
+
+    button {
+      border-radius: 3px;
     }
   }
 
