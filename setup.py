@@ -63,8 +63,8 @@ for script, scriptname in scripts.items():
     exes.append(cx_Freeze.Executable(
         script=script,
         targetName=scriptname + ("" if sys.platform == "linux" else ".exe"),
-        icon=icon)
-    )
+        icon=icon,
+    ))
 
 
 import datetime
@@ -78,6 +78,7 @@ cx_Freeze.setup(
     executables=exes,
     options={
         "build_exe": {
+            "includes" : ["jinja2.ext"],
             "zip_include_packages": ["*"],
             "zip_exclude_packages": [],
             "include_files": [],

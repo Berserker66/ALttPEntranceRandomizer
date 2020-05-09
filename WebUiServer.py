@@ -2,9 +2,10 @@ import Utils
 from flask import Flask, render_template
 import multiprocessing
 
+from Utils import local_path
 
 def flask_server():
-    mw_gui = Flask(__name__, static_folder='webUi/public', template_folder='webUi/public')
+    mw_gui = Flask(__name__, static_folder=local_path('webUi/public'), template_folder=local_path('webUi/public'))
 
     @mw_gui.route("/", methods=['GET'])
     def base_request():
