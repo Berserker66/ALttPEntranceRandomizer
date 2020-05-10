@@ -27,7 +27,7 @@ class MonitorTools {
 
   /** Received item from another player */
   static receivedItem = (finder, item, location, itemIndex, queueLength) => (
-    <div key={ md5(`${finder}${item}${location}`) }>
+    <div key={ md5(`${finder}${item}${location}`) } className="relevant">
       ({itemIndex}/{queueLength}) {finderSpan(finder, false)} found your&nbsp;
       {itemSpan(item)} at {locationSpan(location)}
     </div>
