@@ -43,18 +43,21 @@ class WebSocketUtils {
 
         case 'itemSent':
           return appendMessage(MonitorTools.sentItem(data.content.finder, data.content.recipient,
-            data.content.item, data.content.location));
+            data.content.item, data.content.location, parseInt(data.content.iAmFinder, 10) === 1,
+            parseInt(data.content.iAmRecipient, 10) === 1));
 
         case 'itemReceived':
           return appendMessage(MonitorTools.receivedItem(data.content.finder, data.content.item,
             data.content.location, data.content.itemIndex, data.content.queueLength));
 
         case 'itemFound':
-          return appendMessage(MonitorTools.foundItem(data.content.finder, data.content.item, data.content.location));
+          return appendMessage(MonitorTools.foundItem(data.content.finder, data.content.item, data.content.location,
+            parseInt(data.content.iAmFinder, 10) === 1));
 
         case 'hint':
           return appendMessage(MonitorTools.hintMessage(data.content.finder, data.content.recipient,
-            data.content.item, data.content.location), parseInt(data.content.found, 10) === 1);
+            data.content.item, data.content.location, parseInt(data.content.found, 10) === 1,
+            parseInt(data.content.iAmFinder, 10) === 1, parseInt(data.content.iAmRecipient, 10) === 1));
 
         // The client prints several types of messages to the console
         case 'critical':

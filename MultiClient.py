@@ -808,7 +808,8 @@ async def process_server_cmd(ctx: Context, cmd, args):
     elif cmd == 'ItemSent':
         player_sent, location, player_recvd, item = args
         ctx.ui_node.notify_item_sent(ctx.player_names[player_sent], ctx.player_names[player_recvd],
-                                     get_item_name_from_id(item), get_location_name_from_address(location))
+                                     get_item_name_from_id(item), get_location_name_from_address(location),
+                                     player_sent == ctx.slot, player_recvd == ctx.slot)
         item = color(get_item_name_from_id(item), 'cyan' if player_sent != ctx.slot else 'green')
         player_sent = color(ctx.player_names[player_sent], 'yellow' if player_sent != ctx.slot else 'magenta')
         player_recvd = color(ctx.player_names[player_recvd], 'yellow' if player_recvd != ctx.slot else 'magenta')
@@ -818,7 +819,7 @@ async def process_server_cmd(ctx: Context, cmd, args):
     elif cmd == 'ItemFound':
         found = ReceivedItem(*args)
         ctx.ui_node.notify_item_found(ctx.player_names[found.player], get_item_name_from_id(found.item),
-                                      get_location_name_from_address(found.location))
+                                      get_location_name_from_address(found.location), found.player == ctx.slot)
         item = color(get_item_name_from_id(found.item), 'cyan' if found.player != ctx.slot else 'green')
         player_sent = color(ctx.player_names[found.player], 'yellow' if found.player != ctx.slot else 'magenta')
         logging.info('%s found %s (%s)' % (player_sent, item, get_location_name_from_address(found.location)))
@@ -828,7 +829,7 @@ async def process_server_cmd(ctx: Context, cmd, args):
         for hint in hints:
             ctx.ui_node.send_hint(ctx.player_names[hint.finding_player], ctx.player_names[hint.receiving_player],
                                   get_item_name_from_id(hint.item), get_location_name_from_address(hint.location),
-                                  hint.found)
+                                  hint.found, hint.finding_player == ctx.slot, hint.receiving_player == ctx.slot)
             item = color(get_item_name_from_id(hint.item), 'green' if hint.found else 'cyan')
             player_find = color(ctx.player_names[hint.finding_player],
                                 'yellow' if hint.finding_player != ctx.slot else 'magenta')

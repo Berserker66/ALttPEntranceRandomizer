@@ -10,6 +10,9 @@
   "author": "LegendaryLinux",
   "license": "MIT",
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.28",
+    "@fortawesome/free-solid-svg-icons": "^5.13.0",
+    "@fortawesome/react-fontawesome": "^0.1.9",
     "crypto-js": "^4.0.0",
     "css-loader": "^3.5.3",
     "lodash-es": "^4.17.15",

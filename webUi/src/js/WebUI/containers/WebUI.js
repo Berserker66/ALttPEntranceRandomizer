@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import HeaderBar from '../../HeaderBar/components/HeaderBar';
 import Monitor from '../../Monitor/components/Monitor';
+import WidgetArea from '../../WidgetArea/containers/WidgetArea';
 import '../../../styles/WebUI/containers/WebUI.scss';
 
 // Redux actions
@@ -58,7 +59,10 @@ class WebUI extends Component {
     return (
       <div id="web-ui" ref={ this.webUiRef }>
         <HeaderBar />
-        <Monitor />
+        <div id="content-middle">
+          <Monitor />
+          <WidgetArea />
+        </div>
       </div>
     );
   }

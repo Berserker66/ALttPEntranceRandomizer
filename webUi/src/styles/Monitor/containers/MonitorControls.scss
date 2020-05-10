@@ -33,7 +33,9 @@
   }
 
   #accessibility{
-    line-height: 48px;
+    display: flex;
+    flex-direction: column;
+    height: 48px;
 
     button{
       border-radius: 4px;

@@ -7,6 +7,7 @@ const mapReduxStateToProps = (reduxState) => ({
   fontSize: reduxState.monitor.fontSize,
   webSocket: reduxState.webUI.webSocket,
   messageLog: reduxState.monitor.messageLog,
+  showRelevantOnly: reduxState.monitor.showRelevantOnly,
 });
 
 class MonitorWindow extends Component {
@@ -66,7 +67,11 @@ class MonitorWindow extends Component {
   render() {
     return (
       <div id="monitor-window-wrapper">
-        <div id="monitor-window" ref={ this.monitorRef }>
+        <div
+          id="monitor-window"
+          ref={ this.monitorRef }
+          className={ `${this.props.showRelevantOnly ? 'relevant-only' : null}` }
+        >
           { this.props.messageLog }
         </div>
         <div id="command-wrapper" ref={ this.commandRef }>

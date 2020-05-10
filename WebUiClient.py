@@ -53,19 +53,22 @@ class WebUiClient(Node):
     def poll_for_server_ip(self):
         self.broadcast_all(self.build_message('serverAddress', {}))
 
-    def notify_item_sent(self, finder, recipient, item, location):
+    def notify_item_sent(self, finder, recipient, item, location, i_am_finder: bool, i_am_recipient: bool):
         self.broadcast_all(self.build_message('itemSent', {
             'finder': finder,
             'recipient': recipient,
             'item': item,
             'location': location,
+            'iAmFinder': 1 if i_am_finder else 0,
+            'iAmRecipient': 1 if i_am_recipient else 0,
         }))
 
-    def notify_item_found(self, finder: str, item: str, location: str):
+    def notify_item_found(self, finder: str, item: str, location: str, i_am_finder: bool):
         self.broadcast_all(self.build_message('itemFound', {
             'finder': finder,
             'item': item,
             'location': location,
+            'iAmFinder': 1 if i_am_finder else 0,
         }))
 
     def notify_item_received(self, finder: str, item: str, location: str, item_index: int, queue_length: int):
@@ -74,18 +77,26 @@ class WebUiClient(Node):
             'item': item,
             'location': location,
             'itemIndex': item_index,
-            'queueLength': queue_length
+            'queueLength': queue_length,
         }))
 
-    def send_hint(self, finder, recipient, item, location, found):
+    def send_hint(self, finder, recipient, item, location, found, i_am_finder: bool, i_am_recipient: bool):
         self.broadcast_all(self.build_message('hint', {
             'finder': finder,
             'recipient': recipient,
             'item': item,
             'location': location,
             'found': 1 if found else 0,
+            'iAmFinder': 1 if i_am_finder else 0,
+            'iAmRecipient': 1 if i_am_recipient else 0,
         }))
 
+    def send_game_state(self, ctx: Context):
+        self.broadcast_all(self.build_message('gameState', {
+            'hintCost': 0,
+            'checkPoints': 0,
+            'playerPoints': 0,
+        }))
 
 class WaitingForUiException(Exception):
     pass

@@ -20,10 +20,17 @@
       }
     }
 
+    &.relevant-only{
+      div:not(.relevant){
+        visibility: collapse;
+      }
+    }
+
     .item-span{ color: #29c9e4; }
     .location-span{ color: #ffff00; }
     .finder-span{ color: #0cff27; }
     .recipient-span{ color: #ffc0cb; }
+    .mine{ color: #ffa500; }
   }
 
   #command-wrapper{

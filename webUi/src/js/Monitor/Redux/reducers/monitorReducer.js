@@ -2,6 +2,7 @@ import _assign from 'lodash-es/assign';
 
 const initialState = {
   fontSize: 16,
+  showRelevantOnly: false,
   messageLog: [],
 };
 
@@ -17,6 +18,12 @@ const monitorReducer = (state = initialState, action) => {
       return _assign({}, state, {
         fontSize: action.fontSize,
       });
+
+    case 'SET_SHOW_RELEVANT':
+      return _assign({}, state, {
+        showRelevantOnly: action.showRelevant,
+      });
+
     case 'APPEND_MESSAGE':
       return _assign({}, state, {
         messageLog: appendToLog(state.messageLog, action.content),

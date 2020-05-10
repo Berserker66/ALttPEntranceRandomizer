@@ -6,6 +6,7 @@ import '../../../styles/Monitor/containers/MonitorControls.scss';
 
 // Redux actions
 import setMonitorFontSize from '../Redux/actions/setMonitorFontSize';
+import setShowRelevant from '../Redux/actions/setShowRelevant';
 
 const mapReduxStateToProps = (reduxState) => ({
   fontSize: reduxState.monitor.fontSize,
@@ -20,6 +21,9 @@ const mapReduxStateToProps = (reduxState) => ({
 const mapDispatchToProps = (dispatch) => ({
   updateFontSize: (fontSize) => {
     dispatch(setMonitorFontSize(fontSize));
+  },
+  doToggleRelevance: (showRelevantOnly) => {
+    dispatch(setShowRelevant(showRelevantOnly));
   },
 });
 
@@ -98,6 +102,10 @@ class MonitorControls extends Component {
     );
   }
 
+  toggleRelevance = (event) => {
+    this.props.doToggleRelevance(event.target.checked);
+  };
+
   render() {
     return (
       <div id="monitor-controls">
@@ -154,10 +162,15 @@ class MonitorControls extends Component {
           </div>
         </div>
         <div id="accessibility">
-          Text Size:
-          <button disabled={ this.props.fontSize <= 10 } onClick={ this.decreaseTextSize }>-</button>
-          { this.props.fontSize }
-          <button disabled={ this.props.fontSize >= 25 } onClick={ this.increaseTextSize }>+</button>
+          <div>
+            Text Size:
+            <button disabled={ this.props.fontSize <= 10 } onClick={ this.decreaseTextSize }>-</button>
+            { this.props.fontSize }
+            <button disabled={ this.props.fontSize >= 25 } onClick={ this.increaseTextSize }>+</button>
+          </div>
+          <div>
+            Only show my items <input type="checkbox" onChange={ this.toggleRelevance } />
+          </div>
         </div>
       </div>
     );
