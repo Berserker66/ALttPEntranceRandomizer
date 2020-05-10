@@ -9,7 +9,7 @@ class WidgetArea extends Component {
   }
 
   saveNotes = (event) => {
-    sessionStorage.setItem('notes', event.target.value);
+    localStorage.setItem('notes', event.target.value);
   };
 
   render() {
@@ -17,7 +17,7 @@ class WidgetArea extends Component {
       <div id="widget-area">
         <div id="notes">
           Notes:<br />
-          <textarea defaultValue={ sessionStorage.getItem('notes') } onKeyUp={ this.saveNotes } />
+          <textarea defaultValue={ localStorage.getItem('notes') } onKeyUp={ this.saveNotes } />
         </div>
         More tools Coming Soon™
       </div>
