@@ -12,12 +12,16 @@ const locationSpan = (location) => <span className="location-span">{location}</s
 
 class MonitorTools {
   /** Convert plaintext into a React-friendly div */
-  static createTextDiv = (text) => <div key={ md5(text) }>{text}</div>;
+  static createTextDiv = (text) => (
+    <div key={ `${md5(text)}${Math.floor((Math.random() * 1000000))}` }>
+      {text}
+    </div>
+  );
 
   /** Sent an item to another player */
   static sentItem = (finder, recipient, item, location, iAmFinder = false, iAmRecipient = false) => (
     <div
-      key={ md5(`${finder}${recipient}${item}${location}`) }
+      key={ `${md5(finder + recipient + item + location)}${Math.floor((Math.random() * 1000000))}` }
       className={ (iAmFinder || iAmRecipient) ? 'relevant' : null }
     >
       {finderSpan(finder, false, iAmFinder)} found {recipientSpan(recipient, true, iAmRecipient)}&nbsp;
@@ -27,7 +31,10 @@ class MonitorTools {
 
   /** Received item from another player */
   static receivedItem = (finder, item, location, itemIndex, queueLength) => (
-    <div key={ md5(`${finder}${item}${location}`) } className="relevant">
+    <div
+      key={ `${md5(finder + item + location)}${Math.floor((Math.random() * 1000000))}` }
+      className="relevant"
+    >
       ({itemIndex}/{queueLength}) {finderSpan(finder, false)} found your&nbsp;
       {itemSpan(item)} at {locationSpan(location)}
     </div>
@@ -36,7 +43,7 @@ class MonitorTools {
   /** Player found their own item (local or remote player) */
   static foundItem = (finder, item, location, iAmFinder = false) => (
     <div
-      key={ md5(`${finder}${item}${location}`) }
+      key={ `${md5(finder + item + location)}${Math.floor((Math.random() * 1000000))}` }
       className={ iAmFinder ? 'relevant' : null }
     >
       {finderSpan(finder, false, iAmFinder)} found their own {itemSpan(item)} at {locationSpan(location)}
@@ -46,7 +53,7 @@ class MonitorTools {
   /** Hint message */
   static hintMessage = (finder, recipient, item, location, found, iAmFinder = false, iAmRecipient = false) => (
     <div
-      key={ md5(`${finder}${recipient}${item}${location}`) }
+      key={ `${md5(finder + recipient + item + location)}${Math.floor((Math.random() * 1000000))}` }
       className={ (iAmFinder || iAmRecipient) ? 'relevant' : null }
     >
       {recipientSpan(recipient, true, iAmRecipient)} {itemSpan(item)} can be found in&nbsp;

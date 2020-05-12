@@ -7,7 +7,7 @@ const initialState = {
 };
 
 const appendToLog = (log, item) => {
-  const trimmedLog = log.slice(-499);
+  const trimmedLog = log.slice(-199);
   trimmedLog.push(item);
   return trimmedLog;
 };
