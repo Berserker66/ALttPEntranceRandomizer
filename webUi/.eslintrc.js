@@ -32,5 +32,6 @@ module.exports = {
     "max-len": [2, { code: 120 }],
     "operator-linebreak": [2, "after"],
     "no-console": [2, { allow: ["error", "warn"] }],
+    "linebreak-style": 0,
   },
 };
