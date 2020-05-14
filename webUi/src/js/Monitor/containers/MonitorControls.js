@@ -97,6 +97,13 @@ class MonitorControls extends Component {
 
   connectToServer = (event) => {
     if (event.key !== 'Enter') { return; }
+
+    // If the user presses enter on an empty textbox, disconnect from the server
+    if (!event.target.value) {
+      this.props.webSocket.send(WebSocketUtils.formatSocketData('webControl', 'disconnect'));
+      return;
+    }
+
     this.props.webSocket.send(
       WebSocketUtils.formatSocketData('webConfig', { serverAddress: this.state.serverAddress }),
     );

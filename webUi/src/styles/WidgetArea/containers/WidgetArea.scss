@@ -1,19 +1,39 @@
 #widget-area{
   display: flex;
   flex-direction: column;
-  width: calc(20% - 1.5em - 4px);
   margin-left: 0.5em;
   margin-right: 0.5em;
   padding: 0.25em;
   border: 2px solid #eae703;
 
-  #notes{
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+  &:not(.collapsed){
+    width: calc(20% - 1.5em - 4px);
+  }
 
-    textarea{
-      height: 10em;
+  #widget-button-row{
+    width: 100%;
+    text-align: right;
+
+    .collapse-button{
+      width: 35px;
+    }
+  }
+
+  #widget-area-contents{
+    #notes{
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+
+      #notes-title{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      textarea{
+        height: 10em;
+      }
     }
   }
 }

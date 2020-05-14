@@ -33,5 +33,7 @@ module.exports = {
     "operator-linebreak": [2, "after"],
     "no-console": [2, { allow: ["error", "warn"] }],
     "linebreak-style": 0,
+    "jsx-a11y/no-static-element-interactions": 0,
+    "jsx-a11y/click-events-have-key-events": 0,
   },
 };

@@ -1189,6 +1189,10 @@ async def websocket_server(websocket: websockets.WebSocketServerProtocol, path, 
                         ctx.ui_node.manual_snes = data['content']['deviceId']
                         await snes_connect(ctx, ctx.snes_address)
 
+                elif data['type'] == 'webControl':
+                    if 'disconnect' in data['content']:
+                        await ctx.disconnect()
+
                 elif data['type'] == 'webCommand':
                     process_command(data['content'])
             except json.JSONDecodeError:
