@@ -8,10 +8,16 @@ import '../../../styles/WebUI/containers/WebUI.scss';
 // Redux actions
 import setWebSocket from '../Redux/actions/setWebSocket';
 import WebSocketUtils from '../../global/WebSocketUtils';
+import updateGameState from '../../global/Redux/actions/updateGameState';
+
+const mapReduxStateToProps = (reduxState) => ({
+  connections: reduxState.gameState.connections,
+});
 
 const mapDispatchToProps = (dispatch) => ({
   doSetWebSocket: (webSocket) => dispatch(setWebSocket(webSocket)),
   handleIncomingMessage: (message) => dispatch(WebSocketUtils.handleIncomingMessage(message)),
+  doUpdateGameState: (gameState) => dispatch(updateGameState(gameState)),
 });
 
 class WebUI extends Component {
@@ -36,10 +42,26 @@ class WebUI extends Component {
 
     const webSocket = new WebSocket(webSocketAddress);
     webSocket.onerror = () => {
+      this.props.doUpdateGameState({
+        connections: {
+          snesDevice: this.props.connections.snesDevice,
+          snesConnected: false,
+          serverAddress: this.props.connections.serverAddress,
+          serverConnected: false,
+        },
+      });
       setTimeout(this.webSocketConnect, 5000);
     };
     webSocket.onclose = () => {
       // If the WebSocket connection is closed for some reason, attempt to reconnect
+      this.props.doUpdateGameState({
+        connections: {
+          snesDevice: this.props.connections.snesDevice,
+          snesConnected: false,
+          serverAddress: this.props.connections.serverAddress,
+          serverConnected: false,
+        },
+      });
       setTimeout(this.webSocketConnect, 5000);
     };
 
@@ -68,4 +90,4 @@ class WebUI extends Component {
   }
 }
 
-export default connect(null, mapDispatchToProps)(WebUI);
+export default connect(mapReduxStateToProps, mapDispatchToProps)(WebUI);

@@ -23,7 +23,7 @@ class WidgetArea extends Component {
         {
           this.state.collapsed ? (
             <div id="widget-button-row">
-              <button className="collapse-button" onClick={this.toggleCollapse}>↩</button>
+              <button className="collapse-button" onClick={ this.toggleCollapse }>↩</button>
             </div>
           ) : null
         }
@@ -33,7 +33,7 @@ class WidgetArea extends Component {
               <div id="notes">
                 <div id="notes-title">
                   <div>Notes:</div>
-                  <button className="collapse-button" onClick={this.toggleCollapse}>↪</button>
+                  <button className="collapse-button" onClick={ this.toggleCollapse }>↪</button>
                 </div>
                 <textarea defaultValue={ localStorage.getItem('notes') } onKeyUp={ this.saveNotes } />
               </div>

@@ -838,6 +838,14 @@ async def process_server_cmd(ctx: Context, cmd, args):
             logging.info(f"[Hint]: {player_recvd}'s {item} can be found "
                          f"at {get_location_name_from_address(hint.location)} in {player_find}'s World." +
                          (" (found)" if hint.found else ""))
+
+    elif cmd == 'Missing':
+        if 'locations' in args:
+            locations = json.loads(args['locations'])
+            ctx.ui_node.log_info(f'Found {len(locations)} missing location checks:')
+            for location in locations:
+                ctx.ui_node.log_info(f'Missing: {location}')
+
     elif cmd == "AliasUpdate":
         ctx.player_names = {p: n for p, n in args}
     elif cmd == 'Print':
@@ -1252,8 +1260,6 @@ async def main():
                                  'localhost', 5190, ping_timeout=None, ping_interval=None)
     await ui_socket
     webbrowser.open('http://localhost:5050')
-
-    # await snes_connect(ctx, ctx.snes_address)
 
     if ctx.server_task is None:
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")

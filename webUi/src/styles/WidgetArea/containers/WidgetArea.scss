@@ -1,6 +1,4 @@
 #widget-area{
-  display: flex;
-  flex-direction: column;
   margin-left: 0.5em;
   margin-right: 0.5em;
   padding: 0.25em;
@@ -20,10 +18,12 @@
   }
 
   #widget-area-contents{
+    display: flex;
+    flex-direction: column;
+
     #notes{
       display: flex;
       flex-direction: column;
-      flex-grow: 1;
 
       #notes-title{
         display: flex;

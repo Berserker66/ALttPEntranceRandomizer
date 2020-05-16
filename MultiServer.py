@@ -235,6 +235,12 @@ async def countdown(ctx: Context, timer):
         ctx.notify_all(f'[Server]: GO')
 
 
+async def missing(ctx: Context, client: Client, locations: list):
+    await ctx.send_msgs(client, [['Missing', {
+        'locations': json.dumps(locations)
+    }]])
+
+
 def get_players_string(ctx: Context):
     auth_clients = {(c.team, c.slot) for c in ctx.endpoints if c.auth}
 
@@ -579,15 +585,13 @@ class ClientMessageProcessor(CommandProcessor):
 
     def _cmd_missing(self) -> bool:
         """List all missing location checks from the server's perspective"""
-        buffer = ""  # try not to spam small packets over network
-        count = 0
+        locations = []
         for location_id, location_name in Regions.lookup_id_to_name.items():  # cheat console is -1, keep in mind
             if location_id != -1 and location_id not in self.ctx.location_checks[self.client.team, self.client.slot]:
-                buffer += f'Missing: {location_name}\n'
-                count += 1
+                locations.append(location_name)
 
-        if buffer:
-            self.output(buffer + f"Found {count} missing location checks")
+        if len(locations) > 0:
+            asyncio.create_task(missing(self.ctx, self.client, locations))
         else:
             self.output("No missing location checks found.")
         return True
