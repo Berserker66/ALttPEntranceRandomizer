@@ -83,6 +83,7 @@ class Context(Node):
         self.running = True
         self.client_activity_timers = {}
         self.client_game_state: typing.Dict[typing.Tuple[int, int], int] = collections.defaultdict(int)
+        self.er_hint_data: typing.Dict[int, typing.Dict[int, str]] = {}
         self.commandprocessor = ServerCommandProcessor(self)
 
     def get_save(self) -> dict:
@@ -158,6 +159,22 @@ class Context(Node):
     async def disconnect(self, endpoint):
         await super(Context, self).disconnect(endpoint)
         await on_client_disconnected(self, endpoint)
+
+
+# separated out, due to compatibilty between clients
+def notify_hints(ctx: Context, team: int, hints: typing.List[Utils.Hint]):
+    cmd = json.dumps([["Hint", hints]])  # make sure it is a list, as it can be set internally
+    texts = [['Print', format_hint(ctx, team, hint)] for hint in hints]
+    for _, text in texts:
+        logging.info("Notice (Team #%d): %s" % (team + 1, text))
+    texts = json.dumps(texts)
+    for client in ctx.endpoints:
+        if client.auth and client.team == team:
+            if "Berserker" in client.tags and client.version >= [2, 2, 1]:
+                payload = cmd
+            else:
+                payload = texts
+            asyncio.create_task(ctx.send_json_msgs(client, payload))
 
 
 def update_aliases(ctx: Context, team: int, client: typing.Optional[Client] = None):
@@ -366,7 +383,11 @@ def collect_hints(ctx: Context, team: int, slot: int, item: str) -> typing.List[
         if receiving_player == slot and item_id == seeked_item_id:
             location_id, finding_player = check
             found = location_id in ctx.location_checks[team, finding_player]
-            hints.append(Utils.Hint(receiving_player, finding_player, location_id, item_id, found))
+            entrance = ""
+            if finding_player in ctx.er_hint_data:
+                if location_id in ctx.er_hint_data[finding_player]:
+                    entrance = ctx.er_hint_data[finding_player][location_id]
+            hints.append(Utils.Hint(receiving_player, finding_player, location_id, item_id, found, entrance))
 
     return hints
 
@@ -379,17 +400,24 @@ def collect_hints_location(ctx: Context, team: int, slot: int, location: str) ->
         if finding_player == slot and location_id == seeked_location:
             item_id, receiving_player = result
             found = location_id in ctx.location_checks[team, finding_player]
-            hints.append(Utils.Hint(receiving_player, finding_player, location_id, item_id, found))
-            break # each location has 1 item
+            entrance = ""
+            if finding_player in ctx.er_hint_data:
+                if location_id in ctx.er_hint_data[finding_player]:
+                    entrance = ctx.er_hint_data[finding_player][location_id]
+            hints.append(Utils.Hint(receiving_player, finding_player, location_id, item_id, found, entrance))
+            break  # each location has 1 item
     return hints
 
 
 def format_hint(ctx: Context, team: int, hint: Utils.Hint) -> str:
-    return f"[Hint]: {ctx.player_names[team, hint.receiving_player]}'s " \
-           f"{Items.lookup_id_to_name[hint.item]} can be found " \
+    text = f"[Hint]: {ctx.player_names[team, hint.receiving_player]}'s " \
+           f"{Items.lookup_id_to_name[hint.item]} is " \
            f"at {get_location_name_from_address(hint.location)} " \
-           f"in {ctx.player_names[team, hint.finding_player]}'s World." \
-           + (" (found)" if hint.found else "")
+           f"in {ctx.player_names[team, hint.finding_player]}'s World"
+
+    if hint.entrance:
+        text += f" at {hint.entrance}"
+    return text + (". (found)" if hint.found else ".")
 
 
 def get_intended_text(input_text: str, possible_answers: typing.Iterable[str]= console_names) -> typing.Tuple[str, bool, str]:
@@ -1030,6 +1058,9 @@ async def main(args: argparse.Namespace):
             ctx.rom_names = {tuple(rom): (team, slot) for slot, team, rom in jsonobj['roms']}
             ctx.remote_items = set(jsonobj['remote_items'])
             ctx.locations = {tuple(k): tuple(v) for k, v in jsonobj['locations']}
+            if "er_hint_data" in jsonobj:
+                ctx.er_hint_data = {int(player): {int(address): name for address, name in loc_data.items()}
+                                    for player, loc_data in jsonobj["er_hint_data"].items()}
     except Exception as e:
         logging.exception('Failed to read multiworld data (%s)' % e)
         return

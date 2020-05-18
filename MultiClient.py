@@ -814,7 +814,8 @@ async def process_server_cmd(ctx: Context, cmd, args):
         player_sent = color(ctx.player_names[player_sent], 'yellow' if player_sent != ctx.slot else 'magenta')
         player_recvd = color(ctx.player_names[player_recvd], 'yellow' if player_recvd != ctx.slot else 'magenta')
         logging.info(
-            '%s sent %s to %s (%s)' % (player_sent, item, player_recvd, get_location_name_from_address(location)))
+            '%s sent %s to %s (%s)' % (player_sent, item, player_recvd, color(get_location_name_from_address(location),
+                                                                              'blue_bg', 'white')))
 
     elif cmd == 'ItemFound':
         found = ReceivedItem(*args)
@@ -822,22 +823,8 @@ async def process_server_cmd(ctx: Context, cmd, args):
                                       get_location_name_from_address(found.location), found.player == ctx.slot)
         item = color(get_item_name_from_id(found.item), 'cyan' if found.player != ctx.slot else 'green')
         player_sent = color(ctx.player_names[found.player], 'yellow' if found.player != ctx.slot else 'magenta')
-        logging.info('%s found %s (%s)' % (player_sent, item, get_location_name_from_address(found.location)))
-
-    elif cmd == 'Hint':
-        hints = [Utils.Hint(*hint) for hint in args]
-        for hint in hints:
-            ctx.ui_node.send_hint(ctx.player_names[hint.finding_player], ctx.player_names[hint.receiving_player],
-                                  get_item_name_from_id(hint.item), get_location_name_from_address(hint.location),
-                                  hint.found, hint.finding_player == ctx.slot, hint.receiving_player == ctx.slot)
-            item = color(get_item_name_from_id(hint.item), 'green' if hint.found else 'cyan')
-            player_find = color(ctx.player_names[hint.finding_player],
-                                'yellow' if hint.finding_player != ctx.slot else 'magenta')
-            player_recvd = color(ctx.player_names[hint.receiving_player],
-                                 'yellow' if hint.receiving_player != ctx.slot else 'magenta')
-            logging.info(f"[Hint]: {player_recvd}'s {item} can be found "
-                         f"at {get_location_name_from_address(hint.location)} in {player_find}'s World." +
-                         (" (found)" if hint.found else ""))
+        logging.info('%s found %s (%s)' % (player_sent, item, color(get_location_name_from_address(found.location),
+                                                                    'blue_bg', 'white')))
 
     elif cmd == 'Missing':
         if 'locations' in args:
@@ -845,6 +832,26 @@ async def process_server_cmd(ctx: Context, cmd, args):
             ctx.ui_node.log_info(f'Found {len(locations)} missing location checks:')
             for location in locations:
                 ctx.ui_node.log_info(f'Missing: {location}')
+
+    elif cmd == 'Hint':
+        hints = [Utils.Hint(*hint) for hint in args]
+        for hint in hints:
+            ctx.ui_node.send_hint(ctx.player_names[hint.finding_player], ctx.player_names[hint.receiving_player],
+                                  get_item_name_from_id(hint.item), get_location_name_from_address(hint.location),
+                                  hint.found, hint.finding_player == ctx.slot, hint.receiving_player == ctx.slot,
+                                  hint.entrance if hint.entrance else None)
+            item = color(get_item_name_from_id(hint.item), 'green' if hint.found else 'cyan')
+            player_find = color(ctx.player_names[hint.finding_player],
+                                'yellow' if hint.finding_player != ctx.slot else 'magenta')
+            player_recvd = color(ctx.player_names[hint.receiving_player],
+                                 'yellow' if hint.receiving_player != ctx.slot else 'magenta')
+
+            text = f"[Hint]: {player_recvd}'s {item} is " \
+                   f"at {color(get_location_name_from_address(hint.location), 'blue_bg', 'white')} " \
+                   f"in {player_find}'s World"
+            if hint.entrance:
+                text += " at " + color(hint.entrance, 'white_bg', 'black')
+            logging.info(text + (f". {color('(found)', 'green_bg', 'black')} " if hint.found else "."))
 
     elif cmd == "AliasUpdate":
         ctx.player_names = {p: n for p, n in args}

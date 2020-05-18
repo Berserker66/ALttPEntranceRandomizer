@@ -80,7 +80,8 @@ class WebUiClient(Node):
             'queueLength': queue_length,
         }))
 
-    def send_hint(self, finder, recipient, item, location, found, i_am_finder: bool, i_am_recipient: bool):
+    def send_hint(self, finder, recipient, item, location, found, i_am_finder: bool, i_am_recipient: bool,
+                  entrance_location: str = None):
         self.broadcast_all(self.build_message('hint', {
             'finder': finder,
             'recipient': recipient,
@@ -89,6 +90,7 @@ class WebUiClient(Node):
             'found': 1 if found else 0,
             'iAmFinder': 1 if i_am_finder else 0,
             'iAmRecipient': 1 if i_am_recipient else 0,
+            'entranceLocation': entrance_location,
         }))
 
     def send_game_state(self, ctx: Context):
@@ -97,6 +99,7 @@ class WebUiClient(Node):
             'checkPoints': 0,
             'playerPoints': 0,
         }))
+
 
 class WaitingForUiException(Exception):
     pass
