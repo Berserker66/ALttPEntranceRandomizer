@@ -442,7 +442,7 @@ def guiMain(args=None):
         guiargs.item_functionality = itemfunctionVar.get()
         guiargs.timer = timerVar.get()
         guiargs.skip_progression_balancing = not balancingVar.get()
-        guiargs.extendedmsu = bool(extendedmsuVar.get())
+        guiargs.extendedmsu = extendedmsuVar.get()
         if guiargs.timer == "none":
             guiargs.timer = False
         guiargs.dungeon_counters = dungeonCounterVar.get()
