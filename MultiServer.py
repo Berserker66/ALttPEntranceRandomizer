@@ -239,6 +239,7 @@ async def on_client_joined(ctx: Context, client: Client):
 async def on_client_left(ctx: Context, client: Client):
     ctx.notify_all("%s (Team #%d) has left the game" % (ctx.get_aliased_name(client.team, client.slot), client.team + 1))
 
+
 async def countdown(ctx: Context, timer):
     ctx.notify_all(f'[Server]: Starting countdown of {timer}s')
     if ctx.countdown_timer:
@@ -343,21 +344,6 @@ def register_location_checks(ctx: Context, team: int, slot: int, locations):
 
     if found_items:
         save(ctx)
-
-
-def notify_hints(ctx: Context, team: int, hints: typing.List[Utils.Hint]):
-    cmd = json.dumps([["Hint", hints]])  # make sure it is a list, as it can be set internally
-    texts = [['Print', format_hint(ctx, team, hint)] for hint in hints]
-    for _, text in texts:
-        logging.info("Notice (Team #%d): %s" % (team + 1, text))
-    for client in ctx.endpoints:
-        if client.auth and client.team == team:
-            if "Berserker" in client.tags:
-                payload = cmd
-                asyncio.create_task(ctx.send_json_msgs(client, payload))
-            else:
-                payload = texts
-                asyncio.create_task(ctx.send_msgs(client, payload))
 
 
 def notify_team(ctx: Context, team: int, text: str):
