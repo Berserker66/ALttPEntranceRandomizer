@@ -9,6 +9,7 @@ const recipientSpan = (recipient, possessive = false, ownItem = false) => (
 );
 const itemSpan = (item) => <span className="item-span">{item}</span>;
 const locationSpan = (location) => <span className="location-span">{location}</span>;
+const entranceSpan = (entrance) => <span className="entrance-span">{entrance}</span>;
 
 class MonitorTools {
   /** Convert plaintext into a React-friendly div */
@@ -51,14 +52,17 @@ class MonitorTools {
   )
 
   /** Hint message */
-  static hintMessage = (finder, recipient, item, location, found, iAmFinder = false, iAmRecipient = false) => (
-    <div
-      key={ `${md5(finder + recipient + item + location)}${Math.floor((Math.random() * 1000000))}` }
-      className={ (iAmFinder || iAmRecipient) ? 'relevant' : null }
-    >
-      {recipientSpan(recipient, true, iAmRecipient)} {itemSpan(item)} can be found in&nbsp;
-      {finderSpan(finder, true, iAmFinder)} world at {locationSpan(location)} ({found ? '✔' : '❌'})
-    </div>
+  static hintMessage = (finder, recipient, item, location, found, iAmFinder = false, iAmRecipient = false,
+    entranceLocation = null) => (
+      <div
+        key={ `${md5(finder + recipient + item + location)}${Math.floor((Math.random() * 1000000))}` }
+        className={ (iAmFinder || iAmRecipient) ? 'relevant' : null }
+      >
+        {recipientSpan(recipient, true, iAmRecipient)} {itemSpan(item)} can be found in&nbsp;
+        {finderSpan(finder, true, iAmFinder)} world at {locationSpan(location)}
+        { entranceLocation ? [', which is at ', entranceSpan(entranceLocation)] : null }&nbsp;
+        ({found ? '✔' : '❌'})
+      </div>
   )
 }
 

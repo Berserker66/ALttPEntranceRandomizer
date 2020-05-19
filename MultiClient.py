@@ -829,9 +829,9 @@ async def process_server_cmd(ctx: Context, cmd, args):
     elif cmd == 'Missing':
         if 'locations' in args:
             locations = json.loads(args['locations'])
-            ctx.ui_node.log_info(f'Found {len(locations)} missing location checks:')
             for location in locations:
                 ctx.ui_node.log_info(f'Missing: {location}')
+            ctx.ui_node.log_info(f'Found {len(locations)} missing location checks')
 
     elif cmd == 'Hint':
         hints = [Utils.Hint(*hint) for hint in args]

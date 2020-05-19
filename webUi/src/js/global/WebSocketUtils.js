@@ -57,7 +57,8 @@ class WebSocketUtils {
         case 'hint':
           return appendMessage(MonitorTools.hintMessage(data.content.finder, data.content.recipient,
             data.content.item, data.content.location, parseInt(data.content.found, 10) === 1,
-            parseInt(data.content.iAmFinder, 10) === 1, parseInt(data.content.iAmRecipient, 10) === 1));
+            parseInt(data.content.iAmFinder, 10) === 1, parseInt(data.content.iAmRecipient, 10) === 1,
+            data.content.entranceLocation));
 
         // The client prints several types of messages to the console
         case 'critical':
