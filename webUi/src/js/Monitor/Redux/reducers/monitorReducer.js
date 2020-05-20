@@ -1,7 +1,7 @@
 import _assign from 'lodash-es/assign';
 
 const initialState = {
-  fontSize: 16,
+  fontSize: 18,
   showRelevantOnly: false,
   messageLog: [],
 };
