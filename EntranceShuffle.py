@@ -1919,12 +1919,13 @@ def connect_mandatory_exits(world, entrances, caves, must_be_exits, player, dp_m
     random.shuffle(entrances)
     random.shuffle(caves)
     used_caves = []
+    required_entrances = 0  # Number of entrances reserved for used_caves
     while must_be_exits:
         exit = must_be_exits.pop()
         # find multi exit cave
         cave = None
         for candidate in caves:
-            if not isinstance(candidate, str):
+            if not isinstance(candidate, str) and (candidate in used_caves or len(candidate) < len(entrances) - required_entrances):
                 cave = candidate
                 break
 
@@ -1949,6 +1950,11 @@ def connect_mandatory_exits(world, entrances, caves, must_be_exits, player, dp_m
             for exit in cave[:-1]:
                 connect_two_way(world,entrances.pop(),exit, player)
         else:#save for later so we can connect to multiple exits
+            if cave in used_caves:
+                required_entrances -= 1
+                used_caves.remove(cave)
+            else:
+                required_entrances += len(cave)-1
             caves.append(cave[0:-1])
             random.shuffle(caves)
             used_caves.append(cave[0:-1])
