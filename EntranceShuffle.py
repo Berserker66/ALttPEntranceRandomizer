@@ -1143,13 +1143,10 @@ def link_inverted_entrances(world, player):
 
         connect_two_way(world, aga_door, 'Inverted Agahnims Tower Exit', player)
         dungeon_exits.remove('Inverted Agahnims Tower Exit')
-        
-        all_dungeon_entrances = dw_entrances + lw_entrances 
-        connect_mandatory_exits(world, all_dungeon_entrances, dungeon_exits, lw_dungeon_entrances_must_exit, player, dp_must_exit)
-       
-        remaining_dw_entrances = [i for i in all_dungeon_entrances if i in dw_entrances]
-        remaining_lw_entrances = [i for i in all_dungeon_entrances if i in lw_entrances]
-        connect_caves(world, remaining_lw_entrances, remaining_dw_entrances, dungeon_exits, player)
+
+        connect_mandatory_exits(world, lw_entrances, dungeon_exits, lw_dungeon_entrances_must_exit, player, dp_must_exit)
+
+        connect_caves(world, lw_entrances, dw_entrances, dungeon_exits, player)
 
     elif world.shuffle[player] == 'simple':
         simple_shuffle_dungeons(world, player)
