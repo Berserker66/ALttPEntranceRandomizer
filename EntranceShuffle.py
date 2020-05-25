@@ -1914,7 +1914,10 @@ def connect_mandatory_exits(world, entrances, caves, must_be_exits, player):
     random.shuffle(entrances)
     random.shuffle(caves)
     # Keeps track of entrances that cannot be used to access each exit / cave
-    invalid_connections = Must_Exit_Invalid_Connections.copy()
+    if world.mode[player] == 'inverted':
+        invalid_connections = Inverted_Must_Exit_Invalid_Connections.copy()
+    else:
+        invalid_connections = Must_Exit_Invalid_Connections.copy()
     invalid_cave_connections = defaultdict(set)
 
     # Handle inverted Aga Tower - if it depends on connections, then so does Hyrule Castle Ledge
@@ -2846,6 +2849,10 @@ Must_Exit_Invalid_Connections = defaultdict(set, {
     'Death Mountain Return Cave (West)': {'Bumper Cave (Top)'},
     'Skull Woods Second Section Door (West)': {'Skull Woods Final Section'},
     'Skull Woods Final Section': {'Skull Woods Second Section Door (West)'},
+})
+Inverted_Must_Exit_Invalid_Connections = defaultdict(set, {
+    'Bumper Cave (Top)': {'Death Mountain Return Cave (West)'},
+    'Death Mountain Return Cave (West)': {'Bumper Cave (Top)'},
     'Desert Palace Entrance (North)': {'Desert Palace Entrance (West)'},
     'Desert Palace Entrance (West)': {'Desert Palace Entrance (North)'},
     'Inverted Ganons Tower': {'Hyrule Castle Entrance (West)', 'Hyrule Castle Entrance (East)'},
