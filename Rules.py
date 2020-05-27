@@ -857,7 +857,7 @@ def set_trock_key_rules(world, player):
                                   'Turtle Rock - Eye Bridge - Top Right']
 
         # If TR is only accessible from the middle, the big key must be further restricted to prevent softlock potential
-        if not can_reach_front and not world.keyshuffle[player]:
+        if not can_reach_front and not world.keyshuffle[player] and not world.retro[player]:
             # Must not go in the Big Key Chest - only 1 other chest available and 2+ keys required for all other chests
             non_big_key_locations += ['Turtle Rock - Big Key Chest']
             if not can_reach_big_chest:

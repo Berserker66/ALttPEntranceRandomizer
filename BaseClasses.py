@@ -1186,7 +1186,8 @@ class Spoiler(object):
                          'progressive': self.world.progressive,
                          'shufflepots': self.world.shufflepots,
                          'players': self.world.players,
-                         'teams': self.world.teams
+                         'teams': self.world.teams,
+                         'progression_balancing' : self.world.progression_balancing
                          }
 
     def to_json(self):
@@ -1223,6 +1224,8 @@ class Spoiler(object):
                     f"Hash - {self.world.player_names[player][team]} (Team {team + 1}): " if self.world.teams > 1 else 'Hash: ',
                     self.hashes[player, team]))
                 outfile.write('Logic:                           %s\n' % self.metadata['logic'][player])
+                if self.world.players > 1:
+                    outfile.write('Progression Balanced:            %s\n' % ('Yes' if self.metadata['progression_balancing'][player] else 'No'))
                 outfile.write('Mode:                            %s\n' % self.metadata['mode'][player])
                 outfile.write('Retro:                           %s\n' % ('Yes' if self.metadata['retro'][player] else 'No'))
                 outfile.write('Swords:                          %s\n' % self.metadata['weapons'][player])
@@ -1259,6 +1262,11 @@ class Spoiler(object):
             outfile.write('\n'.join(['%s: %s' % (location, item) for grouping in self.locations.values() for (location, item) in grouping.items()]))
             outfile.write('\n\nShops:\n\n')
             outfile.write('\n'.join("{} [{}]\n    {}".format(shop['location'], shop['type'], "\n    ".join(item for item in [shop.get('item_0', None), shop.get('item_1', None), shop.get('item_2', None)] if item)) for shop in self.shops))
+            for player in range(1, self.world.players + 1):
+                if self.world.boss_shuffle[player] != 'none':
+                    bossmap = self.bosses[str(player)] if self.world.players > 1 else self.bosses
+                    outfile.write(f'\n\nBosses{(f" ({self.world.get_player_names(player)})" if self.world.players > 1 else "")}:\n')
+                    outfile.write('    '+'\n    '.join([f'{x}: {y}' for x, y in bossmap.items()]))
             outfile.write('\n\nPlaythrough:\n\n')
             outfile.write('\n'.join(['%s: {\n%s\n}' % (sphere_nr, '\n'.join(['  %s: %s' % (location, item) for (location, item) in sphere.items()] if sphere_nr != '0' else [f'  {item}' for item in sphere])) for (sphere_nr, sphere) in self.playthrough.items()]))
             if self.unreachables:
