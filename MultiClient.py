@@ -1229,7 +1229,12 @@ async def main():
     parser.add_argument('--password', default=None, help='Password of the multiworld host.')
     parser.add_argument('--loglevel', default='info', choices=['debug', 'info', 'warning', 'error', 'critical'])
     parser.add_argument('--founditems', default=False, action='store_true', help='Show items found by other players for themselves.')
+    parser.add_argument('--web_ui', default=False, action='store_true')
     args = parser.parse_args()
+    if args.web_ui:
+        WebUiServer.start_server()
+        webbrowser.open('http://localhost:5050')
+        return
 
     logging.basicConfig(format='%(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
 
@@ -1261,12 +1266,14 @@ async def main():
         asyncio.create_task(run_game(romfile))
 
     ctx = Context(args.snes, args.connect, args.password, args.founditems)
-
-    WebUiServer.start_server()
+    import sys
+    import subprocess
+    subprocess.Popen(sys.argv[0]+" --web_ui", shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL)#probably breaks on some setups/OS'
+    input_task = asyncio.create_task(console_loop(ctx), name="Input")
     ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
                                  'localhost', 5190, ping_timeout=None, ping_interval=None)
     await ui_socket
-    webbrowser.open('http://localhost:5050')
+
 
     if ctx.server_task is None:
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")
@@ -1290,6 +1297,8 @@ async def main():
     while ctx.input_requests > 0:
         ctx.input_queue.put_nowait(None)
         ctx.input_requests -= 1
+
+    await input_task
 
 if __name__ == '__main__':
     colorama.init()
