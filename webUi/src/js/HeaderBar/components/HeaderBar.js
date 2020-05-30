@@ -3,7 +3,7 @@ import '../../../styles/HeaderBar/components/HeaderBar.scss';
 
 const HeaderBar = () => (
   <div id="header-bar">
-    Berserker&apos;s Multiworld WebUI v{ document.getElementById('app').getAttribute('data-version') }
+    Multiworld WebClient
   </div>
 );
 
