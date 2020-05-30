@@ -78,7 +78,7 @@ cx_Freeze.setup(
     executables=exes,
     options={
         "build_exe": {
-            "includes" : ["jinja2.ext"],
+            "includes" : [],
             "zip_include_packages": ["*"],
             "zip_exclude_packages": [],
             "include_files": [],
