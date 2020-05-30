@@ -1232,8 +1232,9 @@ async def main():
     parser.add_argument('--web_ui', default=False, action='store_true')
     args = parser.parse_args()
     if args.web_ui:
+        import threading
+        threading.Timer(1, webbrowser.open, ('http://localhost:5050',)).start()
         WebUiServer.start_server()
-        webbrowser.open('http://localhost:5050')
         return
 
     logging.basicConfig(format='%(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
@@ -1268,7 +1269,7 @@ async def main():
     ctx = Context(args.snes, args.connect, args.password, args.founditems)
     import sys
     import subprocess
-    subprocess.Popen(sys.argv[0]+" --web_ui", shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL)#probably breaks on some setups/OS'
+    subprocess.Popen(sys.argv[0]+" --web_ui", shell=True, stdin=subprocess.DEVNULL)#probably breaks on some setups/OS'
     input_task = asyncio.create_task(console_loop(ctx), name="Input")
     ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
                                  'localhost', 5190, ping_timeout=None, ping_interval=None)

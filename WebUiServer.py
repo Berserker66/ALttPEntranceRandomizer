@@ -1,19 +1,18 @@
+import http.server
+import socketserver
+import os
+from functools import partial
+
 import Utils
-from flask import Flask, render_template
-import multiprocessing
 
-from Utils import local_path
+PORT = 5050
 
-def flask_server():
-    mw_gui = Flask(__name__, static_folder=local_path('webUi/public'), template_folder=local_path('webUi/public'))
-
-    @mw_gui.route("/", methods=['GET'])
-    def base_request():
-        return render_template('index.html', version=Utils.__version__)
-
-    Flask.run(mw_gui, None, 5050)
-
+Handler = partial(http.server.SimpleHTTPRequestHandler, directory=Utils.local_path(os.path.join("webUi", "public")))
 
 def start_server():
-    gui_thread = multiprocessing.Process(target=flask_server)
-    gui_thread.start()
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print("serving at port", PORT)
+        httpd.serve_forever()
+
+if __name__ == "__main__":
+    start_server()
