@@ -739,6 +739,10 @@ async def process_server_cmd(ctx: Context, cmd, args):
             ctx.ui_node.log_info("Server protocol tags: " + ", ".join(args["tags"]))
         if args['password']:
             ctx.ui_node.log_info('Password required')
+        if "forfeit_mode" in args: # could also be version > 2.2.1, but going with implicit content here
+            logging.info("Forfeit setting: "+args["forfeit_mode"])
+            logging.info("Remaining setting: "+args["remaining_mode"])
+            logging.info(f"A !hint costs {args['hint_cost']} points and you get {args['location_check_points']} for each location checked.")
         if len(args['players']) < 1:
             ctx.ui_node.log_info('No player connected')
         else:
