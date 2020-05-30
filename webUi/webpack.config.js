@@ -30,7 +30,7 @@ module.exports = {
             options: {
               name: '[name].[ext]',
               outputPath: 'fonts/',
-              publicPath: 'public/assets/fonts/',
+              publicPath: 'assets/fonts/',
             },
           },
         ],
@@ -39,7 +39,7 @@ module.exports = {
   },
   output: {
     path: `${path.resolve(__dirname)}/public/assets`,
-    publicPath: 'public/',
+    publicPath: '/',
     filename: '[name].bundle.js',
   },
 };
