@@ -8,6 +8,8 @@ import time
 import functools
 import webbrowser
 import multiprocessing
+import socket
+from random import randrange
 
 from Utils import get_item_name_from_id, get_location_name_from_address, ReceivedItem
 
@@ -38,12 +40,13 @@ def create_named_task(coro, *args, name=None):
 
 
 class Context():
-    def __init__(self, snes_address, server_address, password, found_items):
+    def __init__(self, snes_address, server_address, password, found_items, port: int):
         self.snes_address = snes_address
         self.server_address = server_address
 
         self.ui_node = WebUiClient.WebUiClient()
         self.custom_address = None
+        self.webui_socket_port = port
 
         self.exit_event = asyncio.Event()
         self.watcher_event = asyncio.Event()
@@ -985,6 +988,9 @@ class ClientCommandProcessor(CommandProcessor):
 
         self.ctx.ui_node.log_info(f"Setting slow mode to {self.ctx.slow_mode}")
 
+    def _cmd_web(self):
+        webbrowser.open(f'http://localhost:5050?port={self.ctx.webui_socket_port}')
+
     def default(self, raw: str):
         asyncio.create_task(self.ctx.send_msgs([['Say', raw]]))
 
@@ -1238,9 +1244,16 @@ async def main():
     args = parser.parse_args()
     logging.basicConfig(format='%(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
 
+    # Find an available port on the host system to use for hosting the websocket server
+    while True:
+        port = randrange(5000, 5999)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            if not sock.connect_ex(('localhost', port)) == 0:
+                break
+
     import threading
-    web_running = WebUiServer.start_server(
-        on_start=threading.Timer(1, webbrowser.open, ('http://localhost:5050',)).start)
+    WebUiServer.start_server(
+        port, on_start=threading.Timer(1, webbrowser.open, (f'http://localhost:5050?port={port}',)).start)
 
     if args.diff_file:
         import Patch
@@ -1269,12 +1282,11 @@ async def main():
                 logging.info("Skipping post-patch adjustment")
         asyncio.create_task(run_game(romfile))
 
-    ctx = Context(args.snes, args.connect, args.password, args.founditems)
+    ctx = Context(args.snes, args.connect, args.password, args.founditems, port)
     input_task = asyncio.create_task(console_loop(ctx), name="Input")
-    if web_running:
-        ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
-                                     'localhost', 5190, ping_timeout=None, ping_interval=None)
-        await ui_socket
+    ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
+                                 'localhost', ctx.webui_socket_port, ping_timeout=None, ping_interval=None)
+    await ui_socket
 
     if ctx.server_task is None:
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")

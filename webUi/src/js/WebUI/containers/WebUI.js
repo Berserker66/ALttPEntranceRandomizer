@@ -32,7 +32,11 @@ class WebUI extends Component {
   }
 
   webSocketConnect = () => {
-    const webSocketAddress = 'ws://localhost:5190'; // AOL Instant Messenger port (RIP)
+    const getParams = new URLSearchParams(document.location.search.substring(1));
+    const port = getParams.get('port');
+    if (!port) { throw new Error('Unable to determine socket port from GET parameters'); }
+
+    const webSocketAddress = `ws://localhost:${port}`;
     try {
       this.props.webSocket.close();
       this.props.doSetWebSocket(null);
