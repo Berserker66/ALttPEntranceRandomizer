@@ -370,7 +370,7 @@ async def snes_connect(ctx: Context, address, poll_only=False):
 
     address = f"ws://{address}" if "://" not in address else address
 
-    logging.info("Connecting to QUsb2snes at %s ..." % address)
+    ctx.ui_node.log_info("Connecting to QUsb2snes at %s ..." % address)
     seen_problems = set()
     while ctx.snes_state == SNES_CONNECTING:
         try:
@@ -1236,11 +1236,11 @@ async def main():
                         help='Show items found by other players for themselves.')
     parser.add_argument('--web_ui', default=False, action='store_true')
     args = parser.parse_args()
-    import threading
-    threading.Timer(1, webbrowser.open, ('http://localhost:5050',)).start()
-    WebUiServer.start_server()
-
     logging.basicConfig(format='%(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
+
+    import threading
+    web_running = WebUiServer.start_server(
+        on_start=threading.Timer(1, webbrowser.open, ('http://localhost:5050',)).start)
 
     if args.diff_file:
         import Patch
@@ -1271,10 +1271,10 @@ async def main():
 
     ctx = Context(args.snes, args.connect, args.password, args.founditems)
     input_task = asyncio.create_task(console_loop(ctx), name="Input")
-    ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
-                                 'localhost', 5190, ping_timeout=None, ping_interval=None)
-    await ui_socket
-
+    if web_running:
+        ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
+                                     'localhost', 5190, ping_timeout=None, ping_interval=None)
+        await ui_socket
 
     if ctx.server_task is None:
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")

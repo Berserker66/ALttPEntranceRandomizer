@@ -4,6 +4,7 @@ from NetUtils import Node
 from MultiClient import Context
 import Utils
 
+logger = logging.getLogger("WebUIRelay")
 
 class WebUiClient(Node):
     def __init__(self):
@@ -16,19 +17,19 @@ class WebUiClient(Node):
 
     def log_info(self, message, *args, **kwargs):
         self.broadcast_all(self.build_message('info', message))
-        logging.info(message, *args, **kwargs)
+        logger.info(message, *args, **kwargs)
 
     def log_warning(self, message, *args, **kwargs):
         self.broadcast_all(self.build_message('warning', message))
-        logging.warning(message, *args, **kwargs)
+        logger.warning(message, *args, **kwargs)
 
     def log_error(self, message, *args, **kwargs):
         self.broadcast_all(self.build_message('error', message))
-        logging.error(message)
+        logger.error(message, *args, **kwargs)
 
     def log_critical(self, message, *args, **kwargs):
         self.broadcast_all(self.build_message('critical', message))
-        logging.critical(message, *args, **kwargs)
+        logger.critical(message, *args, **kwargs)
 
     def send_chat_message(self, message):
         self.broadcast_all(self.build_message('chat', message))
