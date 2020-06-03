@@ -342,12 +342,12 @@ def register_location_checks(ctx: Context, team: int, slot: int, locations):
                     team + 1, ctx.player_names[(team, slot)], get_item_name_from_id(target_item),
                     ctx.player_names[(team, target_player)], get_location_name_from_address(location)))
                     found_items = True
-            elif target_player == slot:  # local pickup, notify clients of the pickup
-                if location not in ctx.location_checks[team, slot]:
-                    for client in ctx.endpoints:
-                            if client.team == team and client.wants_item_notification:
-                                asyncio.create_task(
-                                    ctx.send_msgs(client, [['ItemFound', (target_item, location, slot)]]))
+                elif target_player == slot:  # local pickup, notify clients of the pickup
+                    if location not in ctx.location_checks[team, slot]:
+                        for client in ctx.endpoints:
+                                if client.team == team and client.wants_item_notification:
+                                    asyncio.create_task(
+                                        ctx.send_msgs(client, [['ItemFound', (target_item, location, slot)]]))
         ctx.location_checks[team, slot] |= new_locations
         send_new_items(ctx)
 
