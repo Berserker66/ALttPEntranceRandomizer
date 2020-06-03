@@ -40,4 +40,4 @@ def start_server(socket_port: int, on_start=lambda: None):
 
 
 if __name__ == "__main__":
-    start_server()
+    start_server(5090)
