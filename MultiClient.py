@@ -1240,20 +1240,20 @@ async def main():
     parser.add_argument('--loglevel', default='info', choices=['debug', 'info', 'warning', 'error', 'critical'])
     parser.add_argument('--founditems', default=False, action='store_true',
                         help='Show items found by other players for themselves.')
-    parser.add_argument('--web_ui', default=False, action='store_true')
+    parser.add_argument('--disable_web_ui', default=False, action='store_true', help="Turn off emitting a webserver for the webbrowser based user interface.")
     args = parser.parse_args()
     logging.basicConfig(format='%(message)s', level=getattr(logging, args.loglevel.upper(), logging.INFO))
 
-    # Find an available port on the host system to use for hosting the websocket server
-    while True:
-        port = randrange(5000, 5999)
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            if not sock.connect_ex(('localhost', port)) == 0:
-                break
-
-    import threading
-    WebUiServer.start_server(
-        port, on_start=threading.Timer(1, webbrowser.open, (f'http://localhost:5050?port={port}',)).start)
+    if not args.disable_web_ui:
+        # Find an available port on the host system to use for hosting the websocket server
+        while True:
+            port = randrange(5000, 5999)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                if not sock.connect_ex(('localhost', port)) == 0:
+                    break
+        import threading
+        WebUiServer.start_server(
+            port, on_start=threading.Timer(1, webbrowser.open, (f'http://localhost:5050?port={port}',)).start)
 
     if args.diff_file:
         import Patch
@@ -1284,9 +1284,10 @@ async def main():
 
     ctx = Context(args.snes, args.connect, args.password, args.founditems, port)
     input_task = asyncio.create_task(console_loop(ctx), name="Input")
-    ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
-                                 'localhost', ctx.webui_socket_port, ping_timeout=None, ping_interval=None)
-    await ui_socket
+    if not args.disable_web_ui:
+        ui_socket = websockets.serve(functools.partial(websocket_server, ctx=ctx),
+                                     'localhost', port, ping_timeout=None, ping_interval=None)
+        await ui_socket
 
     if ctx.server_task is None:
         ctx.server_task = asyncio.create_task(server_loop(ctx), name="ServerLoop")
