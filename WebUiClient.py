@@ -88,9 +88,9 @@ class WebUiClient(Node):
             'recipient': recipient,
             'item': item,
             'location': location,
-            'found': 1 if found else 0,
-            'iAmFinder': 1 if i_am_finder else 0,
-            'iAmRecipient': 1 if i_am_recipient else 0,
+            'found': int(found),
+            'iAmFinder': int(i_am_finder),
+            'iAmRecipient': int(i_am_recipient),
             'entranceLocation': entrance_location,
         }))
 

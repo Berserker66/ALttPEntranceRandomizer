@@ -12,7 +12,7 @@ webthread = None
 
 PORT = 5050
 
-Handler = partial(http.server.SimpleHTTPRequestHandler, directory=Utils.local_path(os.path.join("webUi", "public")))
+Handler = partial(http.server.SimpleHTTPRequestHandler, directory=Utils.local_path(os.path.join("data", "web", "public")))
 
 
 def start_server(socket_port: int, on_start=lambda: None):
