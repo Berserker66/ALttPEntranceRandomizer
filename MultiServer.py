@@ -48,6 +48,7 @@ class Client(Endpoint):
         self.version = [0, 0, 0]
         self.messageprocessor = ClientMessageProcessor(ctx, self)
         self.ctx = weakref.ref(ctx)
+        ctx.client_connection_timers[self.team, self.slot] = datetime.datetime.now(datetime.timezone.utc)
 
     @property
     def wants_item_notification(self):
@@ -81,7 +82,8 @@ class Context(Node):
         self.remaining_mode: str = remaining_mode
         self.item_cheat = item_cheat
         self.running = True
-        self.client_activity_timers = {}
+        self.client_activity_timers: typing.Dict[typing.Tuple[int, int], datetime.datetime] = {} # datatime of last new item check
+        self.client_connection_timers: typing.Dict[typing.Tuple[int, int], datetime.datetime] = {} # datetime of last connection
         self.client_game_state: typing.Dict[typing.Tuple[int, int], int] = collections.defaultdict(int)
         self.er_hint_data: typing.Dict[int, typing.Dict[int, str]] = {}
         self.commandprocessor = ServerCommandProcessor(self)
@@ -315,24 +317,26 @@ def get_remaining(ctx: Context, team: int, slot: int) -> typing.List[int]:
 
 
 def register_location_checks(ctx: Context, team: int, slot: int, locations):
-    ctx.client_activity_timers[team, slot] = datetime.datetime.now(datetime.timezone.utc)
     found_items = False
-    for location in locations:
-        if (location, slot) in ctx.locations:
-            target_item, target_player = ctx.locations[(location, slot)]
-            if target_player != slot or slot in ctx.remote_items:
-                found = False
-                recvd_items = get_received_items(ctx, team, target_player)
-                for recvd_item in recvd_items:
-                    if recvd_item.location == location and recvd_item.player == slot:
-                        found = True
-                        break
+    new_locations = set(locations) - ctx.location_checks[team, slot]
+    if new_locations:
+        ctx.client_activity_timers[team, slot] = datetime.datetime.now(datetime.timezone.utc)
+        for location in new_locations:
+            if (location, slot) in ctx.locations:
+                target_item, target_player = ctx.locations[(location, slot)]
+                if target_player != slot or slot in ctx.remote_items:
+                    found = False
+                    recvd_items = get_received_items(ctx, team, target_player)
+                    for recvd_item in recvd_items:
+                        if recvd_item.location == location and recvd_item.player == slot:
+                            found = True
+                            break
 
-                if not found:
-                    new_item = ReceivedItem(target_item, location, slot)
-                    recvd_items.append(new_item)
-                    if slot != target_player:
-                        ctx.broadcast_team(team, [['ItemSent', (slot, location, target_player, target_item)]])
+                    if not found:
+                        new_item = ReceivedItem(target_item, location, slot)
+                        recvd_items.append(new_item)
+                        if slot != target_player:
+                            ctx.broadcast_team(team, [['ItemSent', (slot, location, target_player, target_item)]])
                     logging.info('(Team #%d) %s sent %s to %s (%s)' % (
                     team + 1, ctx.player_names[(team, slot)], get_item_name_from_id(target_item),
                     ctx.player_names[(team, target_player)], get_location_name_from_address(location)))
@@ -340,14 +344,14 @@ def register_location_checks(ctx: Context, team: int, slot: int, locations):
             elif target_player == slot:  # local pickup, notify clients of the pickup
                 if location not in ctx.location_checks[team, slot]:
                     for client in ctx.endpoints:
-                        if client.team == team and client.wants_item_notification:
-                            asyncio.create_task(
-                                ctx.send_msgs(client, [['ItemFound', (target_item, location, slot)]]))
-    ctx.location_checks[team, slot] |= set(locations)
-    send_new_items(ctx)
+                            if client.team == team and client.wants_item_notification:
+                                asyncio.create_task(
+                                    ctx.send_msgs(client, [['ItemFound', (target_item, location, slot)]]))
+        ctx.location_checks[team, slot] |= new_locations
+        send_new_items(ctx)
 
-    if found_items:
-        save(ctx)
+        if found_items:
+            save(ctx)
 
 
 def notify_team(ctx: Context, team: int, text: str):

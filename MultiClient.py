@@ -77,6 +77,7 @@ class Context():
         self.locations_info = {}
         self.awaiting_rom = False
         self.rom = None
+        self.prev_rom = None
         self.auth = None
         self.found_items = found_items
         self.finished_game = False
@@ -900,7 +901,7 @@ async def connect(ctx: Context, address=None):
     ctx.server_task = asyncio.create_task(server_loop(ctx, address))
 
 
-from MultiServer import CommandProcessor
+from MultiServer import CommandProcessor, mark_raw
 
 
 class ClientCommandProcessor(CommandProcessor):
@@ -915,6 +916,7 @@ class ClientCommandProcessor(CommandProcessor):
         self.ctx.exit_event.set()
         return True
 
+    @mark_raw
     def _cmd_snes(self, snes_address: str = "") -> bool:
         """Connect to a snes. Optionally include network address of a snes to connect to, otherwise show available devices"""
         self.ctx.snes_reconnect_address = None
@@ -1096,8 +1098,11 @@ async def game_watcher(ctx : Context):
                 continue
 
             ctx.rom = list(rom)
-            ctx.locations_checked = set()
-            ctx.locations_scouted = set()
+            if not ctx.prev_rom or ctx.prev_rom != ctx.rom:
+                ctx.locations_checked = set()
+                ctx.locations_scouted = set()
+            ctx.prev_rom = ctx.rom.copy()
+
             if ctx.awaiting_rom:
                 await server_auth(ctx, False)
 
