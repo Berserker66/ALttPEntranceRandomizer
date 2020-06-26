@@ -82,7 +82,7 @@ def parse_arguments(argv, no_defaults=False):
                                             20 of them to beat the game.
                              Ganon Triforce Hunt: Places 30 Triforce Pieces in the world, collect
                                             20 of them, then defeat Ganon.
-                             Local Ganon Triforce Hunt: Places 30 Triforce Pieces in the world,
+                             Local Ganon Triforce Hunt: Places 30 Triforce Pieces in your world,
                                             collect 20 of them, then defeat Ganon.
                              ''')
     parser.add_argument('--triforce_pieces_available', default=defval(30),
