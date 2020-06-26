@@ -244,7 +244,7 @@ def distribute_items_restrictive(world, gftower_trash=False, fill_locations=None
             continue
 
         gftower_trash_count = (
-            random.randint(15, 50) if world.goal[player] in {'triforcehunt', 'localtriforcehunt', 'ganontriforcehunt', 'localganontriforcehunt'}
+            random.randint(15, 50) if 'triforcehunt' in world.goal[player]
             else random.randint(0, 15))
 
         gtower_locations = [location for location in fill_locations if

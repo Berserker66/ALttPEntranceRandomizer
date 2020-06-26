@@ -260,7 +260,7 @@ def generate_itempool(world, player):
     random.shuffle(nonprogressionitems)
 
     triforce_pieces = world.triforce_pieces_available[player]
-    if world.goal[player] in {'triforcehunt', 'localtriforcehunt', 'ganontriforcehunt', 'localganontriforcehunt'} and triforce_pieces > 30:
+    if 'triforcehunt' in world.goal[player] and triforce_pieces > 30:
         progressionitems += [ItemFactory("Triforce Piece", player)] * (triforce_pieces - 30)
         nonprogressionitems = nonprogressionitems[(triforce_pieces-30):]
 
@@ -509,7 +509,7 @@ def get_pool_core(world, player: int):
         pool.extend(diff.timedohko)
         extraitems -= len(diff.timedohko)
         clock_mode = 'countdown-ohko'
-    if goal in {'triforcehunt', 'localtriforcehunt', 'ganontriforcehunt', 'localganontriforcehunt'}:
+    if 'triforcehunt' in goal:
         while len(diff.triforcehunt) > world.triforce_pieces_available[player]:
             diff.triforcehunt.pop()
         pool.extend(diff.triforcehunt)
@@ -642,8 +642,7 @@ def make_custom_item_pool(progressive, shuffle, difficulty, timer, goal, mode, s
         treasure_hunt_count = max(min(customitemarray[67], 99), 1) #To display, count must be between 1 and 99.
         treasure_hunt_icon = 'Triforce Piece'
         # Ensure game is always possible to complete here, force sufficient pieces if the player is unwilling.
-        if (customitemarray[66] < treasure_hunt_count) and (goal in {'triforcehunt', 'localtriforcehunt', 'ganontriforcehunt', 'localganontriforcehunt'}) and (
-                customitemarray[68] == 0):
+        if (customitemarray[66] < treasure_hunt_count) and ('triforcehunt' in goal) and (customitemarray[68] == 0):
             extrapieces = treasure_hunt_count - customitemarray[66]
             pool.extend(['Triforce Piece'] * extrapieces)
             itemtotal = itemtotal + extrapieces
