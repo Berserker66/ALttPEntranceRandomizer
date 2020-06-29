@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--samesettings', help='Rolls settings per weights file rather than per player',
                         action='store_true')
     parser.add_argument('--seed', help='Define seed number to generate.', type=int)
+    parser.add_argument('--mysteryseed', help='Define the seed to roll the settings under.', type=int)
     parser.add_argument('--multi', default=1, type=lambda value: min(max(int(value), 1), 255))
     parser.add_argument('--teams', default=1, type=lambda value: max(int(value), 1))
     parser.add_argument('--create_spoiler', action='store_true')
@@ -49,9 +50,10 @@ def main():
     args = parser.parse_args()
 
     seed = get_seed(args.seed)
-    random.seed(seed)
+    mysteryseed = get_seed(args.mysteryseed)
+    random.seed(mysteryseed)
 
-    seedname = "M" + (f"{get_seed()}".zfill(seeddigits))
+    seedname = "M" + (f"{mysteryseed}".zfill(seeddigits))
     print(f"Generating mystery for {args.multi} player{'s' if args.multi > 1 else ''}, {seedname} Seed {seed}")
 
     weights_cache = {}
@@ -189,7 +191,7 @@ def main():
                     logging.debug(f"No player settings defined for option '{option}'")
         if args.outputpath:
             os.makedirs(args.outputpath, exist_ok=True)
-        with open(os.path.join(args.outputpath if args.outputpath else ".", f"mystery_result_{seed}.yaml"), "wt") as f:
+        with open(os.path.join(args.outputpath if args.outputpath else ".", f"mystery_result_{seedname}.yaml"), "wt") as f:
             yaml.dump(important, f)
 
     erargs.skip_progression_balancing = {player: not balanced for player, balanced in
