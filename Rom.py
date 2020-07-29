@@ -273,7 +273,7 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
     with open(options_path, 'w') as f:
         json.dump(options, f)
 
-    max_enemizer_tries = 15
+    max_enemizer_tries = 5
     for i in range(max_enemizer_tries):
         enemizer_seed = str(world.rom_seeds[player].randint(0, 999999999))
         enemizer_command = [os.path.abspath(enemizercli),
