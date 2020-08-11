@@ -11,7 +11,7 @@ Additions/Changes compared to Bonta's V31
 Project
  * Available in precompiled form and guided setup for Windows 64Bit on the [Releases](https://github.com/Berserker66/MultiWorld-Utilities/releases) page
  * Compatible with Python 3.7 and 3.8. Forward Checks for Python 4.0 are done
- * Update modules if they are too old. This prevents crashes when trying to connect among potential other issues
+ * Update modules if they are too old to prevent crashes and other possible issues.
  * Autoinstall missing modules
  * Allow newer versions of modules than specified, as they will *usually* not break compatibility
  * Uses "V32" MSU
