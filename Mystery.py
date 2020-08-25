@@ -161,7 +161,8 @@ def main(args=None, callback = ERmain):
         if path:
             try:
                 settings = settings_cache[path] if settings_cache[path] else roll_settings(weights_cache[path])
-                if settings.sprite is not None and not os.path.isfile(settings.sprite) and not get_sprite_from_name(settings.sprite):
+                if settings.sprite and not os.path.isfile(settings.sprite) and not get_sprite_from_name(
+                        settings.sprite):
                     logging.warning(
                         f"Warning: The chosen sprite, \"{settings.sprite}\", for yaml \"{path}\", does not exist.")
                 for k, v in vars(settings).items():
@@ -171,12 +172,11 @@ def main(args=None, callback = ERmain):
                 raise ValueError(f"File {path} is destroyed. Please fix your yaml.") from e
         else:
             raise RuntimeError(f'No weights specified for player {player}')
-        if not erargs.name[player]:
+        if path == args.weights:  # if name came from the weights file, just use base player name
+            erargs.name[player] = f"Player{player}"
+        elif not erargs.name[player]:  # if name was not specified, generate it from filename
             erargs.name[player] = os.path.split(path)[-1].split(".")[0]
-    if args.weights:
-        erargs.names = ""
-    else:
-        erargs.names = ",".join(erargs.name[i] for i in range(1, args.multi + 1))
+    erargs.names = ",".join(erargs.name[i] for i in range(1, args.multi + 1))
     del (erargs.name)
     if args.yaml_output:
         import yaml
@@ -242,7 +242,7 @@ def get_choice(option, root, value=None) -> typing.Any:
 
 
 def handle_name(name: str):
-    return name.strip().replace(' ', '_')
+    return name.strip().replace(' ', '_')[:16]
 
 
 def roll_settings(weights):
@@ -278,7 +278,8 @@ def roll_settings(weights):
 
     ret.mapshuffle = get_choice('map_shuffle', weights, 'm' in dungeon_items)
     ret.compassshuffle = get_choice('compass_shuffle', weights, 'c' in dungeon_items)
-    ret.keyshuffle = get_choice('smallkey_shuffle', weights, 's' in dungeon_items)
+    ret.keyshuffle = get_choice('smallkey_shuffle', weights,
+                                'universal' if 'u' in dungeon_items else 's' in dungeon_items)
     ret.bigkeyshuffle = get_choice('bigkey_shuffle', weights, 'b' in dungeon_items)
 
     ret.accessibility = get_choice('accessibility', weights)
@@ -309,10 +310,17 @@ def roll_settings(weights):
     ret.triforce_pieces_required = get_choice('triforce_pieces_required', weights, 20)
     ret.triforce_pieces_required = min(max(1, int(ret.triforce_pieces_required)), 90)
 
-    ret.mode = get_choice('world_state', weights)
+    ret.shop_shuffle = get_choice('shop_shuffle', weights, '')
+    if not ret.shop_shuffle:
+        ret.shop_shuffle = ''
+
+    ret.mode = get_choice('world_state', weights, None)  # legacy support
     if ret.mode == 'retro':
         ret.mode = 'open'
         ret.retro = True
+    elif ret.mode is None:
+        ret.mode = get_choice("mode", weights)
+        ret.retro = get_choice("retro", weights)
 
     ret.hints = get_choice('hints', weights)
 
@@ -331,15 +339,38 @@ def roll_settings(weights):
                          'full': 'normal',
                          'random': 'chaos',
                          'singularity': 'singularity',
-                         'duality': 'duality'
+                         'duality': 'singularity'
                          }[get_choice('boss_shuffle', weights)]
 
-    ret.shuffleenemies = {'none': 'none',
-                          'shuffled': 'shuffled',
-                          'random': 'chaos',
-                          'chaosthieves': 'chaosthieves',
-                          'chaos': 'chaos'
-                          }[get_choice('enemy_shuffle', weights)]
+    ret.enemy_shuffle = {'none': False,
+                         'shuffled': 'shuffled',
+                         'random': 'chaos',
+                         'chaosthieves': 'chaosthieves',
+                         'chaos': 'chaos',
+                         True: True,
+                         False: False,
+                         None: False
+                         }[get_choice('enemy_shuffle', weights, False)]
+
+    ret.killable_thieves = get_choice('killable_thieves', weights, False)
+    ret.tile_shuffle = get_choice('tile_shuffle', weights, False)
+    ret.bush_shuffle = get_choice('bush_shuffle', weights, False)
+
+    # legacy support for enemy shuffle
+    if type(ret.enemy_shuffle) == str:
+        if ret.enemy_shuffle == 'shuffled':
+            ret.killable_thieves = True
+        elif ret.enemy_shuffle == 'chaos':
+            ret.killable_thieves = True
+            ret.bush_shuffle = True
+            ret.tile_shuffle = True
+        elif ret.enemy_shuffle == "chaosthieves":
+            ret.killable_thieves = bool(random.randint(0, 1))
+            ret.bush_shuffle = True
+            ret.tile_shuffle = True
+        ret.enemy_shuffle = True
+
+    # end of legacy block
 
     ret.enemy_damage = {'default': 'default',
                         'shuffled': 'shuffled',
@@ -382,7 +413,9 @@ def roll_settings(weights):
     ret.remote_items = get_choice('remote_items', weights, False)
 
     if get_choice("local_keys", weights, "l" in dungeon_items):
-        ret.local_items = item_name_groups["Small Keys"] | item_name_groups["Big Keys"]
+        ret.local_items = item_name_groups["Small Keys"] if "s" in dungeon_items else set() \
+                                                                                      | item_name_groups[
+                                                                                          "Big Keys"] if "b" in dungeon_items else set()
     else:
         ret.local_items = set()
     for item_name in weights.get('local_items', []):

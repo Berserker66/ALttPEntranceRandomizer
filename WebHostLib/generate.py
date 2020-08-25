@@ -3,6 +3,7 @@ import tempfile
 import random
 import zlib
 import json
+import multiprocessing
 
 from flask import request, flash, redirect, url_for, session, render_template
 
@@ -32,17 +33,23 @@ def generate(race=False):
                 if any(type(result) == str for result in results.values()):
                     return render_template("checkresult.html", results=results)
                 elif len(gen_options) > app.config["MAX_ROLL"]:
-                    flash(f"Sorry, generating of multiworld is limited to {app.config['MAX_ROLL']} players for now. "
+                    flash(f"Sorry, generating of multiworlds is limited to {app.config['MAX_ROLL']} players for now. "
                           f"If you have a larger group, please generate it yourself and upload it.")
                 else:
-                    seed_id = gen(gen_options, race=race)
-                    return redirect(url_for("view_seed", seed=seed_id))
+
+                    gen = Generation(options={name: vars(options) for name, options in gen_options.items()},
+                                     # convert to json compatible
+                                     meta={"race": race, "owner": session["_id"].int}, state=STATE_QUEUED,
+                                     owner=session["_id"])
+                    commit()
+
+                    return redirect(url_for("wait_seed", seed=gen.id))
     return render_template("generate.html", race=race)
 
 
-def gen(gen_options, race=False):
-    target = tempfile.TemporaryDirectory()
-    with target:
+def gen_game(gen_options, race=False, owner=None, sid=None):
+    try:
+        target = tempfile.TemporaryDirectory()
         playercount = len(gen_options)
         seed = get_seed()
         random.seed(seed)
@@ -65,7 +72,7 @@ def gen(gen_options, race=False):
         erargs.create_diff = True
 
         for player, (playerfile, settings) in enumerate(gen_options.items(), 1):
-            for k, v in vars(settings).items():
+            for k, v in settings.items():
                 if v is not None:
                     getattr(erargs, k)[player] = v
 
@@ -79,17 +86,37 @@ def gen(gen_options, race=False):
                                              erargs.progression_balancing.items()}
         del (erargs.progression_balancing)
         ERmain(erargs, seed)
-        return upload_to_db(target.name)
+
+        return upload_to_db(target.name, owner, sid)
+    except BaseException:
+        with db_session:
+            Generation.get(id=sid).state = STATE_ERROR
+        raise
 
 
-def upload_to_db(folder):
+@app.route('/wait/<suuid:seed>')
+def wait_seed(seed: UUID):
+    seed_id = seed
+    seed = Seed.get(id=seed_id)
+    if seed:
+        return redirect(url_for("view_seed", seed=seed_id))
+    generation = Generation.get(id=seed_id)
+
+    if not generation:
+        return "Generation not found."
+    elif generation.state == STATE_ERROR:
+        return "Generation failed, please retry."
+    return render_template("wait_seed.html", seed_id=seed_id)
+
+
+def upload_to_db(folder, owner, sid):
     patches = set()
     spoiler = ""
     multidata = None
     for file in os.listdir(folder):
         file = os.path.join(folder, file)
         if file.endswith(".bmbp"):
-            player = int(file.split("P")[-1].split(".")[0].split("_")[0])
+            player = int(file.split("P")[1].split(".")[0].split("_")[0])
             patches.add(Patch(data=open(file, "rb").read(), player=player))
         elif file.endswith(".txt"):
             spoiler = open(file, "rt").read()
@@ -99,9 +126,9 @@ def upload_to_db(folder):
             except Exception as e:
                 flash(e)
     if multidata:
-        commit()  # commit patches
-        seed = Seed(multidata=multidata, spoiler=spoiler, patches=patches, owner=session["_id"])
-        commit()  # create seed
-        for patch in patches:
-            patch.seed = seed
+        with db_session:
+            seed = Seed(multidata=multidata, spoiler=spoiler, patches=patches, owner=owner, id=sid)
+            for patch in patches:
+                patch.seed = seed
+            Generation.get(id=sid).delete()
         return seed.id

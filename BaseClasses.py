@@ -5,13 +5,13 @@ from enum import Enum, unique
 import logging
 import json
 from collections import OrderedDict, Counter, deque
+from typing import Union, Optional, List
+import secrets
+import random
 
 from EntranceShuffle import door_addresses, indirect_connections
 from Utils import int16_as_bytes
-from typing import Union
-
-import secrets
-import random
+from Items import item_name_groups
 
 
 class World(object):
@@ -21,7 +21,8 @@ class World(object):
     difficulty_requirements: dict
     required_medallions: dict
 
-    def __init__(self, players, shuffle, logic, mode, swords, difficulty, difficulty_adjustments, timer, progressive,
+    def __init__(self, players: int, shuffle, logic, mode, swords, difficulty, difficulty_adjustments, timer,
+                 progressive,
                  goal, algorithm, accessibility, shuffle_ganon, retro, custom, customitemarray, hints):
         if self.debug_types:
             import inspect
@@ -70,7 +71,7 @@ class World(object):
         self.fix_gtower_exit = self.shuffle_ganon
         self.retro = retro.copy()
         self.custom = custom
-        self.customitemarray = customitemarray
+        self.customitemarray: List[int] = customitemarray
         self.hints = hints.copy()
         self.dynamic_regions = []
         self.dynamic_locations = []
@@ -103,9 +104,12 @@ class World(object):
             set_player_attr('bigkeyshuffle', False)
             set_player_attr('difficulty_requirements', None)
             set_player_attr('boss_shuffle', 'none')
-            set_player_attr('enemy_shuffle', 'none')
+            set_player_attr('enemy_shuffle', False)
             set_player_attr('enemy_health', 'default')
             set_player_attr('enemy_damage', 'default')
+            set_player_attr('killable_thieves', False)
+            set_player_attr('tile_shuffle', False)
+            set_player_attr('bush_shuffle', False)
             set_player_attr('beemizer', 0)
             set_player_attr('escape_assist', [])
             set_player_attr('crystals_needed_for_ganon', 7)
@@ -120,6 +124,7 @@ class World(object):
             set_player_attr('local_items', set())
             set_player_attr('triforce_pieces_available', 30)
             set_player_attr('triforce_pieces_required', 20)
+            set_player_attr('shop_shuffle', 'off')
 
     def secure(self):
         self.random = secrets.SystemRandom()
@@ -131,9 +136,8 @@ class World(object):
     def get_name_string_for_object(self, obj) -> str:
         return obj.name if self.players == 1 else f'{obj.name} ({self.get_player_names(obj.player)})'
 
-    def get_player_names(self, player) -> str:
-        return ", ".join(
-            [name for i, name in enumerate(self.player_names[player]) if self.player_names[player].index(name) == i])
+    def get_player_names(self, player: int) -> str:
+        return ", ".join(self.player_names[player])
 
     def initialize_regions(self, regions=None):
         for region in regions if regions else self.regions:
@@ -313,7 +317,8 @@ class World(object):
 
     def push_item(self, location: Location, item: Item, collect: bool = True):
         if not isinstance(location, Location):
-            raise RuntimeError('Cannot assign item %s to location %s (player %d).' % (item, location, item.player))
+            raise RuntimeError(
+                'Cannot assign item %s to invalid location %s (player %d).' % (item, location, item.player))
 
         if location.can_fill(self.state, item, False):
             location.item = item
@@ -322,7 +327,7 @@ class World(object):
             if collect:
                 self.state.collect(item, location.event, location)
 
-            logging.getLogger('').debug('Placed %s at %s', item, location)
+            logging.debug('Placed %s at %s', item, location)
         else:
             raise RuntimeError('Cannot assign item %s to location %s.' % (item, location))
 
@@ -353,8 +358,10 @@ class World(object):
         return [location for location in self.get_locations() if not location.item]
 
     def get_filled_locations(self, player=None) -> list:
-        return [location for location in self.get_locations() if
-                (player is None or location.player == player) and location.item is not None]
+        if player is not None:
+            return [location for location in self.get_locations() if
+                    location.player == player and location.item is not None]
+        return [location for location in self.get_locations() if location.item is not None]
 
     def get_reachable_locations(self, state=None, player=None) -> list:
         if state is None:
@@ -378,7 +385,7 @@ class World(object):
 
         return False
 
-    def has_beaten_game(self, state, player: Union[None, int] = None):
+    def has_beaten_game(self, state, player: Optional[int] = None):
         if player:
             return state.has('Triforce', player) or state.world.logic[player] == 'nologic'
         else:
@@ -423,7 +430,7 @@ class CollectionState(object):
         self.world = parent
         self.reachable_regions = {player: set() for player in range(1, parent.players + 1)}
         self.blocked_connections = {player: set() for player in range(1, parent.players + 1)}
-        self.events = []
+        self.events = set()
         self.path = {}
         self.locations_checked = set()
         self.stale = {player: True for player in range(1, parent.players + 1)}
@@ -486,43 +493,37 @@ class CollectionState(object):
         return spot.can_reach(self)
 
     def sweep_for_events(self, key_only: bool = False, locations=None):
-        # this may need improvement
         if locations is None:
             locations = self.world.get_filled_locations()
         new_locations = True
-        checked_locations = 0
         while new_locations:
-            reachable_events = [location for location in locations if location.event and
+            reachable_events = {location for location in locations if location.event and
                                 (not key_only or (not self.world.keyshuffle[
                                     location.item.player] and location.item.smallkey) or (not self.world.bigkeyshuffle[
                                     location.item.player] and location.item.bigkey))
-                                and location.can_reach(self)]
-            for event in reachable_events:
-                if (event.name, event.player) not in self.events:
-                    self.events.append((event.name, event.player))
-                    self.collect(event.item, True, event)
-            new_locations = len(reachable_events) > checked_locations
-            checked_locations = len(reachable_events)
+                                and location.can_reach(self)}
+            new_locations = reachable_events - self.events
+            for event in new_locations:
+                self.events.add(event)
+                self.collect(event.item, True, event)
 
     def has(self, item, player: int, count: int = 1):
-        if count == 1:
-            return (item, player) in self.prog_items
         return self.prog_items[item, player] >= count
 
     def has_key(self, item, player, count: int = 1):
         if self.world.logic[player] == 'nologic':
             return True
-        if self.world.retro[player]:
+        if self.world.keyshuffle[player] == "universal":
             return self.can_buy_unlimited('Small Key (Universal)', player)
-        if count == 1:
-            return (item, player) in self.prog_items
         return self.prog_items[item, player] >= count
 
     def can_buy_unlimited(self, item: str, player: int) -> bool:
-        for shop in self.world.shops:
-            if shop.region.player == player and shop.has_unlimited(item) and shop.region.can_reach(self):
-                return True
-        return False
+        return any(shop.region.player == player and shop.has_unlimited(item) and shop.region.can_reach(self) for
+                   shop in self.world.shops)
+
+    def can_buy(self, item: str, player: int) -> bool:
+        return any(shop.region.player == player and shop.has(item) and shop.region.can_reach(self) for
+                   shop in self.world.shops)
 
     def item_count(self, item, player: int) -> int:
         return self.prog_items[item, player]
@@ -531,18 +532,33 @@ class CollectionState(object):
         return self.item_count('Triforce Piece', player) + self.item_count('Power Star', player) >= count
 
     def has_crystals(self, count: int, player: int) -> bool:
-        crystals = ['Crystal 1', 'Crystal 2', 'Crystal 3', 'Crystal 4', 'Crystal 5', 'Crystal 6', 'Crystal 7']
-        return len([crystal for crystal in crystals if self.has(crystal, player)]) >= count
+        found: int = 0
+        for crystalnumber in range(1, 8):
+            found += self.prog_items[f"Crystal {crystalnumber}", player]
+            if found >= count:
+                return True
+        return False
 
-    def can_lift_rocks(self, player):
+    def can_lift_rocks(self, player: int):
         return self.has('Power Glove', player) or self.has('Titans Mitts', player)
 
     def has_bottle(self, player: int) -> bool:
-        return self.bottle_count(player) > 0
+        return self.has_bottles(1, player)
 
     def bottle_count(self, player: int) -> int:
-        return len(
-            [item for (item, itemplayer) in self.prog_items if item.startswith('Bottle') and itemplayer == player])
+        found: int = 0
+        for bottlename in item_name_groups["Bottles"]:
+            found += self.prog_items[bottlename, player]
+        return found
+
+    def has_bottles(self, bottles: int, player: int) -> bool:
+        """Version of bottle_count that allows fast abort"""
+        found: int = 0
+        for bottlename in item_name_groups["Bottles"]:
+            found += self.prog_items[bottlename, player]
+            if found >= bottles:
+                return True
+        return False
 
     def has_hearts(self, player: int, count: int) -> int:
         # Warning: This only considers items that are marked as advancement items
@@ -586,7 +602,7 @@ class CollectionState(object):
     def can_shoot_arrows(self, player: int) -> bool:
         if self.world.retro[player]:
             # TODO: Progressive and Non-Progressive silvers work differently (progressive is not usable until the shop arrow is bought)
-            return (self.has('Bow', player) or self.has('Silver Bow', player)) and self.can_buy_unlimited('Single Arrow', player)
+            return (self.has('Bow', player) or self.has('Silver Bow', player)) and self.can_buy('Single Arrow', player)
         return self.has('Bow', player) or self.has('Silver Bow', player)
 
     def can_get_good_bee(self, player: int) -> bool:
@@ -600,9 +616,10 @@ class CollectionState(object):
         )
 
     def has_sword(self, player: int) -> bool:
-        return self.has('Fighter Sword', player) or self.has('Master Sword', player) or self.has('Tempered Sword',
-                                                                                                 player) or self.has(
-            'Golden Sword', player)
+        return self.has('Fighter Sword', player) \
+               or self.has('Master Sword', player) \
+               or self.has('Tempered Sword', player) \
+               or self.has('Golden Sword', player)
 
     def has_beam_sword(self, player: int) -> bool:
         return self.has('Master Sword', player) or self.has('Tempered Sword', player) or self.has('Golden Sword', player)
@@ -943,7 +960,8 @@ class Boss(object):
         return self.defeat_rule(state, self.player)
 
 class Location(object):
-    def __init__(self, player: int, name: str = '', address=None, crystal=False, hint_text=None, parent=None,
+    def __init__(self, player: int, name: str = '', address=None, crystal: bool = False,
+                 hint_text: Optional[str] = None, parent=None,
                  player_address=None):
         self.name = name
         self.parent_region = parent
@@ -954,7 +972,6 @@ class Location(object):
         self.spot_type = 'Location'
         self.hint_text: str = hint_text if hint_text else name
         self.recursion_count = 0
-        self.staleness_count = 0
         self.event = False
         self.locked = False
         self.always_allow = lambda item, state: False
@@ -966,7 +983,8 @@ class Location(object):
         return self.always_allow(state, item) or (self.parent_region.can_fill(item) and self.item_rule(item) and (not check_access or self.can_reach(state)))
 
     def can_reach(self, state: CollectionState) -> bool:
-        if self.parent_region.can_reach(state) and self.access_rule(state):
+        # self.access_rule computes faster on average, so placing it first for faster abort
+        if self.access_rule(state) and self.parent_region.can_reach(state):
             return True
         return False
 
@@ -976,6 +994,9 @@ class Location(object):
     def __str__(self):
         world = self.parent_region.world if self.parent_region and self.parent_region.world else None
         return world.get_name_string_for_object(self) if world else f'{self.name} (Player {self.player})'
+
+    def __hash__(self):
+        return hash((self.name, self.player))
 
 
 class Item(object):
@@ -1034,52 +1055,66 @@ class ShopType(Enum):
     TakeAny = 1
     UpgradeShop = 2
 
-class Shop(object):
-    def __init__(self, region, room_id, type, shopkeeper_config, custom, locked):
+class Shop():
+    slots = 3  # slot count is not dynamic in asm, however inventory can have None as empty slots
+    blacklist = set()  # items that don't work, todo: actually check against this
+    type = ShopType.Shop
+
+    def __init__(self, region: Region, room_id: int, shopkeeper_config: int, custom: bool, locked: bool):
         self.region = region
         self.room_id = room_id
-        self.type = type
-        self.inventory = [None, None, None]
+        self.inventory: List[Union[None, dict]] = [None] * self.slots
         self.shopkeeper_config = shopkeeper_config
         self.custom = custom
         self.locked = locked
 
     @property
-    def item_count(self):
-        return (3 if self.inventory[2] else
-                2 if self.inventory[1] else
-                1 if self.inventory[0] else
-                0)
+    def item_count(self) -> int:
+        for x in range(self.slots - 1, -1, -1):  # last x is 0
+            if self.inventory[x]:
+                return x + 1
+        return 0
 
-    def get_bytes(self):
+    def get_bytes(self) -> List[int]:
         # [id][roomID-low][roomID-high][doorID][zero][shop_config][shopkeeper_config][sram_index]
         entrances = self.region.entrances
         config = self.item_count
         if len(entrances) == 1 and entrances[0].name in door_addresses:
-            door_id = door_addresses[entrances[0].name][0]+1
+            door_id = door_addresses[entrances[0].name][0] + 1
         else:
             door_id = 0
-            config |= 0x40 # ignore door id
+            config |= 0x40  # ignore door id
         if self.type == ShopType.TakeAny:
             config |= 0x80
-        if self.type == ShopType.UpgradeShop:
-            config |= 0x10 # Alt. VRAM
+        elif self.type == ShopType.UpgradeShop:
+            config |= 0x10  # Alt. VRAM
         return [0x00]+int16_as_bytes(self.room_id)+[door_id, 0x00, config, self.shopkeeper_config, 0x00]
 
-    def has_unlimited(self, item):
+    def has_unlimited(self, item: str) -> bool:
         for inv in self.inventory:
             if inv is None:
                 continue
+            if inv['item'] == item:
+                return True
             if inv['max'] != 0 and inv['replacement'] is not None and inv['replacement'] == item:
                 return True
-            elif inv['item'] is not None and inv['item'] == item:
+        return False
+
+    def has(self, item: str) -> bool:
+        for inv in self.inventory:
+            if inv is None:
+                continue
+            if inv['item'] == item:
+                return True
+            if inv['max'] != 0 and inv['replacement'] == item:
                 return True
         return False
 
     def clear_inventory(self):
-        self.inventory = [None, None, None]
+        self.inventory = [None] * self.slots
 
-    def add_inventory(self, slot, item, price, max=0, replacement=None, replacement_price=0, create_location=False):
+    def add_inventory(self, slot: int, item: str, price: int, max: int = 0,
+                      replacement: Optional[str] = None, replacement_price: int = 0, create_location: bool = False):
         self.inventory[slot] = {
             'item': item,
             'price': price,
@@ -1089,9 +1124,34 @@ class Shop(object):
             'create_location': create_location
         }
 
+    def push_inventory(self, slot: int, item: str, price: int, max: int = 1):
+        if not self.inventory[slot]:
+            raise ValueError("Inventory can't be pushed back if it doesn't exist")
+
+        self.inventory[slot] = {
+            'item': item,
+            'price': price,
+            'max': max,
+            'replacement': self.inventory[slot]["item"],
+            'replacement_price': self.inventory[slot]["price"],
+            'create_location': self.inventory[slot]["create_location"]
+        }
+
+
+class TakeAny(Shop):
+    type = ShopType.TakeAny
+
+
+class UpgradeShop(Shop):
+    type = ShopType.UpgradeShop
+    # Potions break due to VRAM flags set in UpgradeShop.
+    # Didn't check for more things breaking as not much else can be shuffled here currently
+    blacklist = item_name_groups["Potions"]
+
 
 class Spoiler(object):
     world: World
+
     def __init__(self, world):
         self.world = world
         self.hashes = {}
@@ -1213,6 +1273,9 @@ class Spoiler(object):
                          'enemy_shuffle': self.world.enemy_shuffle,
                          'enemy_health': self.world.enemy_health,
                          'enemy_damage': self.world.enemy_damage,
+                         'killable_thieves': self.world.killable_thieves,
+                         'tile_shuffle': self.world.tile_shuffle,
+                         'bush_shuffle': self.world.bush_shuffle,
                          'beemizer': self.world.beemizer,
                          'progressive': self.world.progressive,
                          'shufflepots': self.world.shufflepots,
@@ -1221,6 +1284,7 @@ class Spoiler(object):
                          'progression_balancing': self.world.progression_balancing,
                          'triforce_pieces_available': self.world.triforce_pieces_available,
                          'triforce_pieces_required': self.world.triforce_pieces_required,
+                         'shop_shuffle': self.world.shop_shuffle
                          }
 
     def to_json(self):
@@ -1243,9 +1307,16 @@ class Spoiler(object):
 
     def to_file(self, filename):
         self.parse_data()
+
+        def bool_to_text(variable: Union[bool, str]) -> str:
+            if type(variable) == str:
+                return variable
+            return 'Yes' if variable else 'No'
+
         with open(filename, 'w', encoding="utf-8-sig") as outfile:
             outfile.write(
-                'ALttP Berserker\'s Multiworld Version %s  -  Seed: %s\n\n' % (self.metadata['version'], self.world.seed))
+                'ALttP Berserker\'s Multiworld Version %s  -  Seed: %s\n\n' % (
+                    self.metadata['version'], self.world.seed))
             outfile.write('Filling Algorithm:               %s\n' % self.world.algorithm)
             outfile.write('Players:                         %d\n' % self.world.players)
             outfile.write('Teams:                           %d\n' % self.world.teams)
@@ -1261,15 +1332,15 @@ class Spoiler(object):
                     outfile.write('Progression Balanced:            %s\n' % (
                         'Yes' if self.metadata['progression_balancing'][player] else 'No'))
                 outfile.write('Mode:                            %s\n' % self.metadata['mode'][player])
-                outfile.write(
-                    'Retro:                           %s\n' % ('Yes' if self.metadata['retro'][player] else 'No'))
+                outfile.write('Retro:                           %s\n' %
+                              ('Yes' if self.metadata['retro'][player] else 'No'))
                 outfile.write('Swords:                          %s\n' % self.metadata['weapons'][player])
                 outfile.write('Goal:                            %s\n' % self.metadata['goal'][player])
                 if "triforce" in self.metadata["goal"][player]:  # triforce hunt
-                    outfile.write(
-                        "Pieces available for Triforce:   %s\n" % self.metadata['triforce_pieces_available'][player])
-                    outfile.write(
-                        "Pieces required for Triforce:    %s\n" % self.metadata["triforce_pieces_required"][player])
+                    outfile.write("Pieces available for Triforce:   %s\n" %
+                                  self.metadata['triforce_pieces_available'][player])
+                    outfile.write("Pieces required for Triforce:    %s\n" %
+                                  self.metadata["triforce_pieces_required"][player])
                 outfile.write('Difficulty:                      %s\n' % self.metadata['item_pool'][player])
                 outfile.write('Item Functionality:              %s\n' % self.metadata['item_functionality'][player])
                 outfile.write('Item Progression:                %s\n' % self.metadata['progressive'][player])
@@ -1279,22 +1350,40 @@ class Spoiler(object):
                 outfile.write('Pyramid hole pre-opened:         %s\n' % (
                     'Yes' if self.metadata['open_pyramid'][player] else 'No'))
                 outfile.write('Accessibility:                   %s\n' % self.metadata['accessibility'][player])
+                outfile.write('Map shuffle:                     %s\n' %
+                              ('Yes' if self.metadata['mapshuffle'][player] else 'No'))
+                outfile.write('Compass shuffle:                 %s\n' %
+                              ('Yes' if self.metadata['compassshuffle'][player] else 'No'))
                 outfile.write(
-                    'Map shuffle:                     %s\n' % ('Yes' if self.metadata['mapshuffle'][player] else 'No'))
-                outfile.write('Compass shuffle:                 %s\n' % (
-                    'Yes' if self.metadata['compassshuffle'][player] else 'No'))
-                outfile.write('Small Key shuffle:               %s\n' % ('Yes' if self.metadata['keyshuffle'][player] else 'No'))
-                outfile.write('Big Key shuffle:                 %s\n' % ('Yes' if self.metadata['bigkeyshuffle'][player] else 'No'))
+                    'Small Key shuffle:               %s\n' % (bool_to_text(self.metadata['keyshuffle'][player])))
+                outfile.write('Big Key shuffle:                 %s\n' % (
+                    'Yes' if self.metadata['bigkeyshuffle'][player] else 'No'))
+                outfile.write('Shop inventory shuffle:          %s\n' %
+                              bool_to_text("i" in self.metadata["shop_shuffle"][player]))
+                outfile.write('Shop price shuffle:              %s\n' %
+                              bool_to_text("p" in self.metadata["shop_shuffle"][player]))
+                outfile.write('Shop upgrade shuffle:            %s\n' %
+                              bool_to_text("u" in self.metadata["shop_shuffle"][player]))
                 outfile.write('Boss shuffle:                    %s\n' % self.metadata['boss_shuffle'][player])
-                outfile.write('Enemy shuffle:                   %s\n' % self.metadata['enemy_shuffle'][player])
+                outfile.write(
+                    'Enemy shuffle:                   %s\n' % bool_to_text(self.metadata['enemy_shuffle'][player]))
                 outfile.write('Enemy health:                    %s\n' % self.metadata['enemy_health'][player])
                 outfile.write('Enemy damage:                    %s\n' % self.metadata['enemy_damage'][player])
-                outfile.write('Hints:                           %s\n' % ('Yes' if self.metadata['hints'][player] else 'No'))
+                outfile.write(f'Killable thieves:                {bool_to_text(self.metadata["killable_thieves"])}\n')
+                outfile.write(f'Shuffled tiles:                  {bool_to_text(self.metadata["tile_shuffle"])}\n')
+                outfile.write(f'Shuffled bushes:                 {bool_to_text(self.metadata["bush_shuffle"])}\n')
+                outfile.write(
+                    'Hints:                           %s\n' % ('Yes' if self.metadata['hints'][player] else 'No'))
                 outfile.write('Beemizer:                        %s\n' % self.metadata['beemizer'][player])
-                outfile.write('Pot shuffle                      %s\n' % ('Yes' if self.metadata['shufflepots'][player] else 'No'))
+                outfile.write(
+                    'Pot shuffle                      %s\n' % ('Yes' if self.metadata['shufflepots'][player] else 'No'))
             if self.entrances:
                 outfile.write('\n\nEntrances:\n\n')
-                outfile.write('\n'.join(['%s%s %s %s' % (f'{self.world.get_player_names(entry["player"])}: ' if self.world.players > 1 else '', entry['entrance'], '<=>' if entry['direction'] == 'both' else '<=' if entry['direction'] == 'exit' else '=>', entry['exit']) for entry in self.entrances.values()]))
+                outfile.write('\n'.join(['%s%s %s %s' % (f'{self.world.get_player_names(entry["player"])}: '
+                                                         if self.world.players > 1 else '', entry['entrance'],
+                                                         '<=>' if entry['direction'] == 'both' else
+                                                         '<=' if entry['direction'] == 'exit' else '=>',
+                                                         entry['exit']) for entry in self.entrances.values()]))
             outfile.write('\n\nMedallions:\n')
             for dungeon, medallion in self.medallions.items():
                 outfile.write(f'\n{dungeon}: {medallion}')

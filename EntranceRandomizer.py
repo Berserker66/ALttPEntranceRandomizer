@@ -155,7 +155,8 @@ def parse_arguments(argv, no_defaults=False):
                                               category, be randomly progressive or not.
                                               Link will die in one hit.
                              ''')
-    parser.add_argument('--algorithm', default=defval('balanced'), const='balanced', nargs='?', choices=['freshness', 'flood', 'vt21', 'vt22', 'vt25', 'vt26', 'balanced'],
+    parser.add_argument('--algorithm', default=defval('balanced'), const='balanced', nargs='?',
+                        choices=['freshness', 'flood', 'vt25', 'vt26', 'balanced'],
                         help='''\
                              Select item filling algorithm. (default: %(default)s
                              balanced:    vt26 derivitive that aims to strike a balance between
@@ -166,14 +167,6 @@ def parse_arguments(argv, no_defaults=False):
                                           dungeon keys and items.
                              vt25:        Shuffle items and place them in a random location
                                           that it is not impossible to be in.
-                             vt21:        Unbiased in its selection, but has tendency to put
-                                          Ice Rod in Turtle Rock.
-                             vt22:        Drops off stale locations after 1/3 of progress
-                                          items were placed to try to circumvent vt21\'s
-                                          shortcomings.
-                             Freshness:   Keep track of stale locations (ones that cannot be
-                                          reached yet) and decrease likeliness of selecting
-                                          them the more often they were found unreachable.
                              Flood:       Push out items starting from Link\'s House and
                                           slightly biased to placing progression items with
                                           less restrictions.
@@ -231,17 +224,27 @@ def parse_arguments(argv, no_defaults=False):
                              --seed given will produce the same 10 (different) roms each
                              time).
                              ''', type=int)
-    parser.add_argument('--fastmenu', default=defval('normal'), const='normal', nargs='?', choices=['normal', 'instant', 'double', 'triple', 'quadruple', 'half'],
+    parser.add_argument('--fastmenu', default=defval('normal'), const='normal', nargs='?',
+                        choices=['normal', 'instant', 'double', 'triple', 'quadruple', 'half'],
                         help='''\
                              Select the rate at which the menu opens and closes.
                              (default: %(default)s)
                              ''')
     parser.add_argument('--quickswap', help='Enable quick item swapping with L and R.', action='store_true')
     parser.add_argument('--disablemusic', help='Disables game music.', action='store_true')
-    parser.add_argument('--mapshuffle', default=defval(False), help='Maps are no longer restricted to their dungeons, but can be anywhere', action='store_true')
-    parser.add_argument('--compassshuffle', default=defval(False), help='Compasses are no longer restricted to their dungeons, but can be anywhere', action='store_true')
-    parser.add_argument('--keyshuffle', default=defval(False), help='Small Keys are no longer restricted to their dungeons, but can be anywhere', action='store_true')
-    parser.add_argument('--bigkeyshuffle', default=defval(False), help='Big Keys are no longer restricted to their dungeons, but can be anywhere', action='store_true')
+    parser.add_argument('--mapshuffle', default=defval(False),
+                        help='Maps are no longer restricted to their dungeons, but can be anywhere',
+                        action='store_true')
+    parser.add_argument('--compassshuffle', default=defval(False),
+                        help='Compasses are no longer restricted to their dungeons, but can be anywhere',
+                        action='store_true')
+    parser.add_argument('--keyshuffle', default=defval("off"), help='\
+                        on: Small Keys are no longer restricted to their dungeons, but can be anywhere.\
+                        universal: Makes all Small Keys usable in any dungeon and places shops to buy more keys.',
+                        choices=["on", "universal", "off"])
+    parser.add_argument('--bigkeyshuffle', default=defval(False),
+                        help='Big Keys are no longer restricted to their dungeons, but can be anywhere',
+                        action='store_true')
     parser.add_argument('--keysanity', default=defval(False), help=argparse.SUPPRESS, action='store_true')
     parser.add_argument('--retro', default=defval(False), help='''\
                              Keys are universal, shooting arrows costs rupees,
@@ -292,14 +295,22 @@ def parse_arguments(argv, no_defaults=False):
     parser.add_argument('--skip_playthrough', action='store_true', default=defval(False))
     parser.add_argument('--enemizercli', default=defval('EnemizerCLI/EnemizerCLI.Core'))
     parser.add_argument('--shufflebosses', default=defval('none'), choices=['none', 'basic', 'normal', 'chaos',
-                                                                            "singularity", "duality"])
-    parser.add_argument('--shuffleenemies', default=defval('none'),
-                        choices=['none', 'shuffled', 'chaos', 'chaosthieves'])
+                                                                            "singularity"])
+    parser.add_argument('--enemy_shuffle', action='store_true')
+    parser.add_argument('--killable_thieves', action='store_true')
+    parser.add_argument('--tile_shuffle', action='store_true')
+    parser.add_argument('--bush_shuffle', action='store_true')
     parser.add_argument('--enemy_health', default=defval('default'),
                         choices=['default', 'easy', 'normal', 'hard', 'expert'])
     parser.add_argument('--enemy_damage', default=defval('default'), choices=['default', 'shuffled', 'chaos'])
     parser.add_argument('--shufflepots', default=defval(False), action='store_true')
     parser.add_argument('--beemizer', default=defval(0), type=lambda value: min(max(int(value), 0), 4))
+    parser.add_argument('--shop_shuffle', default='', help='''\
+    combine letters for options:
+    i: shuffle the inventories of the shops around
+    p: randomize the prices of the items in shop inventories
+    u: shuffle capacity upgrades into the item pool
+    ''')
     parser.add_argument('--remote_items', default=defval(False), action='store_true')
     parser.add_argument('--multi', default=defval(1), type=lambda value: min(max(int(value), 1), 255))
     parser.add_argument('--names', default=defval(''))
@@ -324,9 +335,13 @@ def parse_arguments(argv, no_defaults=False):
         ret.dungeon_counters = True
     elif ret.dungeon_counters == 'off':
         ret.dungeon_counters = False
-    if ret.keysanity:
-        ret.mapshuffle, ret.compassshuffle, ret.keyshuffle, ret.bigkeyshuffle = [True] * 4
 
+    if ret.keysanity:
+        ret.mapshuffle = ret.compassshuffle = ret.keyshuffle = ret.bigkeyshuffle = True
+    elif ret.keyshuffle == "on":
+        ret.keyshuffle = True
+    elif ret.keyshuffle == "off":
+        ret.keyshuffle = False
     if multiargs.multi:
         defaults = copy.deepcopy(ret)
         for player in range(1, multiargs.multi + 1):
@@ -336,10 +351,12 @@ def parse_arguments(argv, no_defaults=False):
                          'shuffle', 'crystals_ganon', 'crystals_gt', 'openpyramid', 'timer',
                          'mapshuffle', 'compassshuffle', 'keyshuffle', 'bigkeyshuffle', 'startinventory',
                          'local_items', 'retro', 'accessibility', 'hints', 'beemizer',
-                         'shufflebosses', 'shuffleenemies', 'enemy_health', 'enemy_damage', 'shufflepots',
+                         'shufflebosses', 'enemy_shuffle', 'enemy_health', 'enemy_damage', 'shufflepots',
                          'ow_palettes', 'uw_palettes', 'sprite', 'disablemusic', 'quickswap', 'fastmenu', 'heartcolor',
-                         'heartbeep', "skip_progression_balancing", "triforce_pieces_available", "triforce_pieces_required",
-                         'remote_items', 'progressive', 'dungeon_counters', 'glitch_boots']:
+                         'heartbeep', "skip_progression_balancing", "triforce_pieces_available",
+                         "triforce_pieces_required", "shop_shuffle",
+                         'remote_items', 'progressive', 'dungeon_counters', 'glitch_boots', 'killable_thieves',
+                         'tile_shuffle', 'bush_shuffle']:
                 value = getattr(defaults, name) if getattr(playerargs, name) is None else getattr(playerargs, name)
                 if player == 1:
                     setattr(ret, name, {1: value})

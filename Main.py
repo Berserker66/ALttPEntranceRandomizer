@@ -7,6 +7,7 @@ import os
 import random
 import time
 import zlib
+import concurrent.futures
 
 from BaseClasses import World, CollectionState, Item, Region, Location, Shop
 from Items import ItemFactory
@@ -16,9 +17,8 @@ from EntranceShuffle import link_entrances, link_inverted_entrances
 from Rom import patch_rom, patch_race_rom, patch_enemizer, apply_rom_settings, LocalRom, get_hash_string
 from Rules import set_rules
 from Dungeons import create_dungeons, fill_dungeons, fill_dungeons_restrictive
-from Fill import distribute_items_cutoff, distribute_items_staleness, distribute_items_restrictive, flood_items, \
-    balance_multiworld_progression
-from ItemList import generate_itempool, difficulties, fill_prizes
+from Fill import distribute_items_restrictive, flood_items, balance_multiworld_progression
+from ItemPool import generate_itempool, difficulties, fill_prizes
 from Utils import output_path, parse_player_names, get_options, __version__, _version_tuple
 import Patch
 
@@ -64,9 +64,12 @@ def main(args, seed=None):
         for player in range(1, world.players + 1)}
     world.open_pyramid = args.openpyramid.copy()
     world.boss_shuffle = args.shufflebosses.copy()
-    world.enemy_shuffle = args.shuffleenemies.copy()
+    world.enemy_shuffle = args.enemy_shuffle.copy()
     world.enemy_health = args.enemy_health.copy()
     world.enemy_damage = args.enemy_damage.copy()
+    world.killable_thieves = args.killable_thieves.copy()
+    world.bush_shuffle = args.bush_shuffle.copy()
+    world.tile_shuffle = args.tile_shuffle.copy()
     world.beemizer = args.beemizer.copy()
     world.timer = args.timer.copy()
     world.shufflepots = args.shufflepots.copy()
@@ -75,6 +78,7 @@ def main(args, seed=None):
     world.glitch_boots = args.glitch_boots.copy()
     world.triforce_pieces_available = args.triforce_pieces_available.copy()
     world.triforce_pieces_required = args.triforce_pieces_required.copy()
+    world.shop_shuffle = args.shop_shuffle.copy()
     world.progression_balancing = {player: not balance for player, balance in args.skip_progression_balancing.items()}
 
     world.rom_seeds = {player: random.Random(world.random.randint(0, 999999999)) for player in range(1, world.players + 1)}
@@ -115,7 +119,7 @@ def main(args, seed=None):
     logger.info('Shuffling the World about.')
 
     for player in range(1, world.players + 1):
-        if world.logic[player] != "noglitches" and world.shuffle[player] in \
+        if world.logic[player] not in ["noglitches", "minorglitches"] and world.shuffle[player] in \
                 {"vanilla", "dungeonssimple", "dungeonsfull", "simple", "restricted", "full"}:
             world.fix_fake_world[player] = False
 
@@ -155,16 +159,9 @@ def main(args, seed=None):
 
     if args.algorithm == 'flood':
         flood_items(world)  # different algo, biased towards early game progress items
-    elif args.algorithm == 'vt21':
-        distribute_items_cutoff(world, 1)
-    elif args.algorithm == 'vt22':
-        distribute_items_cutoff(world, 0.66)
-    elif args.algorithm == 'freshness':
-        distribute_items_staleness(world)
     elif args.algorithm == 'vt25':
         distribute_items_restrictive(world, False)
     elif args.algorithm == 'vt26':
-
         distribute_items_restrictive(world, True, shuffled_locations)
     elif args.algorithm == 'balanced':
         distribute_items_restrictive(world, True)
@@ -180,9 +177,10 @@ def main(args, seed=None):
 
     def _gen_rom(team: int, player: int):
         sprite_random_on_hit = type(args.sprite[player]) is str and args.sprite[player].lower() == 'randomonhit'
-        use_enemizer = (world.boss_shuffle[player] != 'none' or world.enemy_shuffle[player] != 'none'
+        use_enemizer = (world.boss_shuffle[player] != 'none' or world.enemy_shuffle[player]
                         or world.enemy_health[player] != 'default' or world.enemy_damage[player] != 'default'
-                        or args.shufflepots[player] or sprite_random_on_hit)
+                        or world.shufflepots[player] or sprite_random_on_hit or world.bush_shuffle[player]
+                        or world.killable_thieves[player] or world.tile_shuffle[player])
 
         rom = LocalRom(args.rom)
 
@@ -235,21 +233,20 @@ def main(args, seed=None):
                                                               "-nohints" if not world.hints[
                                                                   player] else "")) if not args.outputname else ''
         rompath = output_path(f'{outfilebase}{outfilepname}{outfilesuffix}.sfc')
-        rom.write_to_file(rompath)
+        rom.write_to_file(rompath, hide_enemizer=True)
         if args.create_diff:
             Patch.create_patch_file(rompath)
         return player, team, bytes(rom.name).decode()
 
+    pool = concurrent.futures.ThreadPoolExecutor()
+    multidata_task = None
     if not args.suppress_rom:
-        import concurrent.futures
-        futures = []
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            for team in range(world.teams):
-                for player in range(1, world.players + 1):
-                    futures.append(pool.submit(_gen_rom, team, player))
-        for future in futures:
-            rom_name = future.result()
-            rom_names.append(rom_name)
+
+        rom_futures = []
+
+        for team in range(world.teams):
+            for player in range(1, world.players + 1):
+                rom_futures.append(pool.submit(_gen_rom, team, player))
 
         def get_entrance_to_region(region: Region):
             for entrance in region.entrances:
@@ -272,37 +269,44 @@ def main(args, seed=None):
         precollected_items = [[] for player in range(world.players)]
         for item in world.precollected_items:
             precollected_items[item.player - 1].append(item.code)
-        multidata = zlib.compress(json.dumps({"names": parsed_names,
-                                              # backwards compat for < 2.4.1
-                                              "roms": [(slot, team, list(name.encode()))
-                                                       for (slot, team, name) in rom_names],
-                                              "rom_strings": rom_names,
-                                              "remote_items": [player for player in range(1, world.players + 1) if
-                                                               world.remote_items[player]],
-                                              "locations": [((location.address, location.player),
-                                                             (location.item.code, location.item.player))
-                                                            for location in world.get_filled_locations() if
-                                                            type(location.address) is int],
-                                              "server_options": get_options()["server_options"],
-                                              "er_hint_data": er_hint_data,
-                                              "precollected_items": precollected_items,
-                                              "version": _version_tuple,
-                                              "tags": ["ER"]
-                                              }).encode("utf-8"), 9)
 
-        with open(output_path('%s.multidata' % outfilebase), 'wb') as f:
-            f.write(multidata)
+        def write_multidata(roms):
+            for future in roms:
+                rom_name = future.result()
+                rom_names.append(rom_name)
+            multidata = zlib.compress(json.dumps({"names": parsed_names,
+                                                  # backwards compat for < 2.4.1
+                                                  "roms": [(slot, team, list(name.encode()))
+                                                           for (slot, team, name) in rom_names],
+                                                  "rom_strings": rom_names,
+                                                  "remote_items": [player for player in range(1, world.players + 1) if
+                                                                   world.remote_items[player]],
+                                                  "locations": [((location.address, location.player),
+                                                                 (location.item.code, location.item.player))
+                                                                for location in world.get_filled_locations() if
+                                                                type(location.address) is int],
+                                                  "server_options": get_options()["server_options"],
+                                                  "er_hint_data": er_hint_data,
+                                                  "precollected_items": precollected_items,
+                                                  "version": _version_tuple,
+                                                  "tags": ["ER"]
+                                                  }).encode("utf-8"), 9)
+
+            with open(output_path('%s.multidata' % outfilebase), 'wb') as f:
+                f.write(multidata)
+
+        multidata_task = pool.submit(write_multidata, rom_futures)
 
     if not args.skip_playthrough:
         logger.info('Calculating playthrough.')
         create_playthrough(world)
-
-    if args.create_spoiler:
+    if multidata_task:
+        multidata_task.result()  # retrieve exception if one exists
+    pool.shutdown()  # wait for all queued tasks to complete
+    if args.create_spoiler:  # needs spoiler.hashes to be filled, that depend on rom_futures being done
         world.spoiler.to_file(output_path('%s_Spoiler.txt' % outfilebase))
 
-    logger.info('Done. Enjoy.')
-    logger.debug('Total Time: %s', time.perf_counter() - start)
-
+    logger.info('Done. Enjoy. Total Time: %s', time.perf_counter() - start)
     return world
 
 
@@ -413,7 +417,8 @@ def copy_dynamic_regions_and_locations(world, ret):
         # Note: ideally exits should be copied here, but the current use case (Take anys) do not require this
 
         if region.shop:
-            new_reg.shop = Shop(new_reg, region.shop.room_id, region.shop.type, region.shop.shopkeeper_config, region.shop.custom, region.shop.locked)
+            new_reg.shop = region.shop.__class__(new_reg, region.shop.room_id, region.shop.shopkeeper_config,
+                                                 region.shop.custom, region.shop.locked)
             ret.shops.append(new_reg.shop)
 
     for location in world.dynamic_locations:
@@ -444,7 +449,7 @@ def create_playthrough(world):
     collection_spheres = []
     state = CollectionState(world)
     sphere_candidates = list(prog_locations)
-    logging.getLogger('').debug('Building up collection spheres.')
+    logging.debug('Building up collection spheres.')
     while sphere_candidates:
         state.sweep_for_events(key_only=True)
 
@@ -462,11 +467,15 @@ def create_playthrough(world):
 
         state_cache.append(state.copy())
 
-        logging.getLogger('').debug('Calculated sphere %i, containing %i of %i progress items.', len(collection_spheres), len(sphere), len(prog_locations))
+        logging.debug('Calculated sphere %i, containing %i of %i progress items.', len(collection_spheres), len(sphere),
+                      len(prog_locations))
         if not sphere:
-            logging.getLogger('').debug('The following items could not be reached: %s', ['%s (Player %d) at %s (Player %d)' % (location.item.name, location.item.player, location.name, location.player) for location in sphere_candidates])
+            logging.debug('The following items could not be reached: %s', ['%s (Player %d) at %s (Player %d)' % (
+                location.item.name, location.item.player, location.name, location.player) for location in
+                                                                           sphere_candidates])
             if any([world.accessibility[location.item.player] != 'none' for location in sphere_candidates]):
-                raise RuntimeError('Not all progression items reachable. Something went terribly wrong here.')
+                raise RuntimeError(f'Not all progression items reachable ({sphere_candidates}). '
+                                   f'Something went terribly wrong here.')
             else:
                 old_world.spoiler.unreachables = sphere_candidates.copy()
                 break

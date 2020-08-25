@@ -24,6 +24,7 @@ app.jinja_env.filters['any'] = any
 app.jinja_env.filters['all'] = all
 
 app.config["SELFHOST"] = True
+app.config["GENERATORS"] = 8  # maximum concurrent world gens
 app.config["SELFLAUNCH"] = True
 app.config["DEBUG"] = False
 app.config["PORT"] = 80
@@ -74,8 +75,14 @@ def register_session():
 
 
 @app.route('/tutorial')
-def readme():
-    return render_template("tutorial.html")
+@app.route('/tutorial/<string:lang>')
+def tutorial(lang='en'):
+    return render_template(f"tutorial.html", lang=lang)
+
+
+@app.route('/player-settings')
+def game_settings():
+    return render_template("player-settings.html")
 
 
 @app.route('/seed/<suuid:seed>')

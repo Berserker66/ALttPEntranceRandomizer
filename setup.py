@@ -21,7 +21,7 @@ if os.path.exists("X:/pw.txt"):
     print("Using signtool")
     with open("X:/pw.txt") as f:
         pw = f.read()
-    signtool = r'"C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x64\signtool.exe" sign /f X:/_SITS_Zertifikat_.pfx /p '+ pw + r' /fd sha256 /tr http://timestamp.digicert.com/ '
+    signtool = r'signtool sign /f X:/_SITS_Zertifikat_.pfx /p ' + pw + r' /fd sha256 /tr http://timestamp.digicert.com/ '
 else:
     signtool = None
 
@@ -78,7 +78,7 @@ cx_Freeze.setup(
     executables=exes,
     options={
         "build_exe": {
-            "includes" : [],
+            "includes": [],
             "zip_include_packages": ["*"],
             "zip_exclude_packages": [],
             "include_files": [],
@@ -91,15 +91,14 @@ cx_Freeze.setup(
 )
 
 
-
-def installfile(path):
+def installfile(path, keep_content=False):
     lbuildfolder = buildfolder
     print('copying', path, '->', lbuildfolder)
     if path.is_dir():
         lbuildfolder /= path.name
-        if lbuildfolder.is_dir():
+        if lbuildfolder.is_dir() and not keep_content:
             shutil.rmtree(lbuildfolder)
-        shutil.copytree(path, lbuildfolder)
+        shutil.copytree(path, lbuildfolder, dirs_exist_ok=True)
     elif path.is_file():
         shutil.copy(path, lbuildfolder)
     else:
@@ -112,7 +111,17 @@ for data in extra_data:
     installfile(Path(data))
 
 os.makedirs(buildfolder / "Players", exist_ok=True)
-shutil.copyfile("easy.yaml", buildfolder / "Players" / "easy.yaml")
+shutil.copyfile("playerSettings.yaml", buildfolder / "Players" / "playerSettings.yaml")
+
+try:
+    from maseya import z3pr
+except ImportError:
+    print("Maseya Palette Shuffle not found, skipping data files.")
+else:
+    # maseya Palette Shuffle exists and needs its data files
+    print("Maseya Palette Shuffle found, including data files...")
+    file = z3pr.__file__
+    installfile(Path(os.path.dirname(file)) / "data", keep_content=True)
 
 qusb2sneslog = buildfolder / "QUsb2Snes" / "log.txt"
 if os.path.exists(qusb2sneslog):
@@ -121,7 +130,7 @@ if os.path.exists(qusb2sneslog):
 if signtool:
     for exe in exes:
         print(f"Signing {exe.targetName}")
-        os.system(signtool+exe.targetName)
+        os.system(signtool + exe.targetName)
 
 
 manifest_creation()

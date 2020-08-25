@@ -10,6 +10,8 @@ import random
 import struct
 import sys
 import subprocess
+import threading
+import concurrent.futures
 
 from BaseClasses import CollectionState, ShopType, Region, Location
 from Dungeons import dungeon_music_addresses
@@ -17,13 +19,18 @@ from Regions import location_table
 from Text import MultiByteTextMapper, CompressedTextMapper, text_addresses, Credits, TextTable
 from Text import Uncle_texts, Ganon1_texts, TavernMan_texts, Sahasrahla2_texts, Triforce_texts, Blind_texts, BombShop2_texts, junk_texts
 
-from Text import KingsReturn_texts, Sanctuary_texts, Kakariko_texts, Blacksmiths_texts, DeathMountain_texts, LostWoods_texts, WishingWell_texts, DesertPalace_texts, MountainTower_texts, LinksHouse_texts, Lumberjacks_texts, SickKid_texts, FluteBoy_texts, Zora_texts, MagicShop_texts, Sahasrahla_names
-from Utils import output_path, local_path, int16_as_bytes, int32_as_bytes, snes_to_pc
+from Text import KingsReturn_texts, Sanctuary_texts, Kakariko_texts, Blacksmiths_texts, DeathMountain_texts, \
+    LostWoods_texts, WishingWell_texts, DesertPalace_texts, MountainTower_texts, LinksHouse_texts, Lumberjacks_texts, \
+    SickKid_texts, FluteBoy_texts, Zora_texts, MagicShop_texts, Sahasrahla_names
+from Utils import output_path, local_path, int16_as_bytes, int32_as_bytes, snes_to_pc, is_bundled
 from Items import ItemFactory
 from EntranceShuffle import door_addresses
 import Patch
 
-
+try:
+    from maseya import z3pr
+except:
+    z3pr = None
 
 class LocalRom(object):
 
@@ -37,13 +44,22 @@ class LocalRom(object):
             self.patch_base_rom()
             self.orig_buffer = self.buffer.copy()
 
-    def write_byte(self, address: int, value):
+    def write_byte(self, address: int, value: int):
         self.buffer[address] = value
 
     def write_bytes(self, startaddress: int, values):
         self.buffer[startaddress:startaddress + len(values)] = values
 
-    def write_to_file(self, file):
+    def write_to_file(self, file, hide_enemizer=False):
+
+        if hide_enemizer:
+            extra_zeroes = 0x400000 - len(self.buffer)
+            if extra_zeroes > 0:
+                buffer = self.buffer + bytes([0x00] * extra_zeroes)
+                with open(file, 'wb') as outfile:
+                    outfile.write(buffer)
+                return
+
         with open(file, 'wb') as outfile:
             outfile.write(self.buffer)
 
@@ -52,34 +68,24 @@ class LocalRom(object):
             self.buffer = bytearray(stream.read())
 
     @staticmethod
-    def fromJsonRom(rom, file, rom_size=0x200000):
-        ret = LocalRom(file, True, rom.name, rom.hash)
-        ret.buffer.extend(bytearray([0x00]) * (rom_size - len(ret.buffer)))
-        for address, values in rom.patches.items():
-            ret.write_bytes(int(address), values)
-        return ret
-
-    @staticmethod
-    def verify(buffer, expected=RANDOMIZERBASEHASH):
+    def verify(buffer, expected: str = RANDOMIZERBASEHASH) -> bool:
         buffermd5 = hashlib.md5()
         buffermd5.update(buffer)
         return expected == buffermd5.hexdigest()
 
     def patch_base_rom(self):
-
-
         if os.path.isfile(local_path('basepatch.sfc')):
             with open(local_path('basepatch.sfc'), 'rb') as stream:
                 buffer = bytearray(stream.read())
 
             if self.verify(buffer):
                 self.buffer = buffer
-                if not os.path.exists(local_path(os.path.join('data', 'basepatch.bmbp'))):
+                if not os.path.exists(local_path('data', 'basepatch.bmbp')):
                     Patch.create_patch_file(local_path('basepatch.sfc'))
                 return
 
-        if os.path.isfile(local_path(os.path.join('data', 'basepatch.bmbp'))):
-            _, target, buffer = Patch.create_rom_bytes(local_path(os.path.join('data', 'basepatch.bmbp')))
+        if os.path.isfile(local_path('data', 'basepatch.bmbp')):
+            _, target, buffer = Patch.create_rom_bytes(local_path('data', 'basepatch.bmbp'))
             if self.verify(buffer):
                 self.buffer = bytearray(buffer)
                 with open(local_path('basepatch.sfc'), 'wb') as stream:
@@ -95,7 +101,7 @@ class LocalRom(object):
         self.buffer.extend(bytearray([0x00]) * (0x200000 - len(self.buffer)))
 
         # load randomizer patches
-        with open(local_path('data/base2current.json')) as stream:
+        with open(local_path('data', 'base2current.json')) as stream:
             patches = json.load(stream)
         for patch in patches:
             if isinstance(patch, dict):
@@ -107,8 +113,8 @@ class LocalRom(object):
             with open(local_path('basepatch.sfc'), 'wb') as stream:
                 stream.write(self.buffer)
             Patch.create_patch_file(local_path('basepatch.sfc'),
-                                    destination=local_path(os.path.join('data', 'basepatch.bmbp')))
-            os.remove(local_path('data/base2current.json'))
+                                    destination=local_path('data', 'basepatch.bmbp'))
+            os.remove(local_path('data', 'base2current.json'))
         else:
             raise RuntimeError(
                 'Provided Base Rom unsuitable for patching. Please provide a JAP(1.0) "Zelda no Densetsu - Kamigami no Triforce (Japan).sfc" rom to use as a base.')
@@ -118,24 +124,24 @@ class LocalRom(object):
         inv = crc ^ 0xFFFF
         self.write_bytes(0x7FDC, [inv & 0xFF, (inv >> 8) & 0xFF, crc & 0xFF, (crc >> 8) & 0xFF])
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         h = hashlib.md5()
         h.update(self.buffer)
         return h.hexdigest()
 
-def write_int16(rom, address, value):
-    rom.write_bytes(address, int16_as_bytes(value))
+    def write_int16(self, address: int, value: int):
+        self.write_bytes(address, int16_as_bytes(value))
 
-def write_int32(rom, address, value):
-    rom.write_bytes(address, int32_as_bytes(value))
+    def write_int32(self, address: int, value: int):
+        self.write_bytes(address, int32_as_bytes(value))
 
-def write_int16s(rom,  startaddress, values):
-    for i, value in enumerate(values):
-        write_int16(rom, startaddress + (i * 2), value)
+    def write_int16s(self, startaddress: int, values):
+        for i, value in enumerate(values):
+            self.write_int16(startaddress + (i * 2), value)
 
-def write_int32s(rom, startaddress, values):
-    for i, value in enumerate(values):
-        write_int32(rom, startaddress + (i * 4), value)
+    def write_int32s(self, startaddress: int, values):
+        for i, value in enumerate(values):
+            self.write_int32(startaddress + (i * 4), value)
 
 
 def read_rom(stream) -> bytearray:
@@ -146,6 +152,9 @@ def read_rom(stream) -> bytearray:
     return buffer
 
 
+check_lock = threading.Lock()
+
+
 def check_enemizer(enemizercli):
     if getattr(check_enemizer, "done", None):
         return
@@ -153,29 +162,34 @@ def check_enemizer(enemizercli):
         raise Exception(f"Enemizer not found at {enemizercli}, please install it."
                         f"Such as https://github.com/Ijwu/Enemizer/releases")
     if sys.platform == "win32":
-        try:
-            import pythoncom
-            from win32com.client import Dispatch
-        except ImportError:
-            logging.info("Could not check Enemizer Version info as pywin32 bindings are missing.")
-        else:
-            # version info is saved on the lib, for some reason
-            library = os.path.join(os.path.dirname(enemizercli), "EnemizerLibrary.dll")
-            pythoncom.CoInitialize()
-            ver_parser = Dispatch('Scripting.FileSystemObject')
-            info = ver_parser.GetFileVersion(library)
+        # the win32api calls appear to not be threadsafe, which is the reason for the lock
+        with check_lock:
+            # some time may have passed since the lock was acquired, as such a quick re-check doesn't hurt
+            if getattr(check_enemizer, "done", None):
+                return
+            try:
+                import pythoncom
+                from win32com.client import Dispatch
+                pythoncom.CoInitialize()
+            except ImportError:
+                logging.info("Could not check Enemizer Version info as pywin32 bindings are missing.")
+            else:
+                # version info is saved on the lib, for some reason
+                library = os.path.join(os.path.dirname(enemizercli), "EnemizerLibrary.dll")
+                ver_parser = Dispatch('Scripting.FileSystemObject')
+                info = ver_parser.GetFileVersion(library)
 
-            if info == 'No Version Information Available':
-                info = None
-            version = tuple(int(part) for part in info.split("."))
-            if version < (6, 1, 0, 222):
-                raise Exception(
-                    f"Enemizer found at {enemizercli} is outdated ({info}), please update your Enemizer. "
-                    f"Such as https://github.com/Ijwu/Enemizer/releases")
+                if info != 'No Version Information Available':
+                    version = tuple(int(part) for part in info.split("."))
+                    if version < (6, 1, 0, 222):
+                        raise Exception(
+                            f"Enemizer found at {enemizercli} is outdated ({info}), please update your Enemizer. "
+                            f"Such as https://github.com/Ijwu/Enemizer/releases")
+
     check_enemizer.done = True
 
 
-def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite_on_hit):
+def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite_on_hit: bool):
     check_enemizer(enemizercli)
     randopatch_path = os.path.abspath(output_path(f'enemizer_randopatch_{player}.sfc'))
     options_path = os.path.abspath(output_path(f'enemizer_options_{player}.json'))
@@ -183,9 +197,9 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
 
     # write options file for enemizer
     options = {
-        'RandomizeEnemies': world.enemy_shuffle[player] != 'none',
+        'RandomizeEnemies': world.enemy_shuffle[player],
         'RandomizeEnemiesType': 3,
-        'RandomizeBushEnemyChance': 'chaos' in world.enemy_shuffle[player],
+        'RandomizeBushEnemyChance': world.bush_shuffle[player],
         'RandomizeEnemyHealthRange': world.enemy_health[player] != 'default',
         'RandomizeEnemyHealthType': {'default': 0, 'easy': 0, 'normal': 1, 'hard': 2, 'expert': 3}[
             world.enemy_health[player]],
@@ -234,10 +248,9 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
         'SwordGraphics': "sword_gfx/normal.gfx",
         'BeeMizer': False,
         'BeesLevel': 0,
-        'RandomizeTileTrapPattern': world.enemy_shuffle[player] == 'chaos',
+        'RandomizeTileTrapPattern': world.tile_shuffle[player],
         'RandomizeTileTrapFloorTile': False,
-        'AllowKillableThief': bool(world.rom_seeds[player].randint(0, 1)) if 'thieves' in world.enemy_shuffle[player] else
-        world.enemy_shuffle[player] != 'none',
+        'AllowKillableThief': world.killable_thieves[player],
         'RandomizeSpriteOnHit': random_sprite_on_hit,
         'DebugMode': False,
         'DebugForceEnemy': False,
@@ -311,14 +324,13 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
 
     if random_sprite_on_hit:
         _populate_sprite_table()
-        sprites = list(_sprite_table.values())
+        sprites = list(set(_sprite_table.values()))  # convert to list and remove dupes
         if sprites:
             while len(sprites) < 32:
                 sprites.extend(sprites)
             world.rom_seeds[player].shuffle(sprites)
 
-            for i, path in enumerate(sprites[:32]):
-                sprite = Sprite(path)
+            for i, sprite in enumerate(sprites[:32]):
                 rom.write_bytes(0x300000 + (i * 0x8000), sprite.sprite)
                 rom.write_bytes(0x307000 + (i * 0x8000), sprite.palette)
                 rom.write_bytes(0x307078 + (i * 0x8000), sprite.glove_palette)
@@ -329,25 +341,32 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
         except OSError:
             pass
 
-
+sprite_list_lock = threading.Lock()
 _sprite_table = {}
+
+
 def _populate_sprite_table():
-    if not _sprite_table:
-        for dir in [local_path('data/sprites/alttpr'), local_path('data/sprites/custom')]:
-            for file in os.listdir(dir):
-                filepath = os.path.join(dir, file)
-                if not os.path.isfile(filepath):
-                    continue
-                sprite = Sprite(filepath)
+    with sprite_list_lock:
+        if not _sprite_table:
+            def load_sprite_from_file(file):
+                sprite = Sprite(file)
                 if sprite.valid:
-                    _sprite_table[sprite.name.lower()] = filepath
+                    _sprite_table[sprite.name.lower()] = sprite
+                    _sprite_table[os.path.basename(file).split(".")[0].lower()] = sprite  # alias for filename base
+                else:
+                    logging.debug(f"Spritefile {file} could not be loaded as a valid sprite.")
+
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                for dir in [local_path('data', 'sprites', 'alttpr'), local_path('data', 'sprites', 'custom')]:
+                    for file in os.listdir(dir):
+                        pool.submit(load_sprite_from_file, os.path.join(dir, file))
 
 def get_sprite_from_name(name, local_random=random):
     _populate_sprite_table()
     name = name.lower()
     if name in ['random', 'randomonhit']:
-        return Sprite(local_random.choice(list(_sprite_table.values())))
-    return Sprite(_sprite_table[name]) if name in _sprite_table else None
+        return local_random.choice(list(_sprite_table.values()))
+    return _sprite_table.get(name, None)
 
 class Sprite(object):
     default_palette = [255, 127, 126, 35, 183, 17, 158, 54, 165, 20, 255, 1, 120, 16, 157,
@@ -413,7 +432,7 @@ class Sprite(object):
 
     @staticmethod
     def default_link_sprite():
-        return Sprite(local_path('data/default.zspr'))
+        return Sprite(local_path('data', 'default.zspr'))
 
     def decode8(self, pos):
         arr = [[0 for _ in range(8)] for _ in range(8)]
@@ -496,8 +515,10 @@ class Sprite(object):
             return list(zip(*[iter(arr)] * size))
         def make_int16(pair):
             return pair[1]<<8 | pair[0]
+
         def expand_color(i):
-            return ((i & 0x1F) * 8, (i>>5 & 0x1F) * 8, (i>>10 & 0x1F) * 8)
+            return ((i & 0x1F) * 8, (i >> 5 & 0x1F) * 8, (i >> 10 & 0x1F) * 8)
+
         raw_palette = self.palette
         if raw_palette is None:
             raw_palette = Sprite.default_palette
@@ -506,6 +527,9 @@ class Sprite(object):
 
         # split into palettes of 15 colors
         return array_chunk(palette_as_colors, 15)
+
+    def __hash__(self):
+        return hash(self.name)
 
 def patch_rom(world, rom, player, team, enemized):
     local_random = world.rom_seeds[player]
@@ -574,42 +598,43 @@ def patch_rom(world, rom, player, team, enemized):
                 if isinstance(exit.addresses, tuple):
                     offset = exit.target
                     room_id, ow_area, vram_loc, scroll_y, scroll_x, link_y, link_x, camera_y, camera_x, unknown_1, unknown_2, door_1, door_2 = exit.addresses
-                    #room id is deliberately not written
-
+                    # room id is deliberately not written
 
                     rom.write_byte(0x15B8C + offset, ow_area)
-                    write_int16(rom, 0x15BDB + 2 * offset, vram_loc)
-                    write_int16(rom, 0x15C79 + 2 * offset, scroll_y)
-                    write_int16(rom, 0x15D17 + 2 * offset, scroll_x)
+                    rom.write_int16(0x15BDB + 2 * offset, vram_loc)
+                    rom.write_int16(0x15C79 + 2 * offset, scroll_y)
+                    rom.write_int16(0x15D17 + 2 * offset, scroll_x)
 
                     # for positioning fixups we abuse the roomid as a way of identifying which exit data we are appling
                     # Thanks to Zarby89 for originally finding these values
                     # todo fix screen scrolling
 
                     if world.shuffle[player] not in ['insanity', 'insanity_legacy', 'madness_legacy'] and \
-                            exit.name in ['Eastern Palace Exit', 'Tower of Hera Exit', 'Thieves Town Exit', 'Skull Woods Final Section Exit', 'Ice Palace Exit', 'Misery Mire Exit',
-                                          'Palace of Darkness Exit', 'Swamp Palace Exit', 'Ganons Tower Exit', 'Desert Palace Exit (North)', 'Agahnims Tower Exit', 'Spiral Cave Exit (Top)',
+                            exit.name in ['Eastern Palace Exit', 'Tower of Hera Exit', 'Thieves Town Exit',
+                                          'Skull Woods Final Section Exit', 'Ice Palace Exit', 'Misery Mire Exit',
+                                          'Palace of Darkness Exit', 'Swamp Palace Exit', 'Ganons Tower Exit',
+                                          'Desert Palace Exit (North)', 'Agahnims Tower Exit', 'Spiral Cave Exit (Top)',
                                           'Superbunny Cave Exit (Bottom)', 'Turtle Rock Ledge Exit (East)']:
                         # For exits that connot be reached from another, no need to apply offset fixes.
-                        write_int16(rom, 0x15DB5 + 2 * offset, link_y) # same as final else
+                        rom.write_int16(0x15DB5 + 2 * offset, link_y)  # same as final else
                     elif room_id == 0x0059 and world.fix_skullwoods_exit[player]:
-                        write_int16(rom, 0x15DB5 + 2 * offset, 0x00F8)
+                        rom.write_int16(0x15DB5 + 2 * offset, 0x00F8)
                     elif room_id == 0x004a and world.fix_palaceofdarkness_exit[player]:
-                        write_int16(rom, 0x15DB5 + 2 * offset, 0x0640)
+                        rom.write_int16(0x15DB5 + 2 * offset, 0x0640)
                     elif room_id == 0x00d6 and world.fix_trock_exit[player]:
-                        write_int16(rom, 0x15DB5 + 2 * offset, 0x0134)
-                    elif room_id == 0x000c and world.fix_gtower_exit: # fix ganons tower exit point
-                        write_int16(rom, 0x15DB5 + 2 * offset, 0x00A4)
+                        rom.write_int16(0x15DB5 + 2 * offset, 0x0134)
+                    elif room_id == 0x000c and world.fix_gtower_exit:  # fix ganons tower exit point
+                        rom.write_int16(0x15DB5 + 2 * offset, 0x00A4)
                     else:
-                        write_int16(rom, 0x15DB5 + 2 * offset, link_y)
+                        rom.write_int16(0x15DB5 + 2 * offset, link_y)
 
-                    write_int16(rom, 0x15E53 + 2 * offset, link_x)
-                    write_int16(rom, 0x15EF1 + 2 * offset, camera_y)
-                    write_int16(rom, 0x15F8F + 2 * offset, camera_x)
+                    rom.write_int16(0x15E53 + 2 * offset, link_x)
+                    rom.write_int16(0x15EF1 + 2 * offset, camera_y)
+                    rom.write_int16(0x15F8F + 2 * offset, camera_x)
                     rom.write_byte(0x1602D + offset, unknown_1)
                     rom.write_byte(0x1607C + offset, unknown_2)
-                    write_int16(rom, 0x160CB + 2 * offset, door_1)
-                    write_int16(rom, 0x16169 + 2 * offset, door_2)
+                    rom.write_int16(0x160CB + 2 * offset, door_1)
+                    rom.write_int16(0x16169 + 2 * offset, door_2)
                 elif isinstance(exit.addresses, list):
                     # is hole
                     for address in exit.addresses:
@@ -694,7 +719,7 @@ def patch_rom(world, rom, player, team, enemized):
         rom.write_byte(0x34FD6, 0x80)
         overflow_replacement = GREEN_TWENTY_RUPEES
         # Rupoor negative value
-        write_int16(rom, 0x180036, world.rupoor_cost)
+        rom.write_int16(0x180036, world.rupoor_cost)
         # Set stun items
         rom.write_byte(0x180180, 0x02) # Hookshot only
     elif world.difficulty_adjustments[player] == 'expert':
@@ -714,7 +739,7 @@ def patch_rom(world, rom, player, team, enemized):
         rom.write_byte(0x34FD6, 0x80)
         overflow_replacement = GREEN_TWENTY_RUPEES
         # Rupoor negative value
-        write_int16(rom, 0x180036, world.rupoor_cost)
+        rom.write_int16(0x180036, world.rupoor_cost)
         # Set stun items
         rom.write_byte(0x180180, 0x00) # Nothing
     else:
@@ -733,7 +758,7 @@ def patch_rom(world, rom, player, team, enemized):
         #Enable catching fairies
         rom.write_byte(0x34FD6, 0xF0)
         # Rupoor negative value
-        write_int16(rom, 0x180036, world.rupoor_cost)
+        rom.write_int16(0x180036, world.rupoor_cost)
         # Set stun items
         rom.write_byte(0x180180, 0x03) # All standard items
         #Set overflow items for progressive equipment
@@ -894,37 +919,37 @@ def patch_rom(world, rom, player, team, enemized):
         ERtimeincrease = ERtimeincrease + 15
     if world.clock_mode[player] == False:
         rom.write_bytes(0x180190, [0x00, 0x00, 0x00])  # turn off clock mode
-        write_int32(rom, 0x180200, 0)  # red clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180204, 0)  # blue clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180208, 0)  # green clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x18020C, 0)  # starting time (in frames, sint32)
+        rom.write_int32(0x180200, 0)  # red clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180204, 0)  # blue clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180208, 0)  # green clock adjustment time (in frames, sint32)
+        rom.write_int32(0x18020C, 0)  # starting time (in frames, sint32)
     elif world.clock_mode[player] == 'ohko':
         rom.write_bytes(0x180190, [0x01, 0x02, 0x01])  # ohko timer with resetable timer functionality
-        write_int32(rom, 0x180200, 0)  # red clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180204, 0)  # blue clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180208, 0)  # green clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x18020C, 0)  # starting time (in frames, sint32)
+        rom.write_int32(0x180200, 0)  # red clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180204, 0)  # blue clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180208, 0)  # green clock adjustment time (in frames, sint32)
+        rom.write_int32(0x18020C, 0)  # starting time (in frames, sint32)
     elif world.clock_mode[player] == 'countdown-ohko':
         rom.write_bytes(0x180190, [0x01, 0x02, 0x01])  # ohko timer with resetable timer functionality
-        write_int32(rom, 0x180200, -100 * 60 * 60 * 60)  # red clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180204, 2 * 60 * 60)  # blue clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180208, 4 * 60 * 60)  # green clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180200, -100 * 60 * 60 * 60)  # red clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180204, 2 * 60 * 60)  # blue clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180208, 4 * 60 * 60)  # green clock adjustment time (in frames, sint32)
         if world.difficulty_adjustments[player] == 'normal':
-            write_int32(rom, 0x18020C, (10 + ERtimeincrease) * 60 * 60)  # starting time (in frames, sint32)
+            rom.write_int32(0x18020C, (10 + ERtimeincrease) * 60 * 60)  # starting time (in frames, sint32)
         else:
-            write_int32(rom, 0x18020C, int((5 + ERtimeincrease / 2) * 60 * 60))  # starting time (in frames, sint32)
+            rom.write_int32(0x18020C, int((5 + ERtimeincrease / 2) * 60 * 60))  # starting time (in frames, sint32)
     if world.clock_mode[player] == 'stopwatch':
         rom.write_bytes(0x180190, [0x02, 0x01, 0x00])  # set stopwatch mode
-        write_int32(rom, 0x180200, -2 * 60 * 60)  # red clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180204, 2 * 60 * 60)  # blue clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180208, 4 * 60 * 60)  # green clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x18020C, 0)  # starting time (in frames, sint32)
+        rom.write_int32(0x180200, -2 * 60 * 60)  # red clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180204, 2 * 60 * 60)  # blue clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180208, 4 * 60 * 60)  # green clock adjustment time (in frames, sint32)
+        rom.write_int32(0x18020C, 0)  # starting time (in frames, sint32)
     if world.clock_mode[player] == 'countdown':
         rom.write_bytes(0x180190, [0x01, 0x01, 0x00])  # set countdown, with no reset available
-        write_int32(rom, 0x180200, -2 * 60 * 60)  # red clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180204, 2 * 60 * 60)  # blue clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x180208, 4 * 60 * 60)  # green clock adjustment time (in frames, sint32)
-        write_int32(rom, 0x18020C, (40 + ERtimeincrease) * 60 * 60)  # starting time (in frames, sint32)
+        rom.write_int32(0x180200, -2 * 60 * 60)  # red clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180204, 2 * 60 * 60)  # blue clock adjustment time (in frames, sint32)
+        rom.write_int32(0x180208, 4 * 60 * 60)  # green clock adjustment time (in frames, sint32)
+        rom.write_int32(0x18020C, (40 + ERtimeincrease) * 60 * 60)  # starting time (in frames, sint32)
 
     # set up goals for treasure hunt
     rom.write_bytes(0x180165, [0x0E, 0x28] if world.treasure_hunt_icon[player] == 'Triforce Piece' else [0x0D, 0x28])
@@ -941,7 +966,7 @@ def patch_rom(world, rom, player, team, enemized):
     rom.write_byte(0x180211, gametype) # Game type
 
     # assorted fixes
-    rom.write_byte(0x1800A2, 0x01)  # remain in real dark world when dying in dark world dungeon before killing aga1
+    rom.write_byte(0x1800A2, 0x01 if world.fix_fake_world[player] else 0x00)  # Toggle whether to be in real/fake dark world when dying in a DW dungeon before killing aga1 
     rom.write_byte(0x180169, 0x01 if world.lock_aga_door_in_escape else 0x00)  # Lock or unlock aga tower door during escape sequence.
     if world.mode[player] == 'inverted':
         rom.write_byte(0x180169, 0x02)  # lock aga/ganon tower door with crystals in inverted
@@ -973,14 +998,18 @@ def patch_rom(world, rom, player, team, enemized):
 
     startingstate = CollectionState(world)
 
-    if startingstate.has('Bow', player):
+    if startingstate.has('Silver Bow', player):
         equip[0x340] = 1
-        equip[0x38E] |= 0x20 # progressive flag to get the correct hint in all cases
+        equip[0x38E] |= 0x60
+        if not world.retro[player]:
+            equip[0x38E] |= 0x80
+    elif startingstate.has('Bow', player):
+        equip[0x340] = 1
+        equip[0x38E] |= 0x20  # progressive flag to get the correct hint in all cases
         if not world.retro[player]:
             equip[0x38E] |= 0x80
     if startingstate.has('Silver Arrows', player):
         equip[0x38E] |= 0x40
-        #TODO add Silver Bow
 
     if startingstate.has('Titans Mitts', player):
         equip[0x354] = 2
@@ -1019,12 +1048,12 @@ def patch_rom(world, rom, player, team, enemized):
         if item.player != player:
             continue
 
-        if item.name in ['Bow', 'Silver Bow', 'Silver Arrows', 'Progressive Bow', 'Progressive Bow (Alt)',
+        if item.name in {'Bow', 'Silver Bow', 'Silver Arrows', 'Progressive Bow', 'Progressive Bow (Alt)',
                          'Titans Mitts', 'Power Glove', 'Progressive Glove',
                          'Golden Sword', 'Tempered Sword', 'Master Sword', 'Fighter Sword', 'Progressive Sword',
                          'Mirror Shield', 'Red Shield', 'Blue Shield', 'Progressive Shield',
                          'Red Mail', 'Blue Mail', 'Progressive Armor',
-                         'Magic Upgrade (1/4)', 'Magic Upgrade (1/2)']:
+                         'Magic Upgrade (1/4)', 'Magic Upgrade (1/2)'}:
             continue
 
         set_table = {'Book of Mudora': (0x34E, 1), 'Hammer': (0x34B, 1), 'Bug Catching Net': (0x34D, 1), 'Hookshot': (0x342, 1), 'Magic Mirror': (0x353, 2),
@@ -1130,25 +1159,32 @@ def patch_rom(world, rom, player, team, enemized):
 
     assert equip[:0x340] == [0] * 0x340
     rom.write_bytes(0x183000, equip[0x340:])
-    rom.write_bytes(0x271A6, equip[0x340:0x340+60])
+    rom.write_bytes(0x271A6, equip[0x340:0x340 + 60])
 
     rom.write_byte(0x18004A, 0x00 if world.mode[player] != 'inverted' else 0x01)  # Inverted mode
-    rom.write_byte(0x18005D, 0x00) # Hammer always breaks barrier
-    rom.write_byte(0x2AF79, 0xD0 if world.mode[player] != 'inverted' else 0xF0) # vortexes: Normal  (D0=light to dark, F0=dark to light, 42 = both)
-    rom.write_byte(0x3A943, 0xD0 if world.mode[player] != 'inverted' else 0xF0) # Mirror: Normal  (D0=Dark to Light, F0=light to dark, 42 = both)
-    rom.write_byte(0x3A96D, 0xF0 if world.mode[player] != 'inverted' else 0xD0) # Residual Portal: Normal  (F0= Light Side, D0=Dark Side, 42 = both (Darth Vader))
-    rom.write_byte(0x3A9A7, 0xD0) # Residual Portal: Normal  (D0= Light Side, F0=Dark Side, 42 = both (Darth Vader))
-
-    rom.write_bytes(0x180080, [50, 50, 70, 70]) # values to fill for Capacity Upgrades (Bomb5, Bomb10, Arrow5, Arrow10)
+    rom.write_byte(0x18005D, 0x00)  # Hammer always breaks barrier
+    rom.write_byte(0x2AF79, 0xD0 if world.mode[
+                                        player] != 'inverted' else 0xF0)  # vortexes: Normal  (D0=light to dark, F0=dark to light, 42 = both)
+    rom.write_byte(0x3A943, 0xD0 if world.mode[
+                                        player] != 'inverted' else 0xF0)  # Mirror: Normal  (D0=Dark to Light, F0=light to dark, 42 = both)
+    rom.write_byte(0x3A96D, 0xF0 if world.mode[
+                                        player] != 'inverted' else 0xD0)  # Residual Portal: Normal  (F0= Light Side, D0=Dark Side, 42 = both (Darth Vader))
+    rom.write_byte(0x3A9A7, 0xD0)  # Residual Portal: Normal  (D0= Light Side, F0=Dark Side, 42 = both (Darth Vader))
+    if 'u' in world.shop_shuffle[player]:
+        rom.write_bytes(0x180080,
+                        [5, 10, 5, 10])  # values to fill for Capacity Upgrades (Bomb5, Bomb10, Arrow5, Arrow10)
+    else:
+        rom.write_bytes(0x180080,
+                        [50, 50, 70, 70])  # values to fill for Capacity Upgrades (Bomb5, Bomb10, Arrow5, Arrow10)
 
     rom.write_byte(0x18004D, ((0x01 if 'arrows' in world.escape_assist[player] else 0x00) |
                               (0x02 if 'bombs' in world.escape_assist[player] else 0x00) |
-                              (0x04 if 'magic' in world.escape_assist[player] else 0x00))) # Escape assist
+                              (0x04 if 'magic' in world.escape_assist[player] else 0x00)))  # Escape assist
 
     if world.goal[player] in ['pedestal', 'triforcehunt', 'localtriforcehunt']:
         rom.write_byte(0x18003E, 0x01)  # make ganon invincible
     elif world.goal[player] in ['ganontriforcehunt', 'localganontriforcehunt']:
-        rom.write_byte(0x18003E, 0x05)  # make ganon invincible until 20 triforce pieces are collected
+        rom.write_byte(0x18003E, 0x05)  # make ganon invincible until enough triforce pieces are collected
     elif world.goal[player] in ['dungeons']:
         rom.write_byte(0x18003E, 0x02)  # make ganon invincible until all dungeons are beat
     elif world.goal[player] in ['crystals']:
@@ -1170,7 +1206,7 @@ def patch_rom(world, rom, player, team, enemized):
     # block HC upstairs doors in rain state in standard mode
     rom.write_byte(0x18008A, 0x01 if world.mode[player] == "standard" and world.shuffle[player] != 'vanilla' else 0x00)
 
-    rom.write_byte(0x18016A, 0x10 | ((0x01 if world.keyshuffle[player] else 0x00)
+    rom.write_byte(0x18016A, 0x10 | ((0x01 if world.keyshuffle[player] is True else 0x00)
                                      | (0x02 if world.compassshuffle[player] else 0x00)
                                      | (0x04 if world.mapshuffle[player] else 0x00)
                                      | (0x08 if world.bigkeyshuffle[player] else 0x00)))  # free roaming item text boxes
@@ -1179,7 +1215,7 @@ def patch_rom(world, rom, player, team, enemized):
     # compasses showing dungeon count
     if world.clock_mode[player] or not world.dungeon_counters[player]:
         rom.write_byte(0x18003C, 0x00)  # Currently must be off if timer is on, because they use same HUD location
-    elif world.dungeon_counters[player] == True:
+    elif world.dungeon_counters[player] is True:
         rom.write_byte(0x18003C, 0x02)  # always on
     elif world.compassshuffle[player] or world.dungeon_counters[player] == 'pickup':
         rom.write_byte(0x18003C, 0x01)  # show on pickup
@@ -1194,7 +1230,7 @@ def patch_rom(world, rom, player, team, enemized):
      # b - Big Key
      # a - Small Key
      #
-    rom.write_byte(0x180045, ((0x01 if world.keyshuffle[player] else 0x00)
+    rom.write_byte(0x180045, ((0x01 if world.keyshuffle[player] is True else 0x00)
                               | (0x02 if world.bigkeyshuffle[player] else 0x00)
                               | (0x04 if world.mapshuffle[player] else 0x00)
                               | (0x08 if world.compassshuffle[player] else 0x00)))  # free roaming items in menu
@@ -1222,18 +1258,23 @@ def patch_rom(world, rom, player, team, enemized):
             return reveal_bytes.get(location.parent_region.dungeon.name, 0x0000)
         return 0x0000
 
-    write_int16(rom, 0x18017A, get_reveal_bytes('Green Pendant') if world.mapshuffle[player] else 0x0000) # Sahasrahla reveal
-    write_int16(rom, 0x18017C, get_reveal_bytes('Crystal 5')|get_reveal_bytes('Crystal 6') if world.mapshuffle[player] else 0x0000) # Bomb Shop Reveal
+    rom.write_int16(0x18017A,
+                    get_reveal_bytes('Green Pendant') if world.mapshuffle[player] else 0x0000)  # Sahasrahla reveal
+    rom.write_int16(0x18017C, get_reveal_bytes('Crystal 5') | get_reveal_bytes('Crystal 6') if world.mapshuffle[
+        player] else 0x0000)  # Bomb Shop Reveal
 
-    rom.write_byte(0x180172, 0x01 if world.retro[player] else 0x00)  # universal keys
+    rom.write_byte(0x180172, 0x01 if world.keyshuffle[player] == "universal" else 0x00)  # universal keys
     rom.write_byte(0x180175, 0x01 if world.retro[player] else 0x00)  # rupee bow
     rom.write_byte(0x180176, 0x0A if world.retro[player] else 0x00)  # wood arrow cost
     rom.write_byte(0x180178, 0x32 if world.retro[player] else 0x00)  # silver arrow cost
     rom.write_byte(0x301FC, 0xDA if world.retro[player] else 0xE1)  # rupees replace arrows under pots
-    rom.write_byte(0x30052, 0xDB if world.retro[player] else 0xE2) # replace arrows in fish prize from bottle merchant
-    rom.write_bytes(0xECB4E, [0xA9, 0x00, 0xEA, 0xEA] if world.retro[player] else [0xAF, 0x77, 0xF3, 0x7E])  # Thief steals rupees instead of arrows
-    rom.write_bytes(0xF0D96, [0xA9, 0x00, 0xEA, 0xEA] if world.retro[player] else [0xAF, 0x77, 0xF3, 0x7E])  # Pikit steals rupees instead of arrows
-    rom.write_bytes(0xEDA5, [0x35, 0x41] if world.retro[player] else [0x43, 0x44])  # Chest game gives rupees instead of arrows
+    rom.write_byte(0x30052, 0xDB if world.retro[player] else 0xE2)  # replace arrows in fish prize from bottle merchant
+    rom.write_bytes(0xECB4E, [0xA9, 0x00, 0xEA, 0xEA] if world.retro[player] else [0xAF, 0x77, 0xF3,
+                                                                                   0x7E])  # Thief steals rupees instead of arrows
+    rom.write_bytes(0xF0D96, [0xA9, 0x00, 0xEA, 0xEA] if world.retro[player] else [0xAF, 0x77, 0xF3,
+                                                                                   0x7E])  # Pikit steals rupees instead of arrows
+    rom.write_bytes(0xEDA5,
+                    [0x35, 0x41] if world.retro[player] else [0x43, 0x44])  # Chest game gives rupees instead of arrows
     digging_game_rng = local_random.randint(1, 30)  # set rng for digging game
     rom.write_byte(0x180020, digging_game_rng)
     rom.write_byte(0xEFD95, digging_game_rng)
@@ -1250,16 +1291,16 @@ def patch_rom(world, rom, player, team, enemized):
     rom.write_bytes(0x6D2FB, [0x00, 0x00, 0xf7, 0xff, 0x02, 0x0E])
     rom.write_bytes(0x6D313, [0x00, 0x00, 0xe4, 0xff, 0x08, 0x0E])
 
-    rom.write_byte(0x18004E, 0) # Escape Fill (nothing)
-    write_int16(rom, 0x180183, 300) # Escape fill rupee bow
-    rom.write_bytes(0x180185, [0,0,0]) # Uncle respawn refills (magic, bombs, arrows)
+    rom.write_byte(0x18004E, 0)  # Escape Fill (nothing)
+    rom.write_int16(0x180183, 300)  # Escape fill rupee bow
+    rom.write_bytes(0x180185, [0, 0, 0])  # Uncle respawn refills (magic, bombs, arrows)
     rom.write_bytes(0x180188, [0,0,0]) # Zelda respawn refills (magic, bombs, arrows)
     rom.write_bytes(0x18018B, [0,0,0]) # Mantle respawn refills (magic, bombs, arrows)
     if world.mode[player] == 'standard':
         if uncle_location.item is not None and uncle_location.item.name in ['Bow', 'Progressive Bow']:
-            rom.write_byte(0x18004E, 1) # Escape Fill (arrows)
-            write_int16(rom, 0x180183, 300) # Escape fill rupee bow
-            rom.write_bytes(0x180185, [0,0,70]) # Uncle respawn refills (magic, bombs, arrows)
+            rom.write_byte(0x18004E, 1)  # Escape Fill (arrows)
+            rom.write_int16(0x180183, 300)  # Escape fill rupee bow
+            rom.write_bytes(0x180185, [0, 0, 70])  # Uncle respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x180188, [0,0,10]) # Zelda respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x18018B, [0,0,10]) # Mantle respawn refills (magic, bombs, arrows)
         elif uncle_location.item is not None and uncle_location.item.name in ['Bombs (10)']:
@@ -1448,16 +1489,35 @@ def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, spr
     if sprite is not None:
         write_sprite(rom, sprite)
 
+    # reset palette if it was adjusted already
     default_ow_palettes(rom)
-    if ow_palettes == 'random':
-        randomize_ow_palettes(rom, local_random)
-    elif ow_palettes == 'blackout':
-        blackout_ow_palettes(rom)
-
     default_uw_palettes(rom)
-    if uw_palettes == 'random':
-        randomize_uw_palettes(rom, local_random)
-    elif uw_palettes == 'blackout':
+
+    if z3pr:
+        options = {
+            "randomize_dungeon": uw_palettes == 'random',
+            "randomize_overworld": ow_palettes == 'random'
+        }
+        if any(options.values()):
+            ColorF = z3pr.ColorF
+
+            data_dir = local_path("data") if is_bundled() else None
+
+            def next_color():
+                return ColorF(local_random.random(), local_random.random(), local_random.random())
+
+            z3pr.randomize(rom.buffer, "maseya", next_color, options, data_dir)
+    else:
+        logging.warning("Could not find z3pr palette shuffle. "
+                        "If you want improved palette shuffling please install the maseya-z3pr package.")
+        if ow_palettes == 'random':
+            randomize_ow_palettes(rom, local_random)
+        if uw_palettes == 'random':
+            randomize_uw_palettes(rom, local_random)
+
+    if ow_palettes == 'blackout':
+        blackout_ow_palettes(rom)
+    if uw_palettes == 'blackout':
         blackout_uw_palettes(rom)
 
     if isinstance(rom, LocalRom):
@@ -1933,117 +1993,118 @@ def set_inverted_mode(world, player, rom):
     rom.write_byte(snes_to_pc(0x05AF79), 0xF0)
     rom.write_byte(snes_to_pc(0x0DB3C5), 0xC6)
     rom.write_byte(snes_to_pc(0x07A3F4), 0xF0)  # duck
-    write_int16s(rom, snes_to_pc(0x02E849), [0x0043, 0x0056, 0x0058, 0x006C, 0x006F, 0x0070, 0x007B, 0x007F, 0x001B])  # dw flute
-    write_int16(rom, snes_to_pc(0x02E8D5), 0x07C8)
-    write_int16(rom, snes_to_pc(0x02E8F7), 0x01F8)
+    rom.write_int16s(snes_to_pc(0x02E849),
+                     [0x0043, 0x0056, 0x0058, 0x006C, 0x006F, 0x0070, 0x007B, 0x007F, 0x001B])  # dw flute
+    rom.write_int16(snes_to_pc(0x02E8D5), 0x07C8)
+    rom.write_int16(snes_to_pc(0x02E8F7), 0x01F8)
     rom.write_byte(snes_to_pc(0x08D40C), 0xD0)  # morph proof
     # the following bytes should only be written in vanilla
     # or they'll overwrite the randomizer's shuffles
     if world.shuffle[player] == 'vanilla':
         rom.write_byte(0xDBB73 + 0x23, 0x37)  # switch AT and GT
         rom.write_byte(0xDBB73 + 0x36, 0x24)
-        write_int16(rom, 0x15AEE + 2*0x38, 0x00E0)
-        write_int16(rom, 0x15AEE + 2*0x25, 0x000C)
+        rom.write_int16(0x15AEE + 2 * 0x38, 0x00E0)
+        rom.write_int16(0x15AEE + 2 * 0x25, 0x000C)
     if world.shuffle[player] in ['vanilla', 'dungeonssimple', 'dungeonsfull']:
         rom.write_byte(0x15B8C, 0x6C)
         rom.write_byte(0xDBB73 + 0x00, 0x53)  # switch bomb shop and links house
         rom.write_byte(0xDBB73 + 0x52, 0x01)
         rom.write_byte(0xDBB73 + 0x15, 0x06)  # bumper and old man cave
-        write_int16(rom, 0x15AEE + 2*0x17, 0x00F0)
+        rom.write_int16(0x15AEE + 2 * 0x17, 0x00F0)
         rom.write_byte(0xDBB73 + 0x05, 0x16)
-        write_int16(rom, 0x15AEE + 2*0x07, 0x00FB)
+        rom.write_int16(0x15AEE + 2 * 0x07, 0x00FB)
         rom.write_byte(0xDBB73 + 0x2D, 0x17)
-        write_int16(rom, 0x15AEE + 2*0x2F, 0x00EB)
+        rom.write_int16(0x15AEE + 2 * 0x2F, 0x00EB)
         rom.write_byte(0xDBB73 + 0x06, 0x2E)
-        write_int16(rom, 0x15AEE + 2*0x08, 0x00E6)
+        rom.write_int16(0x15AEE + 2 * 0x08, 0x00E6)
         rom.write_byte(0xDBB73 + 0x16, 0x5E)
         rom.write_byte(0xDBB73 + 0x6F, 0x07)  # DDM fairy to old man cave
-        write_int16(rom, 0x15AEE + 2*0x18, 0x00F1)
+        rom.write_int16(0x15AEE + 2 * 0x18, 0x00F1)
         rom.write_byte(0x15B8C + 0x18, 0x43)
-        write_int16(rom, 0x15BDB + 2 * 0x18, 0x1400)
-        write_int16(rom, 0x15C79 + 2 * 0x18, 0x0294)
-        write_int16(rom, 0x15D17 + 2 * 0x18, 0x0600)
-        write_int16(rom, 0x15DB5 + 2 * 0x18, 0x02E8)
-        write_int16(rom, 0x15E53 + 2 * 0x18, 0x0678)
-        write_int16(rom, 0x15EF1 + 2 * 0x18, 0x0303)
-        write_int16(rom, 0x15F8F + 2 * 0x18, 0x0685)
+        rom.write_int16(0x15BDB + 2 * 0x18, 0x1400)
+        rom.write_int16(0x15C79 + 2 * 0x18, 0x0294)
+        rom.write_int16(0x15D17 + 2 * 0x18, 0x0600)
+        rom.write_int16(0x15DB5 + 2 * 0x18, 0x02E8)
+        rom.write_int16(0x15E53 + 2 * 0x18, 0x0678)
+        rom.write_int16(0x15EF1 + 2 * 0x18, 0x0303)
+        rom.write_int16(0x15F8F + 2 * 0x18, 0x0685)
         rom.write_byte(0x1602D + 0x18, 0x0A)
         rom.write_byte(0x1607C + 0x18, 0xF6)
-        write_int16(rom, 0x160CB + 2 * 0x18, 0x0000)
-        write_int16(rom, 0x16169 + 2 * 0x18, 0x0000)
-    write_int16(rom, 0x15AEE + 2 * 0x3D, 0x0003)  # pyramid exit and houlihan
+        rom.write_int16(0x160CB + 2 * 0x18, 0x0000)
+        rom.write_int16(0x16169 + 2 * 0x18, 0x0000)
+    rom.write_int16(0x15AEE + 2 * 0x3D, 0x0003)  # pyramid exit and houlihan
     rom.write_byte(0x15B8C + 0x3D, 0x5B)
-    write_int16(rom, 0x15BDB + 2 * 0x3D, 0x0B0E)
-    write_int16(rom, 0x15C79 + 2 * 0x3D, 0x075A)
-    write_int16(rom, 0x15D17 + 2 * 0x3D, 0x0674)
-    write_int16(rom, 0x15DB5 + 2 * 0x3D, 0x07A8)
-    write_int16(rom, 0x15E53 + 2 * 0x3D, 0x06E8)
-    write_int16(rom, 0x15EF1 + 2 * 0x3D, 0x07C7)
-    write_int16(rom, 0x15F8F + 2 * 0x3D, 0x06F3)
+    rom.write_int16(0x15BDB + 2 * 0x3D, 0x0B0E)
+    rom.write_int16(0x15C79 + 2 * 0x3D, 0x075A)
+    rom.write_int16(0x15D17 + 2 * 0x3D, 0x0674)
+    rom.write_int16(0x15DB5 + 2 * 0x3D, 0x07A8)
+    rom.write_int16(0x15E53 + 2 * 0x3D, 0x06E8)
+    rom.write_int16(0x15EF1 + 2 * 0x3D, 0x07C7)
+    rom.write_int16(0x15F8F + 2 * 0x3D, 0x06F3)
     rom.write_byte(0x1602D + 0x3D, 0x06)
     rom.write_byte(0x1607C + 0x3D, 0xFA)
-    write_int16(rom, 0x160CB + 2 * 0x3D, 0x0000)
-    write_int16(rom, 0x16169 + 2 * 0x3D, 0x0000)
-    write_int16(rom, snes_to_pc(0x02D8D4), 0x112)  # change sactuary spawn point to dark sanc
+    rom.write_int16(0x160CB + 2 * 0x3D, 0x0000)
+    rom.write_int16(0x16169 + 2 * 0x3D, 0x0000)
+    rom.write_int16(snes_to_pc(0x02D8D4), 0x112)  # change sactuary spawn point to dark sanc
     rom.write_bytes(snes_to_pc(0x02D8E8), [0x22, 0x22, 0x22, 0x23, 0x04, 0x04, 0x04, 0x05])
-    write_int16(rom, snes_to_pc(0x02D91A), 0x0400)
-    write_int16(rom, snes_to_pc(0x02D928), 0x222E)
-    write_int16(rom, snes_to_pc(0x02D936), 0x229A)
-    write_int16(rom, snes_to_pc(0x02D944), 0x0480)
-    write_int16(rom, snes_to_pc(0x02D952), 0x00A5)
-    write_int16(rom, snes_to_pc(0x02D960), 0x007F)
+    rom.write_int16(snes_to_pc(0x02D91A), 0x0400)
+    rom.write_int16(snes_to_pc(0x02D928), 0x222E)
+    rom.write_int16(snes_to_pc(0x02D936), 0x229A)
+    rom.write_int16(snes_to_pc(0x02D944), 0x0480)
+    rom.write_int16(snes_to_pc(0x02D952), 0x00A5)
+    rom.write_int16(snes_to_pc(0x02D960), 0x007F)
     rom.write_byte(snes_to_pc(0x02D96D), 0x14)
     rom.write_byte(snes_to_pc(0x02D974), 0x00)
     rom.write_byte(snes_to_pc(0x02D97B), 0xFF)
     rom.write_byte(snes_to_pc(0x02D982), 0x00)
     rom.write_byte(snes_to_pc(0x02D989), 0x02)
     rom.write_byte(snes_to_pc(0x02D990), 0x00)
-    write_int16(rom, snes_to_pc(0x02D998), 0x0000)
-    write_int16(rom, snes_to_pc(0x02D9A6), 0x005A)
+    rom.write_int16(snes_to_pc(0x02D998), 0x0000)
+    rom.write_int16(snes_to_pc(0x02D9A6), 0x005A)
     rom.write_byte(snes_to_pc(0x02D9B3), 0x12)
     # keep the old man spawn point at old man house unless shuffle is vanilla
     if world.shuffle[player] in ['vanilla', 'dungeonsfull', 'dungeonssimple']:
         rom.write_bytes(snes_to_pc(0x308350), [0x00, 0x00, 0x01])
-        write_int16(rom, snes_to_pc(0x02D8DE), 0x00F1)
+        rom.write_int16(snes_to_pc(0x02D8DE), 0x00F1)
         rom.write_bytes(snes_to_pc(0x02D910), [0x1F, 0x1E, 0x1F, 0x1F, 0x03, 0x02, 0x03, 0x03])
-        write_int16(rom, snes_to_pc(0x02D924), 0x0300)
-        write_int16(rom, snes_to_pc(0x02D932), 0x1F10)
-        write_int16(rom, snes_to_pc(0x02D940), 0x1FC0)
-        write_int16(rom, snes_to_pc(0x02D94E), 0x0378)
-        write_int16(rom, snes_to_pc(0x02D95C), 0x0187)
-        write_int16(rom, snes_to_pc(0x02D96A), 0x017F)
+        rom.write_int16(snes_to_pc(0x02D924), 0x0300)
+        rom.write_int16(snes_to_pc(0x02D932), 0x1F10)
+        rom.write_int16(snes_to_pc(0x02D940), 0x1FC0)
+        rom.write_int16(snes_to_pc(0x02D94E), 0x0378)
+        rom.write_int16(snes_to_pc(0x02D95C), 0x0187)
+        rom.write_int16(snes_to_pc(0x02D96A), 0x017F)
         rom.write_byte(snes_to_pc(0x02D972), 0x06)
         rom.write_byte(snes_to_pc(0x02D979), 0x00)
         rom.write_byte(snes_to_pc(0x02D980), 0xFF)
         rom.write_byte(snes_to_pc(0x02D987), 0x00)
         rom.write_byte(snes_to_pc(0x02D98E), 0x22)
         rom.write_byte(snes_to_pc(0x02D995), 0x12)
-        write_int16(rom, snes_to_pc(0x02D9A2), 0x0000)
-        write_int16(rom, snes_to_pc(0x02D9B0), 0x0007)
+        rom.write_int16(snes_to_pc(0x02D9A2), 0x0000)
+        rom.write_int16(snes_to_pc(0x02D9B0), 0x0007)
         rom.write_byte(snes_to_pc(0x02D9B8), 0x12)
         rom.write_bytes(0x180247, [0x00, 0x5A, 0x00, 0x00, 0x00, 0x00, 0x00])
-    write_int16(rom, 0x15AEE + 2 * 0x06, 0x0020)  # post aga hyrule castle spawn
+    rom.write_int16(0x15AEE + 2 * 0x06, 0x0020)  # post aga hyrule castle spawn
     rom.write_byte(0x15B8C + 0x06, 0x1B)
-    write_int16(rom, 0x15BDB + 2 * 0x06, 0x00AE)
-    write_int16(rom, 0x15C79 + 2 * 0x06, 0x0610)
-    write_int16(rom, 0x15D17 + 2 * 0x06, 0x077E)
-    write_int16(rom, 0x15DB5 + 2 * 0x06, 0x0672)
-    write_int16(rom, 0x15E53 + 2 * 0x06, 0x07F8)
-    write_int16(rom, 0x15EF1 + 2 * 0x06, 0x067D)
-    write_int16(rom, 0x15F8F + 2 * 0x06, 0x0803)
+    rom.write_int16(0x15BDB + 2 * 0x06, 0x00AE)
+    rom.write_int16(0x15C79 + 2 * 0x06, 0x0610)
+    rom.write_int16(0x15D17 + 2 * 0x06, 0x077E)
+    rom.write_int16(0x15DB5 + 2 * 0x06, 0x0672)
+    rom.write_int16(0x15E53 + 2 * 0x06, 0x07F8)
+    rom.write_int16(0x15EF1 + 2 * 0x06, 0x067D)
+    rom.write_int16(0x15F8F + 2 * 0x06, 0x0803)
     rom.write_byte(0x1602D + 0x06, 0x00)
     rom.write_byte(0x1607C + 0x06, 0xF2)
-    write_int16(rom, 0x160CB + 2 * 0x06, 0x0000)
-    write_int16(rom, 0x16169 + 2 * 0x06, 0x0000)
-    write_int16(rom, snes_to_pc(0x02E87B), 0x00AE)  # move flute splot 9
-    write_int16(rom, snes_to_pc(0x02E89D), 0x0610)
-    write_int16(rom, snes_to_pc(0x02E8BF), 0x077E)
-    write_int16(rom, snes_to_pc(0x02E8E1), 0x0672)
-    write_int16(rom, snes_to_pc(0x02E903), 0x07F8)
-    write_int16(rom, snes_to_pc(0x02E925), 0x067D)
-    write_int16(rom, snes_to_pc(0x02E947), 0x0803)
-    write_int16(rom, snes_to_pc(0x02E969), 0x0000)
-    write_int16(rom, snes_to_pc(0x02E98B), 0xFFF2)
+    rom.write_int16(0x160CB + 2 * 0x06, 0x0000)
+    rom.write_int16(0x16169 + 2 * 0x06, 0x0000)
+    rom.write_int16(snes_to_pc(0x02E87B), 0x00AE)  # move flute splot 9
+    rom.write_int16(snes_to_pc(0x02E89D), 0x0610)
+    rom.write_int16(snes_to_pc(0x02E8BF), 0x077E)
+    rom.write_int16(snes_to_pc(0x02E8E1), 0x0672)
+    rom.write_int16(snes_to_pc(0x02E903), 0x07F8)
+    rom.write_int16(snes_to_pc(0x02E925), 0x067D)
+    rom.write_int16(snes_to_pc(0x02E947), 0x0803)
+    rom.write_int16(snes_to_pc(0x02E969), 0x0000)
+    rom.write_int16(snes_to_pc(0x02E98B), 0xFFF2)
     rom.write_byte(snes_to_pc(0x1AF696), 0xF0)  # bat sprite retreat
     rom.write_byte(snes_to_pc(0x1AF6B2), 0x33)
     rom.write_bytes(snes_to_pc(0x1AF730), [0x6A, 0x9E, 0x0C, 0x00, 0x7A, 0x9E, 0x0C,
@@ -2051,46 +2112,46 @@ def set_inverted_mode(world, player, rom):
                                            0x0C, 0x00, 0x7A, 0xAE, 0x0C, 0x00, 0x8A,
                                            0xAE, 0x0C, 0x00, 0x67, 0x97, 0x0C, 0x00,
                                            0x8D, 0x97, 0x0C, 0x00])
-    write_int16s(rom, snes_to_pc(0x0FF1C8), [0x190F, 0x190F, 0x190F, 0x194C, 0x190F,
-                                                 0x194B, 0x190F, 0x195C, 0x594B, 0x194C,
-                                                 0x19EE, 0x19EE, 0x194B, 0x19EE, 0x19EE,
-                                                 0x19EE, 0x594B, 0x190F, 0x595C, 0x190F,
-                                                 0x190F, 0x195B, 0x190F, 0x190F, 0x19EE,
-                                                 0x19EE, 0x195C, 0x19EE, 0x19EE, 0x19EE,
-                                                 0x19EE, 0x595C, 0x595B, 0x190F, 0x190F,
-                                                 0x190F])
-    write_int16s(rom, snes_to_pc(0x0FA480), [0x190F, 0x196B, 0x9D04, 0x9D04, 0x196B,
-                                                 0x190F, 0x9D04, 0x9D04])
-    write_int16s(rom, snes_to_pc(0x1bb810), [0x00BE, 0x00C0, 0x013E])
-    write_int16s(rom, snes_to_pc(0x1bb836), [0x001B, 0x001B, 0x001B])
-    write_int16(rom, snes_to_pc(0x308300), 0x0140) # new pyramid hole entrance
-    write_int16(rom, snes_to_pc(0x308320), 0x001B)
+    rom.write_int16s(snes_to_pc(0x0FF1C8), [0x190F, 0x190F, 0x190F, 0x194C, 0x190F,
+                                            0x194B, 0x190F, 0x195C, 0x594B, 0x194C,
+                                            0x19EE, 0x19EE, 0x194B, 0x19EE, 0x19EE,
+                                            0x19EE, 0x594B, 0x190F, 0x595C, 0x190F,
+                                            0x190F, 0x195B, 0x190F, 0x190F, 0x19EE,
+                                            0x19EE, 0x195C, 0x19EE, 0x19EE, 0x19EE,
+                                            0x19EE, 0x595C, 0x595B, 0x190F, 0x190F,
+                                            0x190F])
+    rom.write_int16s(snes_to_pc(0x0FA480), [0x190F, 0x196B, 0x9D04, 0x9D04, 0x196B,
+                                            0x190F, 0x9D04, 0x9D04])
+    rom.write_int16s(snes_to_pc(0x1bb810), [0x00BE, 0x00C0, 0x013E])
+    rom.write_int16s(snes_to_pc(0x1bb836), [0x001B, 0x001B, 0x001B])
+    rom.write_int16(snes_to_pc(0x308300), 0x0140)  # new pyramid hole entrance
+    rom.write_int16(snes_to_pc(0x308320), 0x001B)
     if world.shuffle[player] in ['vanilla', 'dungeonssimple', 'dungeonsfull']:
         rom.write_byte(snes_to_pc(0x308340), 0x7B)
-    write_int16(rom, snes_to_pc(0x1af504), 0x148B)
-    write_int16(rom, snes_to_pc(0x1af50c), 0x149B)
-    write_int16(rom, snes_to_pc(0x1af514), 0x14A4)
-    write_int16(rom, snes_to_pc(0x1af51c), 0x1489)
-    write_int16(rom, snes_to_pc(0x1af524), 0x14AC)
-    write_int16(rom, snes_to_pc(0x1af52c), 0x54AC)
-    write_int16(rom, snes_to_pc(0x1af534), 0x148C)
-    write_int16(rom, snes_to_pc(0x1af53c), 0x548C)
-    write_int16(rom, snes_to_pc(0x1af544), 0x1484)
-    write_int16(rom, snes_to_pc(0x1af54c), 0x5484)
-    write_int16(rom, snes_to_pc(0x1af554), 0x14A2)
-    write_int16(rom, snes_to_pc(0x1af55c), 0x54A2)
-    write_int16(rom, snes_to_pc(0x1af564), 0x14A0)
-    write_int16(rom, snes_to_pc(0x1af56c), 0x54A0)
-    write_int16(rom, snes_to_pc(0x1af574), 0x148E)
-    write_int16(rom, snes_to_pc(0x1af57c), 0x548E)
-    write_int16(rom, snes_to_pc(0x1af584), 0x14AE)
-    write_int16(rom, snes_to_pc(0x1af58c), 0x54AE)
+    rom.write_int16(snes_to_pc(0x1af504), 0x148B)
+    rom.write_int16(snes_to_pc(0x1af50c), 0x149B)
+    rom.write_int16(snes_to_pc(0x1af514), 0x14A4)
+    rom.write_int16(snes_to_pc(0x1af51c), 0x1489)
+    rom.write_int16(snes_to_pc(0x1af524), 0x14AC)
+    rom.write_int16(snes_to_pc(0x1af52c), 0x54AC)
+    rom.write_int16(snes_to_pc(0x1af534), 0x148C)
+    rom.write_int16(snes_to_pc(0x1af53c), 0x548C)
+    rom.write_int16(snes_to_pc(0x1af544), 0x1484)
+    rom.write_int16(snes_to_pc(0x1af54c), 0x5484)
+    rom.write_int16(snes_to_pc(0x1af554), 0x14A2)
+    rom.write_int16(snes_to_pc(0x1af55c), 0x54A2)
+    rom.write_int16(snes_to_pc(0x1af564), 0x14A0)
+    rom.write_int16(snes_to_pc(0x1af56c), 0x54A0)
+    rom.write_int16(snes_to_pc(0x1af574), 0x148E)
+    rom.write_int16(snes_to_pc(0x1af57c), 0x548E)
+    rom.write_int16(snes_to_pc(0x1af584), 0x14AE)
+    rom.write_int16(snes_to_pc(0x1af58c), 0x54AE)
     rom.write_byte(snes_to_pc(0x00DB9D), 0x1A)  # castle hole graphics
     rom.write_byte(snes_to_pc(0x00DC09), 0x1A)
     rom.write_byte(snes_to_pc(0x00D009), 0x31)
     rom.write_byte(snes_to_pc(0x00D0e8), 0xE0)
     rom.write_byte(snes_to_pc(0x00D1c7), 0x00)
-    write_int16(rom, snes_to_pc(0x1BE8DA), 0x39AD)
+    rom.write_int16(snes_to_pc(0x1BE8DA), 0x39AD)
     rom.write_byte(0xF6E58, 0x80)  # no whirlpool under castle gate
     rom.write_bytes(0x0086E, [0x5C, 0x00, 0xA0, 0xA1])  # TR tail
     rom.write_bytes(snes_to_pc(0x1BC67A), [0x2E, 0x0B, 0x82])  # add warps under rocks
@@ -2100,25 +2161,25 @@ def set_inverted_mode(world, player, rom):
     rom.write_bytes(snes_to_pc(0x1BC3DF), [0xD8, 0xD1])
     rom.write_bytes(snes_to_pc(0x1BD1D8), [0xA8, 0x02, 0x82, 0xFF, 0xFF])
     rom.write_bytes(snes_to_pc(0x1BC85A), [0x50, 0x0F, 0x82])
-    write_int16(rom, 0xDB96F + 2 * 0x35, 0x001B)  # move pyramid exit door
-    write_int16(rom, 0xDBA71 + 2 * 0x35, 0x06A4)
+    rom.write_int16(0xDB96F + 2 * 0x35, 0x001B)  # move pyramid exit door
+    rom.write_int16(0xDBA71 + 2 * 0x35, 0x06A4)
     if world.shuffle[player] in ['vanilla', 'dungeonssimple', 'dungeonsfull']:
         rom.write_byte(0xDBB73 + 0x35, 0x36)
     rom.write_byte(snes_to_pc(0x09D436), 0xF3)  # remove castle gate warp
     if world.shuffle[player] in ['vanilla', 'dungeonssimple', 'dungeonsfull']:
-        write_int16(rom, 0x15AEE + 2 * 0x37, 0x0010)  # pyramid exit to new hc area
+        rom.write_int16(0x15AEE + 2 * 0x37, 0x0010)  # pyramid exit to new hc area
         rom.write_byte(0x15B8C + 0x37, 0x1B)
-        write_int16(rom, 0x15BDB + 2 * 0x37, 0x0418)
-        write_int16(rom, 0x15C79 + 2 * 0x37, 0x0679)
-        write_int16(rom, 0x15D17 + 2 * 0x37, 0x06B4)
-        write_int16(rom, 0x15DB5 + 2 * 0x37, 0x06C6)
-        write_int16(rom, 0x15E53 + 2 * 0x37, 0x0738)
-        write_int16(rom, 0x15EF1 + 2 * 0x37, 0x06E6)
-        write_int16(rom, 0x15F8F + 2 * 0x37, 0x0733)
+        rom.write_int16(0x15BDB + 2 * 0x37, 0x0418)
+        rom.write_int16(0x15C79 + 2 * 0x37, 0x0679)
+        rom.write_int16(0x15D17 + 2 * 0x37, 0x06B4)
+        rom.write_int16(0x15DB5 + 2 * 0x37, 0x06C6)
+        rom.write_int16(0x15E53 + 2 * 0x37, 0x0738)
+        rom.write_int16(0x15EF1 + 2 * 0x37, 0x06E6)
+        rom.write_int16(0x15F8F + 2 * 0x37, 0x0733)
         rom.write_byte(0x1602D + 0x37, 0x07)
         rom.write_byte(0x1607C + 0x37, 0xF9)
-        write_int16(rom, 0x160CB + 2 * 0x37, 0x0000)
-        write_int16(rom, 0x16169 + 2 * 0x37, 0x0000)
+        rom.write_int16(0x160CB + 2 * 0x37, 0x0000)
+        rom.write_int16(0x16169 + 2 * 0x37, 0x0000)
     rom.write_bytes(snes_to_pc(0x1BC387), [0xDD, 0xD1])
     rom.write_bytes(snes_to_pc(0x1BD1DD), [0xA4, 0x06, 0x82, 0x9E, 0x06, 0x82, 0xFF, 0xFF])
     rom.write_byte(0x180089, 0x01)  # open TR after exit
@@ -2134,9 +2195,9 @@ def patch_shuffled_dark_sanc(world, rom, player):
 
     rom.write_byte(0x180241, 0x01)
     rom.write_byte(0x180248, door_index + 1)
-    write_int16(rom, 0x180250, room_id)
+    rom.write_int16(0x180250, room_id)
     rom.write_byte(0x180252, ow_area)
-    write_int16s(rom, 0x180253, [vram_loc, scroll_y, scroll_x, link_y, link_x, camera_y, camera_x])
+    rom.write_int16s(0x180253, [vram_loc, scroll_y, scroll_x, link_y, link_x, camera_y, camera_x])
     rom.write_bytes(0x180262, [unknown_1, unknown_2, 0x00])
 
 InconvenientDungeonEntrances = {'Turtle Rock': 'Turtle Rock Main',
