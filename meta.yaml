@@ -1,5 +1,4 @@
-# This file has to be in the folder specified in the host.yaml file for the player_files_path flag for it to take effect,
-# keeping the "meta.yaml" name
+# This file has to be in the Players folder to take effect, keeping the "meta.yaml" name
 # A meta file rolls its own set of options first
 # The result will then overwrite each player's option in that particular field
 # For example, if a meta.yaml fast_ganon result is rolled, every player will have that fast_ganon goal
@@ -26,7 +25,7 @@ goals:
   ganon_triforce_hunt: 5 # Collect 20 of 30 Triforce pieces spread throughout the worlds, then kill Ganon
   local_ganon_triforce_hunt: 20 # Collect 20 of 30 Triforce pieces spread throughout your world, then kill Ganon
   null: 0 # Maintain individual goals
-world_state:
+mode:
   standard: 10
   open: 60
   inverted: 10
