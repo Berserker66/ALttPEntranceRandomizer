@@ -44,6 +44,12 @@ class LocalRom(object):
             self.patch_base_rom()
             self.orig_buffer = self.buffer.copy()
 
+    def read_byte(self, address: int) -> int:
+        return self.buffer[address]
+
+    def read_bytes(self, startaddress: int, length: int) -> bytes:
+        return self.buffer[startaddress:startaddress + length]
+
     def write_byte(self, address: int, value: int):
         self.buffer[address] = value
 
@@ -321,6 +327,11 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
 
     rom.read_from_file(enemizer_output_path)
     os.remove(enemizer_output_path)
+
+    if world.get_dungeon("Thieves Town", player).boss.enemizer_name == "Blind" \
+            and rom.read_byte(0xEA081) != 0xEA:  # new enemizer required for blind escort mission
+        rom.write_byte(0x04DE81, 6)
+        rom.write_byte(0x200101, 0)  # Do not close boss room door on entry.
 
     if random_sprite_on_hit:
         _populate_sprite_table()

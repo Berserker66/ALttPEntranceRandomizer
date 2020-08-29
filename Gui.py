@@ -81,9 +81,9 @@ def guiMain(args=None):
     keyshuffleVar = StringVar()
     keyshuffleVar.set('off')
     modeOptionMenu = OptionMenu(keyshuffleFrame, keyshuffleVar, 'off', 'universal', 'on')
-    modeOptionMenu.pack(side=LEFT)
     modeLabel = Label(keyshuffleFrame, text='Small Key Shuffle')
     modeLabel.pack(side=LEFT)
+    modeOptionMenu.pack(side=LEFT)
 
     retroVar = IntVar()
     retroCheckbutton = Checkbutton(checkBoxFrame, text="Retro mode", variable=retroVar)
@@ -351,14 +351,6 @@ def guiMain(args=None):
     shuffleLabel = Label(shuffleFrame, text='Entrance shuffle algorithm')
     shuffleLabel.pack(side=LEFT)
 
-    shop_shuffleFrame = Frame(drowDownFrame)
-    shop_shuffleVar = StringVar()
-    shop_shuffleVar.set('off')
-    shop_shuffleOptionMenu = OptionMenu(shop_shuffleFrame, shop_shuffleVar, 'off', 'inventory', 'price',
-                                        'price and inventory')
-    shop_shuffleOptionMenu.pack(side=RIGHT)
-    shop_shuffleLabel = Label(shop_shuffleFrame, text='Shop Shuffle')
-    shop_shuffleLabel.pack(side=LEFT)
 
     modeFrame.pack(expand=True, anchor=E)
     logicFrame.pack(expand=True, anchor=E)
@@ -374,7 +366,6 @@ def guiMain(args=None):
     accessibilityFrame.pack(expand=True, anchor=E)
     algorithmFrame.pack(expand=True, anchor=E)
     shuffleFrame.pack(expand=True, anchor=E)
-    shop_shuffleFrame.pack(expand=True, anchor=E)
 
     enemizerFrame = LabelFrame(randomizerWindow, text="Enemizer", padx=5, pady=2)
 
@@ -408,18 +399,18 @@ def guiMain(args=None):
     enemizerBossVar.set('none')
     enemizerBossOption = OptionMenu(enemizerBossFrame, enemizerBossVar, 'none', 'basic', 'normal', 'chaos',
                                     "singularity")
-    enemizerBossOption.pack(side=LEFT)
     enemizerBossLabel = Label(enemizerBossFrame, text='Boss shuffle')
     enemizerBossLabel.pack(side=LEFT)
+    enemizerBossOption.pack(side=LEFT)
 
     enemizerDamageFrame = Frame(enemizerFrame)
     enemizerDamageFrame.grid(row=1, column=2)
     enemizerDamageVar = StringVar()
     enemizerDamageVar.set('default')
     enemizerDamageOption = OptionMenu(enemizerDamageFrame, enemizerDamageVar, 'default', 'shuffled', 'chaos')
-    enemizerDamageOption.pack(side=LEFT)
     enemizerDamageLabel = Label(enemizerDamageFrame, text='Enemy damage')
     enemizerDamageLabel.pack(side=LEFT)
+    enemizerDamageOption.pack(side=LEFT)
 
     enemizerHealthFrame = Frame(enemizerFrame)
     enemizerHealthFrame.grid(row=1, column=3)
@@ -427,9 +418,9 @@ def guiMain(args=None):
     enemizerHealthVar.set('default')
     enemizerHealthOption = OptionMenu(enemizerHealthFrame, enemizerHealthVar, 'default', 'easy', 'normal', 'hard',
                                       'expert')
-    enemizerHealthOption.pack(side=LEFT)
     enemizerHealthLabel = Label(enemizerHealthFrame, text='Enemy health')
     enemizerHealthLabel.pack(side=LEFT)
+    enemizerHealthOption.pack(side=LEFT)
 
     potShuffleVar = IntVar()
     potShuffleButton = Checkbutton(enemizerFrame, text="Pot shuffle", variable=potShuffleVar)
@@ -505,7 +496,6 @@ def guiMain(args=None):
         guiargs.accessibility = accessibilityVar.get()
         guiargs.algorithm = algorithmVar.get()
         guiargs.shuffle = shuffleVar.get()
-        guiargs.shop_shuffle = shop_shuffleVar.get()
         guiargs.heartbeep = heartbeepVar.get()
         guiargs.heartcolor = heartcolorVar.get()
         guiargs.fastmenu = fastMenuVar.get()
@@ -619,7 +609,7 @@ def guiMain(args=None):
     rightHalfFrame2 = Frame(topFrame2)
     checkBoxFrame2 = Frame(rightHalfFrame2)
 
-    quickSwapCheckbutton2 = Checkbutton(checkBoxFrame2, text="Enabled L/R Item quickswapping", variable=quickSwapVar)
+    quickSwapCheckbutton2 = Checkbutton(checkBoxFrame2, text="L/R Item quickswapping", variable=quickSwapVar)
     disableMusicCheckbutton2 = Checkbutton(checkBoxFrame2, text="Disable game music", variable=disableMusicVar)
 
     quickSwapCheckbutton2.pack(expand=True, anchor=W)
