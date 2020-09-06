@@ -13,7 +13,6 @@ mac_patch = script_mac_patch.read()
 sys.argv = ["MultiClient.py", file_path]
 
 exec(mac_patch)
-OUTPUT
 ['MultiClient.py', file_path]
 
 script_mac_patch.close()
