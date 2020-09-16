@@ -785,6 +785,7 @@ def make_custom_item_pool(world, player):
     pool.extend(['Red Clock'] * customitemarray[63])
     pool.extend(['Progressive Bow'] * customitemarray[64])
     pool.extend(['Bombs (10)'] * customitemarray[65])
+    pool.extend(['Triforce'] * customitemarray[68])
 
     diff = difficulties[difficulty]
 
