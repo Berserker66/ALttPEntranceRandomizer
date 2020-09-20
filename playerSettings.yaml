@@ -88,8 +88,8 @@ goals:
   local_ganon_triforce_hunt: 0 # Collect 20 of 30 Triforce pieces spread throughout your world, then kill Ganon
 triforce_pieces_mode: #Determine how to calculate the extra available triforce pieces.
   extra: 0 # available = triforce_pieces_extra + triforce_pieces_required
-  percentage: 100 # available = (triforce_pieces_percentage /100) * triforce_pieces_required
-  available: 0 # available = triforce_pieces_available
+  percentage: 0 # available = (triforce_pieces_percentage /100) * triforce_pieces_required
+  available: 50 # available = triforce_pieces_available
 triforce_pieces_extra: # Set to how many extra triforces pieces are available to collect in the world. 
   # Format "pieces: chance"
   0: 0
@@ -110,8 +110,8 @@ triforce_pieces_available: # Set to how many triforces pieces are available to c
   50: 0
 triforce_pieces_required: # Set to how many out of X triforce pieces you need to win the game in a triforce hunt. Default is 20. Max is 90, Min is 1
   # Format "pieces: chance"
-  15: 100
-  20: 0
+  15: 0
+  20: 50
   30: 0
   40: 0
   50: 0
