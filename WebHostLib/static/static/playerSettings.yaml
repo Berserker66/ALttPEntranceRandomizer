@@ -99,7 +99,7 @@ triforce_pieces_extra: # Set to how many extra triforces pieces are available to
   20: 0
 triforce_pieces_percentage: # Set to how many extra triforces pieces according to a percentage of the required ones, are available to collect in the world. 
   # Format "pieces: chance"
-  0: 0 #No extra
+  100: 0 #No extra
   150: 50 #Half the required will be added as extra
   200: 0 #There are the double of the required ones available.
 triforce_pieces_available: # Set to how many triforces pieces are available to collect in the world. Default is 30. Max is 90, Min is 1
