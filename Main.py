@@ -81,6 +81,9 @@ def main(args, seed=None):
     world.shop_shuffle = args.shop_shuffle.copy()
     world.progression_balancing = {player: not balance for player, balance in args.skip_progression_balancing.items()}
     world.shuffle_prizes = args.shuffle_prizes.copy()
+    world.sprite_pool = args.sprite_pool.copy()
+    world.dark_room_logic = args.dark_room_logic.copy()
+    world.restrict_dungeon_item_on_boss = args.restrict_dungeon_item_on_boss.copy()
 
     world.rom_seeds = {player: random.Random(world.random.randint(0, 999999999)) for player in range(1, world.players + 1)}
 
@@ -98,9 +101,6 @@ def main(args, seed=None):
 
     for player in range(1, world.players + 1):
         world.difficulty_requirements[player] = difficulties[world.difficulty[player]]
-
-        if world.mode[player] == 'standard' and world.enemy_shuffle[player] != 'none':
-            world.escape_assist[player].append('bombs') # enemized escape assumes infinite bombs available and will likely be unbeatable without it
 
         for tok in filter(None, args.startinventory[player].split(',')):
             item = ItemFactory(tok.strip(), player)
@@ -150,9 +150,7 @@ def main(args, seed=None):
     shuffled_locations = None
     if args.algorithm in ['balanced', 'vt26'] or any(list(args.mapshuffle.values()) + list(args.compassshuffle.values()) +
                                                      list(args.keyshuffle.values()) + list(args.bigkeyshuffle.values())):
-        shuffled_locations = world.get_unfilled_locations()
-        world.random.shuffle(shuffled_locations)
-        fill_dungeons_restrictive(world, shuffled_locations)
+        fill_dungeons_restrictive(world)
     else:
         fill_dungeons(world)
 
@@ -177,10 +175,9 @@ def main(args, seed=None):
     rom_names = []
 
     def _gen_rom(team: int, player: int):
-        sprite_random_on_hit = type(args.sprite[player]) is str and args.sprite[player].lower() == 'randomonhit'
         use_enemizer = (world.boss_shuffle[player] != 'none' or world.enemy_shuffle[player]
                         or world.enemy_health[player] != 'default' or world.enemy_damage[player] != 'default'
-                        or world.shufflepots[player] or sprite_random_on_hit or world.bush_shuffle[player]
+                        or world.shufflepots[player] or world.bush_shuffle[player]
                         or world.killable_thieves[player] or world.tile_shuffle[player])
 
         rom = LocalRom(args.rom)
@@ -188,17 +185,16 @@ def main(args, seed=None):
         patch_rom(world, rom, player, team, use_enemizer)
 
         if use_enemizer:
-            patch_enemizer(world, player, rom, args.enemizercli,
-                           sprite_random_on_hit)
+            patch_enemizer(world, player, rom, args.enemizercli)
 
         if args.race:
-            patch_race_rom(rom)
+            patch_race_rom(rom, world, player)
 
         world.spoiler.hashes[(player, team)] = get_hash_string(rom.hash)
 
         apply_rom_settings(rom, args.heartbeep[player], args.heartcolor[player], args.quickswap[player],
                            args.fastmenu[player], args.disablemusic[player], args.sprite[player],
-                           args.ow_palettes[player], args.uw_palettes[player], world, player)
+                           args.ow_palettes[player], args.uw_palettes[player], world, player, True)
 
         mcsb_name = ''
         if all([world.mapshuffle[player], world.compassshuffle[player], world.keyshuffle[player],
@@ -300,6 +296,13 @@ def main(args, seed=None):
             for future in roms:
                 rom_name = future.result()
                 rom_names.append(rom_name)
+            multidatatags = ["ER"]
+            if args.race:
+                multidatatags.append("Race")
+            if args.create_spoiler:
+                multidatatags.append("Spoiler")
+                if not args.skip_playthrough:
+                    multidatatags.append("Play through")
             multidata = zlib.compress(json.dumps({"names": parsed_names,
                                                   # backwards compat for < 2.4.1
                                                   "roms": [(slot, team, list(name.encode()))
@@ -315,7 +318,7 @@ def main(args, seed=None):
                                                   "er_hint_data": er_hint_data,
                                                   "precollected_items": precollected_items,
                                                   "version": _version_tuple,
-                                                  "tags": ["ER"]
+                                                  "tags": multidatatags
                                                   }).encode("utf-8"), 9)
 
             with open(output_path('%s.multidata' % outfilebase), 'wb') as f:
@@ -374,6 +377,9 @@ def copy_world(world):
     ret.beemizer = world.beemizer.copy()
     ret.timer = world.timer.copy()
     ret.shufflepots = world.shufflepots.copy()
+    ret.shuffle_prizes = world.shuffle_prizes.copy()
+    ret.dark_room_logic = world.dark_room_logic.copy()
+    ret.restrict_dungeon_item_on_boss = world.restrict_dungeon_item_on_boss.copy()
 
     for player in range(1, world.players + 1):
         if world.mode[player] != 'inverted':

@@ -173,6 +173,9 @@ Blind_texts = [
     "Best advice\nfor a Goron?\nBe Boulder.",
     "Equestrian\nservices are\na stable job.",
     "Do I like\ndrills? Just\na bit.",
+    "I'd shell out\ngood rupees\nfor a conch.",
+    "Current\naffairs are\nshocking!",
+    "Agriculture\nis a growing\nfield."
 ]
 Ganon1_texts = [
     "Start your day\nsmiling with a\ndelicious\nwhole grain\nbreakfast\ncreated for\nyour\nincredible\ninsides.",

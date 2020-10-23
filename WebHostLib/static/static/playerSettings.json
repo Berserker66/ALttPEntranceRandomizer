@@ -46,6 +46,32 @@
         }
       }
     },
+    "dark_room_logic": {
+      "keyString": "dark_room_logic",
+      "friendlyName": "Dark Room Logic",
+      "description": "Logic to use for dark rooms.",
+      "inputType": "range",
+      "subOptions": {
+        "lamp": {
+          "keyString": "dark_room_logic.lamp",
+          "friendlyName": "Lamp Required",
+          "description": "The lamp is required for dark rooms to be considered in logic.",
+          "defaultValue": 50
+        },
+        "torches": {
+          "keyString": "dark_room_logic.torches",
+          "friendlyName": "Lamp or Torches",
+          "description": "In addition to the lamp, a fire rod and accessible torches may put dark rooms into logic.",
+          "defaultValue": 0
+        },
+        "none": {
+          "keyString": "dark_room_logic.none",
+          "friendlyName": "Always in Logic",
+          "description": "Dark rooms are always considered in logic, which may require you to navigate rooms in complete darkness.",
+          "defaultValue": 0
+        }
+      }
+    },
     "map_shuffle": {
       "keyString": "map_shuffle",
       "friendlyName": "Map Shuffle",
@@ -205,7 +231,8 @@
         "none": {
           "keyString": "accessibility.none",
           "friendlyName": "Required Only",
-          "description": "Guarantees only that the game is beatable. You may not be able to access all locations or acquire all items."
+          "description": "Guarantees only that the game is beatable. You may not be able to access all locations or acquire all items.",
+          "defaultValue": 0
         }
       }
     },
@@ -321,6 +348,12 @@
           "description": "Acquire all three pendants and pull the Triforce from the Master Sword Pedestal.",
           "defaultValue": 0
         },
+        "ganon_pedestal": {
+          "keyString": "goals.ganon_pedestal",
+          "friendlyName": "Ganon Pedestal",
+          "description": "Accquire all three pendants, pull the Master Sword Pedestal, then defeat Ganon in his lair.",
+          "defaultValue": 0
+        },
         "triforce_hunt": {
           "keyString": "goals.triforce_hunt",
           "friendlyName": "Triforce Hunt",
@@ -342,128 +375,7 @@
         "local_ganon_triforce_hunt": {
           "keyString": "goals.local_ganon_triforce_hunt",
           "friendlyName": "Local Triforce hunt /w Ganon",
-          "description": "Same as Local Triforce Hunt, but you need to defeat Ganon in his lair instead of talking with Murahadala."
-        }
-      }
-    },
-	"triforce_pieces_mode": {
-	  "keyString": "triforce_pieces_mode",
-      "friendlyName": "Triforce Pieces Mode",
-      "description": "Determines how to determine how many extra Triforce pieces will be available",
-      "inputType": "range",
-      "subOptions": {
-        "available": {
-          "keyString": "triforce_pieces_mode.available",
-          "friendlyName": "Available",
-          "description": "Determine the total number of pieces available in \"Triforce pieces available\"",
-          "defaultValue": 50
-        },
-        "extra": {
-          "keyString": "triforce_pieces_mode.extra",
-          "friendlyName": "Extra",
-          "description": "Determine how many extra pieces will be available in \"Extra Triforce pieces quantity\"",
-          "defaultValue": 0
-        },
-        "percentage": {
-          "keyString": "triforce_pieces_mode.percentage",
-          "friendlyName": "Percentage",
-          "description": "Determine the available pieces using a percentage of the required ones using the \"Extra Triforce pieces percentage\"",
-          "defaultValue": 0
-        }
-      }
-	},
-    "triforce_pieces_available": {
-      "keyString": "triforce_pieces_available",
-      "friendlyName": "Triforce Pieces Available",
-      "description": "Determines the total number of Triforce pieces hidden throughout Hyrule",
-      "inputType": "range",
-      "subOptions": {
-        "25": {
-          "keyString": "triforce_pieces_available.25",
-          "friendlyName": 25,
-          "description": "25 Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 0
-        },
-        "30": {
-          "keyString": "triforce_pieces_available.30",
-          "friendlyName": 30,
-          "description": "30 Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 50
-        },
-        "40": {
-          "keyString": "triforce_pieces_available.40",
-          "friendlyName": 40,
-          "description": "40 Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 50
-        },
-        "50": {
-          "keyString": "triforce_pieces_available.50",
-          "friendlyName": 50,
-          "description": "50 Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 50
-        }
-      }
-    },
-	"triforce_pieces_extra": {
-      "keyString": "triforce_pieces_extra",
-      "friendlyName": "Extra Triforce Pieces",
-      "description": "Determine how many extra pieces will be available",
-      "inputType": "range",
-      "subOptions": {
-        "0": {
-          "keyString": "triforce_pieces_extra.0",
-          "friendlyName": 0,
-          "description": "No extra Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 0
-        },
-        "5": {
-          "keyString": "triforce_pieces_extra.5",
-          "friendlyName": 5,
-          "description": "5 extra Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 50
-        },
-        "10": {
-          "keyString": "triforce_pieces_extra.10",
-          "friendlyName": 10,
-          "description": "10 extra Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 50
-        },
-        "15": {
-          "keyString": "triforce_pieces_extra.15",
-          "friendlyName": 15,
-          "description": "15 extra Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 0
-        },
-		"20": {
-          "keyString": "triforce_pieces_extra.20",
-          "friendlyName": 20,
-          "description": "20 extra Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 0
-        }
-      }
-    },
-	"triforce_pieces_percentage": {
-      "keyString": "triforce_pieces_percentage",
-      "friendlyName": "Extra Triforce Pieces Percentage",
-      "description": "Determine how many extra pieces will be available, according to a percentage of the required ones",
-      "inputType": "range",
-      "subOptions": {
-        "100": {
-          "keyString": "triforce_pieces_percentage.100",
-          "friendlyName": "100%",
-          "description": "No extra Triforce pieces will be hidden throughout Hyrule",
-          "defaultValue": 0
-        },
-        "150": {
-          "keyString": "triforce_pieces_percentage.150",
-          "friendlyName": "150%",
-          "description": "Half the required Triforce pieces will be added",
-          "defaultValue": 50
-        },
-        "200": {
-          "keyString": "triforce_pieces_percentage.200",
-          "friendlyName": "200%",
-          "description": "The double of the required Triforce pieces will be hidden throughout Hyrule",
+          "description": "Same as Local Triforce Hunt, but you need to defeat Ganon in his lair instead of talking with Murahadala.",
           "defaultValue": 0
         }
       }
@@ -490,19 +402,141 @@
           "keyString": "triforce_pieces_required.30",
           "friendlyName": 30,
           "description": "30 Triforce pieces are required before speaking with Murahadala.",
-          "defaultValue": 50
+          "defaultValue": 0
         },
         "40": {
           "keyString": "triforce_pieces_required.40",
           "friendlyName": 40,
           "description": "40 Triforce pieces are required before speaking with Murahadala.",
-          "defaultValue": 50
+          "defaultValue": 0
         },
         "50": {
           "keyString": "triforce_pieces_required.50",
           "friendlyName": 50,
           "description": "50 Triforce pieces are required before speaking with Murahadala.",
+          "defaultValue": 0
+        }
+      }
+    },
+	"triforce_pieces_mode": {
+	  "keyString": "triforce_pieces_mode",
+      "friendlyName": "Triforce Piece Availability Mode",
+      "description": "Determines which of the following three options will be used to determine the total available triforce pieces.",
+      "inputType": "range",
+      "subOptions": {
+        "available": {
+          "keyString": "triforce_pieces_mode.available",
+          "friendlyName": "Exact Number",
+          "description": "Explicitly tell the generator how many triforce pieces to place throughout Hyrule.",
           "defaultValue": 50
+        },
+        "extra": {
+          "keyString": "triforce_pieces_mode.extra",
+          "friendlyName": "Required Plus",
+          "description": "Set the number of triforce pieces in Hyrule equal to the number of required pieces plus a number specified by this option.",
+          "defaultValue": 0
+        },
+        "percentage": {
+          "keyString": "triforce_pieces_mode.percentage",
+          "friendlyName": "Percentage",
+          "description": "Set the number of triforce pieces in Hyrule equal to the number of required pieces plus a percentage specified by this option.",
+          "defaultValue": 0
+        }
+      }
+	},
+    "triforce_pieces_available": {
+      "keyString": "triforce_pieces_available",
+      "friendlyName": "Exact Number (Triforce Hunt)",
+      "description": "Only used if enabled in Triforce Piece Availability Mode.",
+      "inputType": "range",
+      "subOptions": {
+        "25": {
+          "keyString": "triforce_pieces_available.25",
+          "friendlyName": 25,
+          "description": "25 Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        },
+        "30": {
+          "keyString": "triforce_pieces_available.30",
+          "friendlyName": 30,
+          "description": "30 Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 50
+        },
+        "40": {
+          "keyString": "triforce_pieces_available.40",
+          "friendlyName": 40,
+          "description": "40 Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        },
+        "50": {
+          "keyString": "triforce_pieces_available.50",
+          "friendlyName": 50,
+          "description": "50 Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        }
+      }
+    },
+	"triforce_pieces_extra": {
+      "keyString": "triforce_pieces_extra",
+      "friendlyName": "Required Plus (Triforce Hunt)",
+      "description": "Only used if enabled in Triforce Piece Availability Mode.",
+      "inputType": "range",
+      "subOptions": {
+        "0": {
+          "keyString": "triforce_pieces_extra.0",
+          "friendlyName": 0,
+          "description": "No extra Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        },
+        "5": {
+          "keyString": "triforce_pieces_extra.5",
+          "friendlyName": 5,
+          "description": "5 extra Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        },
+        "10": {
+          "keyString": "triforce_pieces_extra.10",
+          "friendlyName": 10,
+          "description": "10 extra Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 50
+        },
+        "15": {
+          "keyString": "triforce_pieces_extra.15",
+          "friendlyName": 15,
+          "description": "15 extra Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        },
+		"20": {
+          "keyString": "triforce_pieces_extra.20",
+          "friendlyName": 20,
+          "description": "20 extra Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        }
+      }
+    },
+	"triforce_pieces_percentage": {
+      "keyString": "triforce_pieces_percentage",
+      "friendlyName": "Percentage (Triforce Hunt)",
+      "description": "Only used if enabled in Triforce Piece Availability Mode.",
+      "inputType": "range",
+      "subOptions": {
+        "100": {
+          "keyString": "triforce_pieces_percentage.100",
+          "friendlyName": "0%",
+          "description": "No extra Triforce pieces will be hidden throughout Hyrule",
+          "defaultValue": 0
+        },
+        "150": {
+          "keyString": "triforce_pieces_percentage.150",
+          "friendlyName": "50%",
+          "description": "50% more triforce pieces than required will be placed throughout Hyrule.",
+          "defaultValue": 50
+        },
+        "200": {
+          "keyString": "triforce_pieces_percentage.200",
+          "friendlyName": "100%",
+          "description": "50% more triforce pieces than required will be placed throughout Hyrule.",
+          "defaultValue": 0
         }
       }
     },
@@ -723,7 +757,8 @@
         "swordless": {
           "keyString": "weapons.swordless",
           "friendlyName": "Swordless",
-          "description": "Your swords are replaced with rupees. Gameplay changes are made to accommodate this change."
+          "description": "Your swords are replaced with rupees. Gameplay changes are made to accommodate this change.",
+          "defaultValue": 0
         }
       }
     },
@@ -1226,19 +1261,19 @@
         "1": {
           "keyString": "intensity.1",
           "friendlyName": "Level 1",
-          "description": "Doors and Spiral cases will be shuffled amongst themselves.",
+          "description": "Doors and spiral staircases will be shuffled amongst themselves.",
           "defaultValue": 50
         },
         "2": {
           "keyString": "intensity.2",
           "friendlyName": "Level 2",
-          "description": "Doors, Open Edges, and Straight stair cases shuffled amongst each other. Spiral cases will be shuffled amongst themselves.",
+          "description": "Doors, open edges, and straight stair cases are shuffled amongst each other. Spiral staircases will be shuffled amongst themselves.",
           "defaultValue": 0
         },
         "3": {
           "keyString": "intensity.3",
           "friendlyName": "Level 3",
-          "description": "(Coming soon) Everything in Level 2 plus lobby shuffling, using any non-dead-end super-tiles with a south facing door to become a dungeon entrance. (for example, EP Cannonball chest, TR Pipe Maze, Mire Hub, etc...)",
+          "description": "Level 2 plus lobby shuffling, which means any non-dead-end supertile with a south-facing door may become a dungeon entrance.",
           "defaultValue": 0
         },
         "random": {
@@ -1246,26 +1281,6 @@
           "friendlyName": "Random",
           "description": "Randomly chooses an intensity level from 1-3.",
           "defaultValue": 0
-        }
-      }
-    },
-    "experimental": {
-      "keyString": "experimental",
-      "friendlyName": "Door Shuffle Experimental Options",
-      "description": "Specifies whether to try out experimental things. What it does is subject to change.",
-      "inputType": "range",
-      "subOptions": {
-        "on": {
-          "keyString": "experimental.on",
-          "friendlyName": "On",
-          "description": "Enable experimental door features.",
-          "defaultValue": 0
-        },
-        "off": {
-          "keyString": "experimental.off",
-          "friendlyName": "Off",
-          "description": "Disable experimental door features.",
-          "defaultValue": 50
         }
       }
     }

@@ -138,7 +138,10 @@ def guiMain(args=None):
     sprite = None
     def set_sprite(sprite_param):
         nonlocal sprite
-        if sprite_param is None or not sprite_param.valid:
+        if isinstance(sprite_param, str):
+            sprite = sprite_param
+            spriteNameVar.set(sprite_param)
+        elif sprite_param is None or not sprite_param.valid:
             sprite = None
             spriteNameVar.set('(unchanged)')
         else:
@@ -253,11 +256,20 @@ def guiMain(args=None):
     logicLabel = Label(logicFrame, text='Game logic')
     logicLabel.pack(side=LEFT)
 
+    darklogicFrame = Frame(drowDownFrame)
+    darklogicVar = StringVar()
+    darklogicVar.set('Lamp')
+    darklogicOptionMenu = OptionMenu(darklogicFrame, darklogicVar, 'Lamp', 'Lamp or easy Fire Rod torches',
+                                     'dark traversal')
+    darklogicOptionMenu.pack(side=RIGHT)
+    darklogicLabel = Label(darklogicFrame, text='Dark Room Logic')
+    darklogicLabel.pack(side=LEFT)
+
     goalFrame = Frame(drowDownFrame)
     goalVar = StringVar()
     goalVar.set('ganon')
     goalOptionMenu = OptionMenu(goalFrame, goalVar, 'ganon', 'pedestal', 'dungeons', 'triforcehunt',
-                                'localtriforcehunt', 'ganontriforcehunt', 'localganontriforcehunt', 'crystals')
+                                'localtriforcehunt', 'ganontriforcehunt', 'localganontriforcehunt', 'crystals', 'ganonpedestal')
     goalOptionMenu.pack(side=RIGHT)
     goalLabel = Label(goalFrame, text='Game goal')
     goalLabel.pack(side=LEFT)
@@ -357,12 +369,13 @@ def guiMain(args=None):
     prizeVar.set('general')
     prizeOptionMenu = OptionMenu(prizeFrame, prizeVar, 'none', 'general', 'bonk', 'both')
     prizeOptionMenu.pack(side=RIGHT)
-    prizeLabel = Label(prizeFrame, text='Shuffle Prices/Drops')
+    prizeLabel = Label(prizeFrame, text='Shuffle Prizes/Drops')
     prizeLabel.pack(side=LEFT)
 
 
     modeFrame.pack(expand=True, anchor=E)
     logicFrame.pack(expand=True, anchor=E)
+    darklogicFrame.pack(expand=True, anchor=E)
     goalFrame.pack(expand=True, anchor=E)
     crystalsGTFrame.pack(expand=True, anchor=E)
     crystalsGanonFrame.pack(expand=True, anchor=E)
@@ -485,6 +498,9 @@ def guiMain(args=None):
         guiargs.count = int(countVar.get()) if countVar.get() != '1' else None
         guiargs.mode = modeVar.get()
         guiargs.logic = logicVar.get()
+        guiargs.dark_room_logic = {"Lamp": "lamp",
+                                   "Lamp or easy Fire Rod torches": "torches",
+                                   "dark traversal": "none"}[darklogicVar.get()]
         guiargs.goal = goalVar.get()
         guiargs.crystals_gt = crystalsGTVar.get()
         guiargs.crystals_ganon = crystalsGanonVar.get()
@@ -547,6 +563,7 @@ def guiMain(args=None):
                                   "bonk": "b",
                                   "general": "g",
                                   "both": "bg"}[prizeVar.get()]
+        guiargs.sprite_pool = []
         guiargs.customitemarray = [int(bowVar.get()), int(silverarrowVar.get()), int(boomerangVar.get()),
                                    int(magicboomerangVar.get()), int(hookshotVar.get()), int(mushroomVar.get()),
                                    int(magicpowderVar.get()), int(firerodVar.get()),
@@ -1409,7 +1426,35 @@ class SpriteSelector(object):
         button = Button(frame, text="Default Link sprite", command=self.use_default_link_sprite)
         button.pack(side=LEFT, padx=(0, 5))
 
-        button = Button(frame, text="Random sprite", command=self.use_random_sprite)
+        self.randomButtonText = StringVar()
+        button = Button(frame, textvariable=self.randomButtonText, command=self.use_random_sprite)
+        button.pack(side=LEFT, padx=(0, 5))
+        self.randomButtonText.set("Random")
+
+        self.randomOnEventText = StringVar()
+        self.randomOnHitVar = IntVar()
+        self.randomOnEnterVar = IntVar()
+        self.randomOnExitVar = IntVar()
+        self.randomOnSlashVar = IntVar()
+        self.randomOnItemVar = IntVar()
+        self.randomOnBonkVar = IntVar()
+
+        button = Checkbutton(frame, text="Hit", command=self.update_random_button, variable=self.randomOnHitVar)
+        button.pack(side=LEFT, padx=(0, 5))
+
+        button = Checkbutton(frame, text="Enter", command=self.update_random_button, variable=self.randomOnEnterVar)
+        button.pack(side=LEFT, padx=(0, 5))
+
+        button = Checkbutton(frame, text="Exit", command=self.update_random_button, variable=self.randomOnExitVar)
+        button.pack(side=LEFT, padx=(0, 5))
+
+        button = Checkbutton(frame, text="Slash", command=self.update_random_button, variable=self.randomOnSlashVar)
+        button.pack(side=LEFT, padx=(0, 5))
+
+        button = Checkbutton(frame, text="Item", command=self.update_random_button, variable=self.randomOnItemVar)
+        button.pack(side=LEFT, padx=(0, 5))
+
+        button = Checkbutton(frame, text="Bonk", command=self.update_random_button, variable=self.randomOnBonkVar)
         button.pack(side=LEFT, padx=(0, 5))
 
         if adjuster:
@@ -1574,8 +1619,19 @@ class SpriteSelector(object):
         self.callback(Sprite.default_link_sprite())
         self.window.destroy()
 
+    def update_random_button(self):
+        randomon = "-hit" if self.randomOnHitVar.get() else ""
+        randomon += "-enter" if self.randomOnEnterVar.get() else ""
+        randomon += "-exit" if self.randomOnExitVar.get() else ""
+        randomon += "-slash" if self.randomOnSlashVar.get() else ""
+        randomon += "-item" if self.randomOnItemVar.get() else ""
+        randomon += "-bonk" if self.randomOnBonkVar.get() else ""
+        self.randomOnEventText.set(f"randomon{randomon}" if randomon else None)
+        self.randomButtonText.set("Random On Event" if randomon else "Random")
+
     def use_random_sprite(self):
-        self.callback(random.choice(self.all_sprites) if self.all_sprites else None)
+        randomon = self.randomOnEventText.get()
+        self.callback(randomon if randomon else (random.choice(self.all_sprites) if self.all_sprites else None))
         self.window.destroy()
 
     def select_sprite(self, spritename):

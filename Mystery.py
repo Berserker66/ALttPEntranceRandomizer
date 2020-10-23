@@ -57,11 +57,11 @@ def main(args=None, callback=ERmain):
     seed = get_seed(args.seed)
     random.seed(seed)
 
-    if args.race:
-        random.seed()  # reset to time-based random source
-
     seedname = "M" + (f"{random.randint(0, pow(10, seeddigits) - 1)}".zfill(seeddigits))
     print(f"Generating mystery for {args.multi} player{'s' if args.multi > 1 else ''}, {seedname} Seed {seed}")
+
+    if args.race:
+        random.seed()  # reset to time-based random source
 
     weights_cache = {}
     if args.weights:
@@ -189,13 +189,15 @@ def main(args=None, callback=ERmain):
         important = {}
         for option, player_settings in vars(erargs).items():
             if type(player_settings) == dict:
-                if len(set(player_settings.values())) > 1:
-                    important[option] = {player: value for player, value in player_settings.items() if
-                                         player <= args.yaml_output}
-                elif len(set(player_settings.values())) > 0:
-                    important[option] = player_settings[1]
-                else:
-                    logging.debug(f"No player settings defined for option '{option}'")
+                if all(type(value) != list for value in player_settings.values()):
+                    if len(frozenset(player_settings.values())) > 1:
+                        important[option] = {player: value for player, value in player_settings.items() if
+                                             player <= args.yaml_output}
+                    elif len(frozenset(player_settings.values())) > 0:
+                        important[option] = player_settings[1]
+                    else:
+                        logging.debug(f"No player settings defined for option '{option}'")
+
             else:
                 if player_settings != "":  # is not empty name
                     important[option] = player_settings
@@ -250,6 +252,12 @@ def handle_name(name: str):
     return name.strip().replace(' ', '_')[:16]
 
 
+def prefer_int(input_data: str) -> typing.Union[str, int]:
+    try:
+        return int(input_data)
+    except:
+        return input_data
+
 def roll_settings(weights):
     ret = argparse.Namespace()
     if "linked_options" in weights:
@@ -258,7 +266,7 @@ def roll_settings(weights):
             if "name" not in option_set:
                 raise ValueError("One of your linked options does not have a name.")
             try:
-                if random.random() < (option_set["percentage"] / 100):
+                if random.random() < (float(option_set["percentage"]) / 100):
                     weights.update(option_set["options"])
             except Exception as e:
                 raise ValueError(f"Linked option {option_set['name']} is destroyed. "
@@ -275,6 +283,17 @@ def roll_settings(weights):
     ret.logic = {None: 'noglitches', 'none': 'noglitches', 'no_logic': 'nologic', 'overworld_glitches': 'owglitches',
                  'minor_glitches': 'minorglitches'}[
         glitches_required]
+
+    ret.dark_room_logic = get_choice("dark_room_logic", weights, "lamp")
+    if not ret.dark_room_logic:  # None/False
+        ret.dark_room_logic = "none"
+    if ret.dark_room_logic == "sconces":
+        ret.dark_room_logic = "torches"
+    if ret.dark_room_logic not in {"lamp", "torches", "none"}:
+        raise ValueError(f"Unknown Dark Room Logic: \"{ret.dark_room_logic}\"")
+
+    ret.restrict_dungeon_item_on_boss = get_choice('restrict_dungeon_item_on_boss', weights, False)
+
     ret.progression_balancing = get_choice('progression_balancing', weights, True)
     # item_placement = get_choice('item_placement')
     # not supported in ER
@@ -305,6 +324,7 @@ def roll_settings(weights):
                 'fast_ganon': 'crystals',
                 'dungeons': 'dungeons',
                 'pedestal': 'pedestal',
+                'ganon_pedestal': 'ganonpedestal',
                 'triforce_hunt': 'triforcehunt',
                 'triforce-hunt': 'triforcehunt',  # deprecated, moving all goals to `_`
                 'local_triforce_hunt': 'localtriforcehunt',
@@ -314,34 +334,31 @@ def roll_settings(weights):
 
     # TODO consider moving open_pyramid to an automatic variable in the core roller, set to True when
     # fast ganon + ganon at hole
-    ret.open_pyramid = goal in {'fast_ganon', 'ganon_triforce_hunt', 'local_ganon_triforce_hunt'}
+    ret.open_pyramid = goal in {'fast_ganon', 'ganon_triforce_hunt', 'local_ganon_triforce_hunt', 'ganon_pedestal'}
 
-    ret.crystals_gt = get_choice('tower_open', weights)
+    ret.crystals_gt = prefer_int(get_choice('tower_open', weights))
 
-    ret.crystals_ganon = get_choice('ganon_open', weights)
+    ret.crystals_ganon = prefer_int(get_choice('ganon_open', weights))
 
-    extra_pieces = get_choice('triforce_pieces_mode', weights, 'available');
+    extra_pieces = get_choice('triforce_pieces_mode', weights, 'available')
 
-    ret.triforce_pieces_required = get_choice('triforce_pieces_required', weights, 20)
+    ret.triforce_pieces_required = int(get_choice('triforce_pieces_required', weights, 20))
     ret.triforce_pieces_required = min(max(1, int(ret.triforce_pieces_required)), 90)
 
     # sum a percentage to required
     if extra_pieces == 'percentage':
-        percentage = max(100,get_choice('triforce_pieces_percentage',weights,150))/100
-        ret.triforce_pieces_available = int(ret.triforce_pieces_required * percentage)
+        percentage = max(100, float(get_choice('triforce_pieces_percentage', weights, 150))) / 100
+        ret.triforce_pieces_available = int(round(ret.triforce_pieces_required * percentage, 0))
     # vanilla mode (specify how many pieces are)
     elif extra_pieces == 'available':
-        ret.triforce_pieces_available = get_choice('triforce_pieces_available',weights,30)
+        ret.triforce_pieces_available = int(get_choice('triforce_pieces_available', weights, 30))
     # required pieces + fixed extra
     elif extra_pieces == 'extra':
-        extra_pieces = max(0, get_choice('triforce_pieces_extra',weights,10))
+        extra_pieces = max(0, int(get_choice('triforce_pieces_extra', weights, 10)))
         ret.triforce_pieces_available = ret.triforce_pieces_required + extra_pieces
 
     # change minimum to required pieces to avoid problems
-    ret.triforce_pieces_available = min(max(ret.triforce_pieces_required, int(ret.triforce_pieces_available)), 90) 
-    
-    ret.triforce_pieces_required = get_choice('triforce_pieces_required', weights, 20)
-    ret.triforce_pieces_required = min(max(1, int(ret.triforce_pieces_required)), 90)
+    ret.triforce_pieces_available = min(max(ret.triforce_pieces_required, int(ret.triforce_pieces_available)), 90)
 
     ret.shop_shuffle = get_choice('shop_shuffle', weights, '')
     if not ret.shop_shuffle:
@@ -468,7 +485,30 @@ def roll_settings(weights):
 
     if 'rom' in weights:
         romweights = weights['rom']
+
+        ret.sprite_pool = romweights['sprite_pool'] if 'sprite_pool' in romweights else []
         ret.sprite = get_choice('sprite', romweights, "Link")
+        if 'random_sprite_on_event' in romweights:
+            randomoneventweights = romweights['random_sprite_on_event']
+            if get_choice('enabled', randomoneventweights, False):
+                ret.sprite = 'randomon'
+                ret.sprite += '-hit' if get_choice('on_hit', randomoneventweights, True) else ''
+                ret.sprite += '-enter' if get_choice('on_enter', randomoneventweights, False) else ''
+                ret.sprite += '-exit' if get_choice('on_exit', randomoneventweights, False) else ''
+                ret.sprite += '-slash' if get_choice('on_slash', randomoneventweights, False) else ''
+                ret.sprite += '-item' if get_choice('on_item', randomoneventweights, False) else ''
+                ret.sprite += '-bonk' if get_choice('on_bonk', randomoneventweights, False) else ''
+                ret.sprite = 'randomonall' if get_choice('on_everything', randomoneventweights, False) else ret.sprite
+                ret.sprite = 'randomonnone' if ret.sprite == 'randomon' else ret.sprite
+
+                if (not ret.sprite_pool or get_choice('use_weighted_sprite_pool', randomoneventweights, False)) \
+                        and 'sprite' in romweights:  # Use sprite as a weighted sprite pool, if a sprite pool is not already defined.
+                    for key, value in romweights['sprite'].items():
+                        if key.startswith('random'):
+                            ret.sprite_pool += ['random'] * int(value)
+                        else:
+                            ret.sprite_pool += [key] * int(value)
+
         ret.disablemusic = get_choice('disablemusic', romweights, False)
         ret.quickswap = get_choice('quickswap', romweights, True)
         ret.fastmenu = get_choice('menuspeed', romweights, "normal")

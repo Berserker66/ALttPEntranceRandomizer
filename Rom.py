@@ -1,5 +1,5 @@
 JAP10HASH = '03a63945398191337e896e5771f77173'
-RANDOMIZERBASEHASH = '45a7732cfb056a251285fcb14e9bb8a7'
+RANDOMIZERBASEHASH = '0fc63d72970ab96ffb18699f4d12a594'
 
 import io
 import json
@@ -11,6 +11,7 @@ import struct
 import sys
 import subprocess
 import threading
+import xxtea
 import concurrent.futures
 from typing import Optional
 
@@ -58,16 +59,37 @@ class LocalRom(object):
     def write_bytes(self, startaddress: int, values):
         self.buffer[startaddress:startaddress + len(values)] = values
 
+    def encrypt_range(self, startaddress: int, length: int, key: bytes):
+        for i in range(0, length, 8):
+            data = bytes(self.read_bytes(startaddress + i, 8))
+            data = xxtea.encrypt(data, key, padding=False)
+            self.write_bytes(startaddress + i, bytearray(data))
+
+    def encrypt(self, world, player):
+        local_random = world.rom_seeds[player]
+        key = bytes(local_random.getrandbits(8 * 16).to_bytes(16, 'big'))
+        self.write_bytes(0x1800B0, bytearray(key))
+        self.write_int16(0x180087, 1)
+
+        itemtable = []
+        locationtable = []
+        itemplayertable = []
+        for i in range(168):
+            itemtable.append(self.read_byte(0xE96E + (i * 3)))
+            itemplayertable.append(self.read_byte(0x186142 + (i * 3)))
+            locationtable.append(self.read_byte(0xe96C + (i * 3)))
+            locationtable.append(self.read_byte(0xe96D + (i * 3)))
+        self.write_bytes(0xE96C, locationtable)
+        self.write_bytes(0xE96C + 0x150, itemtable)
+        self.encrypt_range(0xE96C + 0x150, 168, key)
+        self.write_bytes(0x186140, [0] * 0x150)
+        self.write_bytes(0x186140 + 0x150, itemplayertable)
+        self.encrypt_range(0x186140 + 0x150, 168, key)
+        self.encrypt_range(0x180000, 32, key)
+        self.encrypt_range(0x180140, 32, key)
+
+
     def write_to_file(self, file, hide_enemizer=False):
-
-        if hide_enemizer:
-            extra_zeroes = 0x400000 - len(self.buffer)
-            if extra_zeroes > 0:
-                buffer = self.buffer + bytes([0x00] * extra_zeroes)
-                with open(file, 'wb') as outfile:
-                    outfile.write(buffer)
-                return
-
         with open(file, 'wb') as outfile:
             outfile.write(self.buffer)
 
@@ -100,32 +122,7 @@ class LocalRom(object):
                     stream.write(buffer)
                 return
 
-        # verify correct checksum of baserom
-        if not self.verify(self.buffer, JAP10HASH):
-            logging.getLogger('').warning(
-                'Supplied Base Rom does not match known MD5 for JAP(1.0) release. Will try to patch anyway.')
-
-        # extend to 2MB
-        self.buffer.extend(bytearray([0x00]) * (0x200000 - len(self.buffer)))
-
-        # load randomizer patches
-        with open(local_path('data', 'base2current.json')) as stream:
-            patches = json.load(stream)
-        for patch in patches:
-            if isinstance(patch, dict):
-                for baseaddress, values in patch.items():
-                    self.write_bytes(int(baseaddress), values)
-
-        # verify md5
-        if self.verify(self.buffer):
-            with open(local_path('basepatch.sfc'), 'wb') as stream:
-                stream.write(self.buffer)
-            Patch.create_patch_file(local_path('basepatch.sfc'),
-                                    destination=local_path('data', 'basepatch.bmbp'))
-            os.remove(local_path('data', 'base2current.json'))
-        else:
-            raise RuntimeError(
-                'Provided Base Rom unsuitable for patching. Please provide a JAP(1.0) "Zelda no Densetsu - Kamigami no Triforce (Japan).sfc" rom to use as a base.')
+        raise RuntimeError('Could not find Base Patch. Unable to continue.')
 
     def write_crc(self):
         crc = (sum(self.buffer[:0x7FDC] + self.buffer[0x7FE0:]) + 0x01FE) & 0xFFFF
@@ -185,7 +182,7 @@ def check_enemizer(enemizercli):
                 version = lib.split("/")[-1]
                 version = tuple(int(element) for element in version.split("."))
                 logging.debug(f"Found Enemizer version {version}")
-                if version < (6, 2, 0):
+                if version < (6, 3, 0):
                     raise Exception(
                         f"Enemizer found at {enemizercli} is outdated ({info}), please update your Enemizer. "
                         f"Such as https://github.com/Ijwu/Enemizer/releases")
@@ -196,7 +193,70 @@ def check_enemizer(enemizercli):
     check_enemizer.done = True
 
 
-def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite_on_hit: bool):
+def apply_random_sprite_on_event(rom: LocalRom, sprite, local_random, allow_random_on_event, sprite_pool):
+    userandomsprites = False
+    if sprite and not isinstance(sprite, Sprite):
+        sprite = sprite.lower()
+        userandomsprites = sprite.startswith('randomon')
+
+        racerom = rom.read_byte(0x180213)
+        if allow_random_on_event or not racerom:
+            # Changes to this byte for race rom seeds are only permitted on initial rolling of the seed.
+            # However, if the seed is not a racerom seed, then it is always allowed.
+            rom.write_byte(0x186381, 0x00 if userandomsprites else 0x01)
+
+        onevent = 0
+        if sprite == 'randomonall':
+            onevent = 0xFFFF  # Support all current and future events that can cause random sprite changes.
+        elif sprite == 'randomonnone':
+            # Allows for opting into random on events on race rom seeds, without actually enabling any of the events initially.
+            onevent = 0x0000
+        elif userandomsprites:
+            onevent = 0x01 if 'hit' in sprite else 0x00
+            onevent += 0x02 if 'enter' in sprite else 0x00
+            onevent += 0x04 if 'exit' in sprite else 0x00
+            onevent += 0x08 if 'slash' in sprite else 0x00
+            onevent += 0x10 if 'item' in sprite else 0x00
+            onevent += 0x20 if 'bonk' in sprite else 0x00
+
+        rom.write_int16(0x18637F, onevent)
+
+        sprite = Sprite(sprite) if os.path.isfile(sprite) else get_sprite_from_name(sprite, local_random)
+
+    # write link sprite if required
+    if sprite:
+        sprites = list()
+        sprite.write_to_rom(rom)
+
+        _populate_sprite_table()
+        if userandomsprites:
+            if sprite_pool:
+                if isinstance(sprite_pool, str):
+                    sprite_pool = sprite_pool.split(':')
+                for spritename in sprite_pool:
+                    sprite = Sprite(spritename) if os.path.isfile(spritename) else get_sprite_from_name(spritename, local_random)
+                    if sprite:
+                        sprites.append(sprite)
+                    else:
+                        logging.info(f"Sprite {spritename} was not found.")
+            else:
+                sprites = list(set(_sprite_table.values()))  # convert to list and remove dupes
+        else:
+            sprites.append(sprite)
+        if sprites:
+            while len(sprites) < 32:
+                sprites.extend(sprites)
+            local_random.shuffle(sprites)
+
+            for i, sprite in enumerate(sprites[:32]):
+                if not i and not userandomsprites:
+                    continue
+                rom.write_bytes(0x300000 + (i * 0x8000), sprite.sprite)
+                rom.write_bytes(0x307000 + (i * 0x8000), sprite.palette)
+                rom.write_bytes(0x307078 + (i * 0x8000), sprite.glove_palette)
+
+
+def patch_enemizer(world, player: int, rom: LocalRom, enemizercli):
     check_enemizer(enemizercli)
     randopatch_path = os.path.abspath(output_path(f'enemizer_randopatch_{player}.sfc'))
     options_path = os.path.abspath(output_path(f'enemizer_options_{player}.json'))
@@ -258,7 +318,7 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
         'RandomizeTileTrapPattern': world.tile_shuffle[player],
         'RandomizeTileTrapFloorTile': False,
         'AllowKillableThief': world.killable_thieves[player],
-        'RandomizeSpriteOnHit': random_sprite_on_hit,
+        'RandomizeSpriteOnHit': False,
         'DebugMode': False,
         'DebugForceEnemy': False,
         'DebugForceEnemyId': 0,
@@ -329,23 +389,9 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli, random_sprite
     rom.read_from_file(enemizer_output_path)
     os.remove(enemizer_output_path)
 
-    if world.get_dungeon("Thieves Town", player).boss.enemizer_name == "Blind" \
-            and rom.read_byte(0xEA081) != 0xEA:  # new enemizer required for blind escort mission
+    if world.get_dungeon("Thieves Town", player).boss.enemizer_name == "Blind":
         rom.write_byte(0x04DE81, 6)
-        rom.write_byte(0x200101, 0)  # Do not close boss room door on entry.
-
-    if random_sprite_on_hit:
-        _populate_sprite_table()
-        sprites = list(set(_sprite_table.values()))  # convert to list and remove dupes
-        if sprites:
-            while len(sprites) < 32:
-                sprites.extend(sprites)
-            world.rom_seeds[player].shuffle(sprites)
-
-            for i, sprite in enumerate(sprites[:32]):
-                rom.write_bytes(0x300000 + (i * 0x8000), sprite.sprite)
-                rom.write_bytes(0x307000 + (i * 0x8000), sprite.palette)
-                rom.write_bytes(0x307078 + (i * 0x8000), sprite.glove_palette)
+        rom.write_byte(0x1B0101, 0)  # Do not close boss room door on entry.
 
     for used in (randopatch_path, options_path):
         try:
@@ -376,8 +422,10 @@ def _populate_sprite_table():
 def get_sprite_from_name(name, local_random=random):
     _populate_sprite_table()
     name = name.lower()
-    if name in ['random', 'randomonhit']:
-        return local_random.choice(list(_sprite_table.values()))
+    if name.startswith('random'):
+        sprites = list(set(_sprite_table.values()))
+        sprites.sort(key=lambda x: x.name)
+        return local_random.choice(sprites)
     return _sprite_table.get(name, None)
 
 class Sprite(object):
@@ -411,7 +459,7 @@ class Sprite(object):
             self.sprite = filedata[:0x7000]
             self.palette = filedata[0x7000:0x7078]
             self.glove_palette = filedata[0x7078:]
-        elif len(filedata) in [0x100000, 0x200000]:
+        elif len(filedata) in [0x100000, 0x200000, 0x400000]:
             # full rom with patched sprite, extract it
             self.sprite = filedata[0x80000:0x87000]
             self.palette = filedata[0xDD308:0xDD380]
@@ -546,6 +594,9 @@ class Sprite(object):
         rom.write_bytes(0x80000, self.sprite)
         rom.write_bytes(0xDD308, self.palette)
         rom.write_bytes(0xDEDF5, self.glove_palette)
+        rom.write_bytes(0x300000, self.sprite)
+        rom.write_bytes(0x307000, self.palette)
+        rom.write_bytes(0x307078, self.glove_palette)
 
 def patch_rom(world, rom, player, team, enemized):
     local_random = world.rom_seeds[player]
@@ -798,7 +849,7 @@ def patch_rom(world, rom, player, team, enemized):
     #Work around for json patch ordering issues - write bow limit separately so that it is replaced in the patch
     rom.write_bytes(0x180098, [difficulty.progressive_bow_limit, overflow_replacement])
 
-    if difficulty.progressive_bow_limit < 2 and world.swords[player] == 'swordless':
+    if difficulty.progressive_bow_limit < 2 and (world.swords[player] == 'swordless' or world.logic[player] == 'noglitches'):
         rom.write_bytes(0x180098, [2, overflow_replacement])
         rom.write_byte(0x180181, 0x01) # Make silver arrows work only on ganon
         rom.write_byte(0x180182, 0x00) # Don't auto equip silvers on pickup
@@ -1213,6 +1264,8 @@ def patch_rom(world, rom, player, team, enemized):
         rom.write_byte(0x18003E, 0x01)  # make ganon invincible
     elif world.goal[player] in ['ganontriforcehunt', 'localganontriforcehunt']:
         rom.write_byte(0x18003E, 0x05)  # make ganon invincible until enough triforce pieces are collected
+    elif world.goal[player] in ['ganonpedestal']:
+        rom.write_byte(0x18003E, 0x06)
     elif world.goal[player] in ['dungeons']:
         rom.write_byte(0x18003E, 0x02)  # make ganon invincible until all dungeons are beat
     elif world.goal[player] in ['crystals']:
@@ -1400,16 +1453,10 @@ def patch_rom(world, rom, player, team, enemized):
 
     return rom
 
-try:
-    import RaceRom
-except ImportError:
-    RaceRom = None
 
-def patch_race_rom(rom):
+def patch_race_rom(rom, world, player):
     rom.write_bytes(0x180213, [0x01, 0x00]) # Tournament Seed
-
-    if 'RaceRom' in sys.modules:
-        RaceRom.encrypt(rom)
+    rom.encrypt(world, player)
 
 def write_custom_shops(rom, world, player):
     shops = [shop for shop in world.shops if shop.custom and shop.region.player == player]
@@ -1460,10 +1507,9 @@ def hud_format_text(text):
     return output[:32]
 
 
-def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, sprite, ow_palettes, uw_palettes, world=None, player=1):
+def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, sprite, ow_palettes, uw_palettes, world=None, player=1, allow_random_on_event=False):
     local_random = random if not world else world.rom_seeds[player]
-    if sprite and not isinstance(sprite, Sprite):
-        sprite = Sprite(sprite) if os.path.isfile(sprite) else get_sprite_from_name(sprite, local_random)
+    apply_random_sprite_on_event(rom, sprite, local_random, allow_random_on_event, world.sprite_pool[player] if world else [])
 
     # enable instant item menu
     if fastmenu == 'instant':
@@ -1513,10 +1559,6 @@ def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, spr
     rom.write_byte(0x6FA2E, {'red': 0x24, 'blue': 0x2C, 'green': 0x3C, 'yellow': 0x28}[color])
     rom.write_byte(0x6FA30, {'red': 0x24, 'blue': 0x2C, 'green': 0x3C, 'yellow': 0x28}[color])
     rom.write_byte(0x65561, {'red': 0x05, 'blue': 0x0D, 'green': 0x19, 'yellow': 0x09}[color])
-
-    # write link sprite if required
-    if sprite:
-        sprite.write_to_rom(rom)
 
     # reset palette if it was adjusted already
     default_ow_palettes(rom)
@@ -1881,7 +1923,7 @@ def write_strings(rom, world, player, team):
 
     prog_bow_locs = world.find_items('Progressive Bow', player)
     distinguished_prog_bow_loc = next((location for location in prog_bow_locs if location.item.code == 0x65), None)
-    progressive_silvers = world.difficulty_requirements[player].progressive_bow_limit >= 2 or world.swords[player] == 'swordless'
+    progressive_silvers = world.difficulty_requirements[player].progressive_bow_limit >= 2 or (world.swords[player] == 'swordless' or world.logic[player] == 'noglitches')
     if distinguished_prog_bow_loc:
         prog_bow_locs.remove(distinguished_prog_bow_loc)
         silverarrow_hint = (' %s?' % hint_text(distinguished_prog_bow_loc).replace('Ganon\'s', 'my')) if progressive_silvers else '?\nI think not!'
@@ -1906,15 +1948,17 @@ def write_strings(rom, world, player, team):
 
     if world.goal[player] == 'dungeons':
         tt['sign_ganon'] = 'You need to complete all the dungeons.'
+    elif world.goal[player] == 'ganonpedestal':
+        tt['sign_ganon'] = 'You need to pull the pedestal to defeat Ganon.'
     elif world.goal[player]  == "ganon":
         if world.crystals_needed_for_ganon[player] == 1:
-            tt['sign_ganon'] = 'You need 1 crystal to beat Ganon and have beaten Agahnim atop Ganons Tower.'
+            tt['sign_ganon'] = 'You need a crystal to beat Ganon and have beaten Agahnim atop Ganons Tower.'
         else:
             tt['sign_ganon'] = f'You need {world.crystals_needed_for_ganon[player]} crystals to beat Ganon and ' \
                                f'have beaten Agahnim atop Ganons Tower'
     else:
         if world.crystals_needed_for_ganon[player] == 1:
-            tt['sign_ganon'] = 'You need 1 crystal to beat Ganon.'
+            tt['sign_ganon'] = 'You need a crystal to beat Ganon.'
         else:
             tt['sign_ganon'] = f'You need {world.crystals_needed_for_ganon[player]} crystals to beat Ganon.'
 
