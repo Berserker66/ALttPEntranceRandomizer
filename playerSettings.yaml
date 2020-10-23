@@ -87,25 +87,25 @@ entrance_shuffle: # Documentation: https://alttpr.com/en/options#entrance_shuffl
   crossed: 0 # Less strict than full
   insanity: 0 # Very few grouping rules. Good luck
 goals:
-  ganon: 50 # Climb GT, defeat Agahnim 2, and then kill Ganon
+  ganon: 0 # Climb GT, defeat Agahnim 2, and then kill Ganon
   fast_ganon: 0 # Only killing Ganon is required. The hole is always open. However, items may still be placed in GT
   dungeons: 0 # Defeat the boss of all dungeons, including Agahnim's tower and GT (Aga 2)
   pedestal: 0 # Pull the Triforce from the Master Sword pedestal
   ganon_pedestal: 0 # Pull the Master Sword pedestal, then kill Ganon
   triforce_hunt: 0 # Collect 20 of 30 Triforce pieces spread throughout the worlds, then turn them in to Murahadala in front of Hyrule Castle
-  local_triforce_hunt: 0 # Collect 20 of 30 Triforce pieces spread throughout your world, then turn them in to Murahadala in front of Hyrule Castle
+  local_triforce_hunt: 10 # Collect 20 of 30 Triforce pieces spread throughout your world, then turn them in to Murahadala in front of Hyrule Castle
   ganon_triforce_hunt: 0 # Collect 20 of 30 Triforce pieces spread throughout the worlds, then kill Ganon
   local_ganon_triforce_hunt: 0 # Collect 20 of 30 Triforce pieces spread throughout your world, then kill Ganon
 triforce_pieces_mode: #Determine how to calculate the extra available triforce pieces.
-  extra: 0 # available = triforce_pieces_extra + triforce_pieces_required
+  extra: 50 # available = triforce_pieces_extra + triforce_pieces_required
   percentage: 0 # available = (triforce_pieces_percentage /100) * triforce_pieces_required
-  available: 50 # available = triforce_pieces_available
+  available: 0 # available = triforce_pieces_available
 triforce_pieces_extra: # Set to how many extra triforces pieces are available to collect in the world. 
   # Format "pieces: chance"
   0: 0
-  5: 50
-  10: 50
-  15: 0
+  5: 0
+  10: 0
+  15: 50
   20: 0
 triforce_pieces_percentage: # Set to how many extra triforces pieces according to a percentage of the required ones, are available to collect in the world. 
   # Format "pieces: chance"
@@ -369,7 +369,49 @@ rom:
     default: 50 # No changes
     random: 0 # Shuffle the colors
     blackout: 0 # Never use this
+    grayscale: 0
+    negative: 0
+    classic: 0
+    dizzy: 0
+    sick: 0
+    puke: 0
   uw_palettes: # Change the colors of caves and dungeons
     default: 50 # No changes
     random: 0 # Shuffle the colors
     blackout: 0 # Never use this
+    grayscale: 0
+    negative: 0
+    classic: 0
+    dizzy: 0
+    sick: 0
+    puke: 0
+  hud_palettes: # Change the colors of the hud
+    default: 50 # No changes
+    random: 0 # Shuffle the colors
+    blackout: 0 # Never use this
+    grayscale: 0
+    negative: 0
+    classic: 0
+    dizzy: 0
+    sick: 0
+    puke: 0
+  sword_palettes: # Change the colors of swords
+    default: 50 # No changes
+    random: 0 # Shuffle the colors
+    blackout: 0 # Never use this
+    grayscale: 0
+    negative: 0
+    classic: 0
+    dizzy: 0
+    sick: 0
+    puke: 0
+  uw_palettes: # Change the colors of shields
+    default: 50 # No changes
+    random: 0 # Shuffle the colors
+    blackout: 0 # Never use this
+    grayscale: 0
+    negative: 0
+    classic: 0
+    dizzy: 0
+    sick: 0
+    puke: 0
