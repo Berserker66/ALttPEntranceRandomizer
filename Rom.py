@@ -41,7 +41,7 @@ class LocalRom(object):
         self.name = name
         self.hash = hash
         self.orig_buffer = None
-        self.vanillaBuffer = None
+        
         with open(file, 'rb') as stream:
             self.buffer = read_rom(stream)
         if patch:
@@ -49,7 +49,7 @@ class LocalRom(object):
             self.orig_buffer = self.buffer.copy()
         if vanillaRom:
             with open(vanillaRom, 'rb') as vanillaStream:
-                self.vanillaBuffer = read_rom(vanillaStream)
+                self.orig_buffer = read_rom(vanillaStream)
 
     def read_byte(self, address: int) -> int:
         return self.buffer[address]
@@ -1627,11 +1627,11 @@ def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, spr
         rom.write_crc()
 
 def restore_maseya_colors(rom,offsets_array):
-    if not rom.vanillaBuffer:
+    if not rom.orig_buffer:
         return
     for offsetC in offsets_array:
         for address in offsetC:
-            rom.write_bytes(address, rom.vanillaBuffer[address:address+2])
+            rom.write_bytes(address, rom.orig_buffer[address:address+2])
 
 def set_color(rom, address, color, shade):
     r = round(min(color[0], 0xFF) * pow(0.8, shade) * 0x1F / 0xFF)
