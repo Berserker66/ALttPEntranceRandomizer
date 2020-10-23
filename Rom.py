@@ -1592,7 +1592,7 @@ def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, spr
             if mode == 'random':
                 mode = 'maseya'
             z3pr.randomize(rom.buffer, mode, offset_collections=offsets_array, random_colors=next_color_generator())
-        print(palettes_options)    
+            
         uw_palettes=palettes_options['dungeon']
         ow_palettes=palettes_options['overworld']
         hud_palettes=palettes_options['hud']
