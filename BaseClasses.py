@@ -335,6 +335,18 @@ class World(object):
             if collect:
                 self.state.collect(item, location.event, location)
 
+            if location.parent_region.shop is not None and location.name != 'Potion Shop': # includes potion shop slots but not potion shop powder
+                slot_num = int(location.name[-1]) - 1
+                my_item = location.parent_region.shop.inventory[slot_num]
+                if my_item['item'] == item.name:
+                    pass
+                else:
+                    my_item['replacement'] = my_item['item']
+                    my_item['replacement_price'] = my_item['price']
+                    my_item['item'] = item.name
+                    my_item['max'] = 1
+                    my_item['player'] = item.player - 1
+
             logging.debug('Placed %s at %s', item, location)
         else:
             raise RuntimeError('Cannot assign item %s to location %s.' % (item, location))
@@ -1135,7 +1147,8 @@ class Shop():
             'max': max,
             'replacement': replacement,
             'replacement_price': replacement_price,
-            'create_location': create_location
+            'create_location': create_location,
+            'player': 0
         }
 
     def push_inventory(self, slot: int, item: str, price: int, max: int = 1):
@@ -1148,7 +1161,8 @@ class Shop():
             'max': max,
             'replacement': self.inventory[slot]["item"],
             'replacement_price': self.inventory[slot]["price"],
-            'create_location': self.inventory[slot]["create_location"]
+            'create_location': self.inventory[slot]["create_location"],
+            'player': self.inventory[slot]["player"]
         }
 
 

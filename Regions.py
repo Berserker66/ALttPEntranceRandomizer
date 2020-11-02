@@ -377,7 +377,7 @@ def create_shops(world, player: int):
         region.shop = shop
         world.shops.append(shop)
         for index, item in enumerate(inventory):
-            shop.add_inventory(index, *item)
+            shop.add_inventory(index, *item, create_location=world.random.choice([True, True, True, True, False]))
 
 # (type, room_id, shopkeeper, custom, locked, [items])
 # item = (item, price, max=0, replacement=None, replacement_price=0)
@@ -393,7 +393,7 @@ shop_table = {
     'Light World Death Mountain Shop': (0x00FF, ShopType.Shop, 0xA0, True, False, _basic_shop_defaults),
     'Kakariko Shop': (0x011F, ShopType.Shop, 0xA0, True, False, _basic_shop_defaults),
     'Cave Shop (Lake Hylia)': (0x0112, ShopType.Shop, 0xA0, True, False, _basic_shop_defaults),
-    'Potion Shop': (0x0109, ShopType.Shop, 0xFF, False, True, [('Red Potion', 120), ('Green Potion', 60), ('Blue Potion', 160)]),
+    'Potion Shop': (0x0109, ShopType.Shop, 0xA0, True, False, [('Red Potion', 10), ('Green Potion', 10), ('Blue Potion', 10)]),
     'Capacity Upgrade': (0x0115, ShopType.UpgradeShop, 0x04, True, True, [('Bomb Upgrade (+5)', 100, 7), ('Arrow Upgrade (+5)', 100, 7)])
 }
 

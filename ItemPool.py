@@ -372,9 +372,12 @@ def shuffle_shops(world, items, player: int):
             if shop.region.player == player:
                 if shop.type == ShopType.UpgradeShop:
                     upgrade_shops.append(shop)
-                elif shop.type == ShopType.Shop and shop.region.name != 'Potion Shop':
-                    shops.append(shop)
-                    total_inventory.extend(shop.inventory)
+                elif shop.type == ShopType.Shop:
+                    if shop.region.name == 'Potion Shop' and 'm' not in option:
+                        continue
+                    else:
+                        shops.append(shop)
+                        total_inventory.extend(shop.inventory)
 
         if 'p' in option:
             def price_adjust(price: int) -> int:
@@ -394,6 +397,7 @@ def shuffle_shops(world, items, player: int):
 
         if 'i' in option:
             world.random.shuffle(total_inventory)
+            
             i = 0
             for shop in shops:
                 slots = shop.slots
@@ -464,13 +468,17 @@ def create_dynamic_shop_locations(world, player):
                 if item is None:
                     continue
                 if item['create_location']:
-                    loc = Location(player, "{} Item {}".format(shop.region.name, i+1), parent=shop.region)
+                    loc = Location(player, "{} Slot Item {}".format(shop.region.name, i+1), parent=shop.region)
                     shop.region.locations.append(loc)
                     world.dynamic_locations.append(loc)
 
                     world.clear_location_cache()
 
-                    world.push_item(loc, ItemFactory(item['item'], player), False)
+                    # if item['item'] is not None:
+                    #     world.push_item(loc, ItemFactory(item['item'], player), False)
+                    # else:
+                    world.itempool.append(ItemFactory('Rupees (50)', player))
+
                     loc.event = True
                     loc.locked = True
 
