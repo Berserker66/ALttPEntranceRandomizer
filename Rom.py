@@ -698,12 +698,12 @@ def patch_rom(world, rom, player, team, enemized):
                     # Thanks to Zarby89 for originally finding these values
                     # todo fix screen scrolling
 
-                    if world.shuffle[player] not in ['insanity', 'insanity_legacy', 'madness_legacy'] and \
-                            exit.name in ['Eastern Palace Exit', 'Tower of Hera Exit', 'Thieves Town Exit',
+                    if world.shuffle[player] not in {'insanity', 'insanity_legacy', 'madness_legacy'} and \
+                            exit.name in {'Eastern Palace Exit', 'Tower of Hera Exit', 'Thieves Town Exit',
                                           'Skull Woods Final Section Exit', 'Ice Palace Exit', 'Misery Mire Exit',
                                           'Palace of Darkness Exit', 'Swamp Palace Exit', 'Ganons Tower Exit',
                                           'Desert Palace Exit (North)', 'Agahnims Tower Exit', 'Spiral Cave Exit (Top)',
-                                          'Superbunny Cave Exit (Bottom)', 'Turtle Rock Ledge Exit (East)']:
+                                          'Superbunny Cave Exit (Bottom)', 'Turtle Rock Ledge Exit (East)'}:
                         # For exits that connot be reached from another, no need to apply offset fixes.
                         rom.write_int16(0x15DB5 + 2 * offset, link_y)  # same as final else
                     elif room_id == 0x0059 and world.fix_skullwoods_exit[player]:
@@ -1408,20 +1408,19 @@ def patch_rom(world, rom, player, team, enemized):
     rom.write_bytes(0x180185, [0, 0, 0])  # Uncle respawn refills (magic, bombs, arrows)
     rom.write_bytes(0x180188, [0, 0, 0])  # Zelda respawn refills (magic, bombs, arrows)
     rom.write_bytes(0x18018B, [0, 0, 0])  # Mantle respawn refills (magic, bombs, arrows)
-    if world.mode[player] == 'standard':
-        if uncle_location.item is not None and uncle_location.item.name in ['Bow', 'Progressive Bow']:
+    if world.mode[player] == 'standard' and uncle_location.item and uncle_location.item.player == player:
+        if uncle_location.item.name in {'Bow', 'Progressive Bow'}:
             rom.write_byte(0x18004E, 1)  # Escape Fill (arrows)
             rom.write_int16(0x180183, 300)  # Escape fill rupee bow
             rom.write_bytes(0x180185, [0, 0, 70])  # Uncle respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x180188, [0, 0, 10])  # Zelda respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x18018B, [0, 0, 10])  # Mantle respawn refills (magic, bombs, arrows)
-        elif uncle_location.item is not None and uncle_location.item.name in ['Bombs (10)']:
+        elif uncle_location.item.name in {'Bombs (10)'}:
             rom.write_byte(0x18004E, 2)  # Escape Fill (bombs)
             rom.write_bytes(0x180185, [0, 50, 0])  # Uncle respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x180188, [0, 3, 0])  # Zelda respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x18018B, [0, 3, 0])  # Mantle respawn refills (magic, bombs, arrows)
-        elif uncle_location.item is not None and uncle_location.item.name in ['Cane of Somaria', 'Cane of Byrna',
-                                                                              'Fire Rod']:
+        elif uncle_location.item.name in {'Cane of Somaria', 'Cane of Byrna', 'Fire Rod'}:
             rom.write_byte(0x18004E, 4)  # Escape Fill (magic)
             rom.write_bytes(0x180185, [0x80, 0, 0])  # Uncle respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x180188, [0x20, 0, 0])  # Zelda respawn refills (magic, bombs, arrows)
@@ -1630,7 +1629,7 @@ def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, spr
         hud_palettes = palettes_options['hud']
         sword_palettes = palettes_options['sword']
         shield_palettes = palettes_options['shield']
-        link_palettes = palettes_options['link']
+        # link_palettes = palettes_options['link']
         buildAndRandomize("randomize_dungeon", uw_palettes)
         buildAndRandomize("randomize_overworld", ow_palettes)
         buildAndRandomize("randomize_hud", hud_palettes)
