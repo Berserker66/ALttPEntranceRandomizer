@@ -8,7 +8,7 @@ import shlex
 import sys
 
 from Main import main, get_seed
-from Rom import get_sprite_from_name
+from Rom import Sprite
 from Utils import is_bundled, close_console
 
 
@@ -129,6 +129,14 @@ def parse_arguments(argv, no_defaults=False):
                                               Timed mode. If time runs out, you lose (but can
                                               still keep playing).
                              ''')
+    parser.add_argument('--countdown_start_time', default=defval(10), type=int,
+                        help='''Set amount of time, in minutes, to start with in Timed Countdown and Timed OHKO modes''')
+    parser.add_argument('--red_clock_time', default=defval(-2), type=int,
+                        help='''Set amount of time, in minutes, to add from picking up red clocks; negative removes time instead''')
+    parser.add_argument('--blue_clock_time', default=defval(2), type=int,
+                        help='''Set amount of time, in minutes, to add from picking up blue clocks; negative removes time instead''')
+    parser.add_argument('--green_clock_time', default=defval(4), type=int,
+                        help='''Set amount of time, in minutes, to add from picking up green clocks; negative removes time instead''')
     parser.add_argument('--dungeon_counters', default=defval('default'), const='default', nargs='?', choices=['default', 'on', 'pickup', 'off'],
                         help='''\
                              Select dungeon counter display settings. (default: %(default)s)
@@ -283,8 +291,13 @@ def parse_arguments(argv, no_defaults=False):
                              ''')
     parser.add_argument('--heartcolor', default=defval('red'), const='red', nargs='?', choices=['red', 'blue', 'green', 'yellow', 'random'],
                         help='Select the color of Link\'s heart meter. (default: %(default)s)')
-    parser.add_argument('--ow_palettes', default=defval('default'), choices=['default', 'random', 'blackout'])
-    parser.add_argument('--uw_palettes', default=defval('default'), choices=['default', 'random', 'blackout'])
+    parser.add_argument('--ow_palettes', default=defval('default'), choices=['default', 'random', 'blackout','puke','classic','grayscale','negative','dizzy','sick'])
+    parser.add_argument('--uw_palettes', default=defval('default'), choices=['default', 'random', 'blackout','puke','classic','grayscale','negative','dizzy','sick'])
+    parser.add_argument('--hud_palettes', default=defval('default'), choices=['default', 'random', 'blackout','puke','classic','grayscale','negative','dizzy','sick'])
+    parser.add_argument('--shield_palettes', default=defval('default'), choices=['default', 'random', 'blackout','puke','classic','grayscale','negative','dizzy','sick'])
+    parser.add_argument('--sword_palettes', default=defval('default'), choices=['default', 'random', 'blackout','puke','classic','grayscale','negative','dizzy','sick'])
+    parser.add_argument('--link_palettes', default=defval('default'), choices=['default', 'random', 'blackout','puke','classic','grayscale','negative','dizzy','sick'])
+    
     parser.add_argument('--sprite', help='''\
                              Path to a sprite sheet to use for Link. Needs to be in
                              binary format and have a length of 0x7000 (28672) bytes,
@@ -361,6 +374,7 @@ def parse_arguments(argv, no_defaults=False):
 
             for name in ['logic', 'mode', 'swords', 'goal', 'difficulty', 'item_functionality',
                          'shuffle', 'crystals_ganon', 'crystals_gt', 'open_pyramid', 'timer',
+                         'countdown_start_time', 'red_clock_time', 'blue_clock_time', 'green_clock_time',
                          'mapshuffle', 'compassshuffle', 'keyshuffle', 'bigkeyshuffle', 'startinventory',
                          'local_items', 'retro', 'accessibility', 'hints', 'beemizer',
                          'shufflebosses', 'enemy_shuffle', 'enemy_health', 'enemy_damage', 'shufflepots',
@@ -368,7 +382,8 @@ def parse_arguments(argv, no_defaults=False):
                          'heartbeep', "skip_progression_balancing", "triforce_pieces_available",
                          "triforce_pieces_required", "shop_shuffle",
                          'remote_items', 'progressive', 'dungeon_counters', 'glitch_boots', 'killable_thieves',
-                         'tile_shuffle', 'bush_shuffle', 'shuffle_prizes', 'sprite_pool', 'dark_room_logic', 'restrict_dungeon_item_on_boss']:
+                         'tile_shuffle', 'bush_shuffle', 'shuffle_prizes', 'sprite_pool', 'dark_room_logic', 'restrict_dungeon_item_on_boss',
+                         'hud_palettes', 'sword_palettes', 'shield_palettes', 'link_palettes']:
                 value = getattr(defaults, name) if getattr(playerargs, name) is None else getattr(playerargs, name)
                 if player == 1:
                     setattr(ret, name, {1: value})
@@ -395,7 +410,7 @@ def start():
         input(
             'Could not find valid base rom for patching at expected path %s. Please run with -h to see help for further information. \nPress Enter to exit.' % args.rom)
         sys.exit(1)
-    if any([sprite is not None and not os.path.isfile(sprite) and not get_sprite_from_name(sprite) for sprite in
+    if any([sprite is not None and not os.path.isfile(sprite) and not Sprite.get_sprite_from_name(sprite) for sprite in
             args.sprite.values()]):
         input('Could not find link sprite sheet at given location. \nPress Enter to exit.')
         sys.exit(1)

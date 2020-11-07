@@ -1206,6 +1206,110 @@
         }
       }
     },
+    "countdown_start_time": {
+      "keyString": "countdown_start_time",
+      "friendlyName": "Countdown Starting Time",
+      "description": "The amount of time, in minutes, to start with in Timed Countdown and Timed OHKO modes.",
+      "inputType": "range",
+      "subOptions": {
+        "0": {
+          "keyString": "countdown_start_time.0",
+          "friendlyName": 0,
+          "description": "Start with no time on the timer. In Timed OHKO mode, start in OHKO mode.",
+          "defaultValue": 0
+        },
+        "10": {
+          "keyString": "countdown_start_time.10",
+          "friendlyName": 10,
+          "description": "Start with 10 minutes on the timer.",
+          "defaultValue": 50
+        },
+        "20": {
+          "keyString": "countdown_start_time.20",
+          "friendlyName": 20,
+          "description": "Start with 20 minutes on the timer.",
+          "defaultValue": 0
+        },
+        "30": {
+          "keyString": "countdown_start_time.30",
+          "friendlyName": 30,
+          "description": "Start with 30 minutes on the timer.",
+          "defaultValue": 0
+        },
+        "60": {
+          "keyString": "countdown_start_time.60",
+          "friendlyName": 60,
+          "description": "Start with an hour on the timer.",
+          "defaultValue": 0
+        }
+      }
+    },
+    "red_clock_time": {
+      "keyString": "red_clock_time",
+      "friendlyName": "Red Clock Time",
+      "description": "The amount of time, in minutes, to add to or subtract from the timer upon picking up a red clock.",
+      "inputType": "range",
+      "subOptions": {
+        "-2": {
+          "keyString": "red_clock_time.-2",
+          "friendlyName": -2,
+          "description": "Subtract 2 minutes from the timer upon picking up a red clock.",
+          "defaultValue": 0
+        },
+        "1": {
+          "keyString": "red_clock_time.1",
+          "friendlyName": 1,
+          "description": "Add a minute to the timer upon picking up a red clock.",
+          "defaultValue": 50
+        }
+      }
+    },
+    "blue_clock_time": {
+      "keyString": "blue_clock_time",
+      "friendlyName": "Blue Clock Time",
+      "description": "The amount of time, in minutes, to add to or subtract from the timer upon picking up a blue clock.",
+      "inputType": "range",
+      "subOptions": {
+        "1": {
+          "keyString": "blue_clock_time.1",
+          "friendlyName": 1,
+          "description": "Add a minute to the timer upon picking up a blue clock.",
+          "defaultValue": 0
+        },
+        "2": {
+          "keyString": "blue_clock_time.2",
+          "friendlyName": 2,
+          "description": "Add 2 minutes to the timer upon picking up a blue clock.",
+          "defaultValue": 50
+        }
+      }
+    },
+    "green_clock_time": {
+      "keyString": "green_clock_time",
+      "friendlyName": "Green Clock Time",
+      "description": "The amount of time, in minutes, to add to or subtract from the timer upon picking up a green clock.",
+      "inputType": "range",
+      "subOptions": {
+        "4": {
+          "keyString": "green_clock_time.4",
+          "friendlyName": 4,
+          "description": "Add 4 minutes to the timer upon picking up a green clock.",
+          "defaultValue": 50
+        },
+        "10": {
+          "keyString": "green_clock_time.10",
+          "friendlyName": 10,
+          "description": "Add 10 minutes to the timer upon picking up a green clock.",
+          "defaultValue": 0
+        },
+        "15": {
+          "keyString": "green_clock_time.15",
+          "friendlyName": 15,
+          "description": "Add 15 minutes to the timer upon picking up a green clock.",
+          "defaultValue": 0
+        }
+      }
+    },
     "glitch_boots": {
       "keyString": "glitch_boots",
       "friendlyName": "Glitch Boots",
@@ -1469,6 +1573,42 @@
           "friendlyName": "Blackout",
           "description": "Never use this. Makes all overworld palette colors black.",
           "defaultValue": 0
+        },
+		"grayscale": {
+          "keyString": "rom.ow_palettes.grayscale",
+          "friendlyName": "Grayscale",
+          "description": "Removes all saturation of colors.",
+          "defaultValue": 0
+        },
+		"negative": {
+          "keyString": "rom.ow_palettes.negative",
+          "friendlyName": "Negative",
+          "description": "Invert all colors",
+          "defaultValue": 0
+        },
+		"classic": {
+          "keyString": "rom.ow_palettes.classic",
+          "friendlyName": "Classic",
+          "description": "Produces results similar to the website.",
+          "defaultValue": 0
+        },
+		"dizzy": {
+          "keyString": "rom.ow_palettes.dizzy",
+          "friendlyName": "Dizzy",
+          "description": "No logic in colors but saturation and lightness are conserved.",
+          "defaultValue": 0
+        },
+		"sick": {
+          "keyString": "rom.ow_palettes.sick",
+          "friendlyName": "Sick",
+          "description": "No logic in colors but lightness is conserved.",
+          "defaultValue": 0
+        },
+		"puke": {
+          "keyString": "rom.ow_palettes.Puke",
+          "friendlyName": "Puke",
+          "description": "No logic at all.",
+          "defaultValue": 0
         }
       }
     },
@@ -1494,6 +1634,228 @@
           "keyString": "rom.uw_palettes.blackout",
           "friendlyName": "Blackout",
           "description": "Never use this. Makes all underworld palette colors black.",
+          "defaultValue": 0
+        },
+		"grayscale": {
+          "keyString": "rom.uw_palettes.grayscale",
+          "friendlyName": "Grayscale",
+          "description": "Removes all saturation of colors.",
+          "defaultValue": 0
+        },
+		"negative": {
+          "keyString": "rom.uw_palettes.negative",
+          "friendlyName": "Negative",
+          "description": "Invert all colors",
+          "defaultValue": 0
+        },
+		"classic": {
+          "keyString": "rom.uw_palettes.classic",
+          "friendlyName": "Classic",
+          "description": "Produces results similar to the website.",
+          "defaultValue": 0
+        },
+		"dizzy": {
+          "keyString": "rom.uw_palettes.dizzy",
+          "friendlyName": "Dizzy",
+          "description": "No logic in colors but saturation and lightness are conserved.",
+          "defaultValue": 0
+        },
+		"sick": {
+          "keyString": "rom.uw_palettes.sick",
+          "friendlyName": "Sick",
+          "description": "No logic in colors but lightness is conserved.",
+          "defaultValue": 0
+        },
+		"puke": {
+          "keyString": "rom.uw_palettes.Puke",
+          "friendlyName": "Puke",
+          "description": "No logic at all.",
+          "defaultValue": 0
+        }
+      }
+    },
+	"hud_palettes": {
+      "keyString": "rom.hud_palettes",
+      "friendlyName": "HUD Palettes",
+      "description": "Randomize the colors of the HUD (user interface), within reason.",
+      "inputType": "range",
+      "subOptions": {
+        "default": {
+          "keyString": "rom.hud_palettes.default",
+          "friendlyName": "Vanilla",
+          "description": "HUD colors will remain unchanged.",
+          "defaultValue": 50
+        },
+        "random": {
+          "keyString": "rom.hud_palettes.random",
+          "friendlyName": "Random",
+          "description": "Shuffles the colors of the HUD palette.",
+          "defaultValue": 0
+        },
+        "blackout": {
+          "keyString": "rom.hud_palettes.blackout",
+          "friendlyName": "Blackout",
+          "description": "Never use this. Makes all HUD palette colors black.",
+          "defaultValue": 0
+        },
+		"grayscale": {
+          "keyString": "rom.hud_palettes.grayscale",
+          "friendlyName": "Grayscale",
+          "description": "Removes all saturation of colors.",
+          "defaultValue": 0
+        },
+		"negative": {
+          "keyString": "rom.hud_palettes.negative",
+          "friendlyName": "Negative",
+          "description": "Invert all colors",
+          "defaultValue": 0
+        },
+		"classic": {
+          "keyString": "rom.hud_palettes.classic",
+          "friendlyName": "Classic",
+          "description": "Produces results similar to the website.",
+          "defaultValue": 0
+        },
+		"dizzy": {
+          "keyString": "rom.hud_palettes.dizzy",
+          "friendlyName": "Dizzy",
+          "description": "No logic in colors but saturation and lightness are conserved.",
+          "defaultValue": 0
+        },
+		"sick": {
+          "keyString": "rom.hud_palettes.sick",
+          "friendlyName": "Sick",
+          "description": "No logic in colors but lightness is conserved.",
+          "defaultValue": 0
+        },
+		"puke": {
+          "keyString": "rom.hud_palettes.Puke",
+          "friendlyName": "Puke",
+          "description": "No logic at all.",
+          "defaultValue": 0
+        }
+      }
+    },
+	"shield_palettes": {
+      "keyString": "rom.shield_palettes",
+      "friendlyName": "Shield Palettes",
+      "description": "Randomize the colors of the shield, within reason.",
+      "inputType": "range",
+      "subOptions": {
+        "default": {
+          "keyString": "rom.shield_palettes.default",
+          "friendlyName": "Vanilla",
+          "description": "Shield colors will remain unchanged.",
+          "defaultValue": 50
+        },
+        "random": {
+          "keyString": "rom.shield_palettes.random",
+          "friendlyName": "Random",
+          "description": "Shuffles the colors of the shield palette.",
+          "defaultValue": 0
+        },
+        "blackout": {
+          "keyString": "rom.shield_palettes.blackout",
+          "friendlyName": "Blackout",
+          "description": "Never use this. Makes all shield palette colors black.",
+          "defaultValue": 0
+        },
+		"grayscale": {
+          "keyString": "rom.shield_palettes.grayscale",
+          "friendlyName": "Grayscale",
+          "description": "Removes all saturation of colors.",
+          "defaultValue": 0
+        },
+		"negative": {
+          "keyString": "rom.shield_palettes.negative",
+          "friendlyName": "Negative",
+          "description": "Invert all colors",
+          "defaultValue": 0
+        },
+		"classic": {
+          "keyString": "rom.shield_palettes.classic",
+          "friendlyName": "Classic",
+          "description": "Produces results similar to the website.",
+          "defaultValue": 0
+        },
+		"dizzy": {
+          "keyString": "rom.shield_palettes.dizzy",
+          "friendlyName": "Dizzy",
+          "description": "No logic in colors but saturation and lightness are conserved.",
+          "defaultValue": 0
+        },
+		"sick": {
+          "keyString": "rom.shield_palettes.sick",
+          "friendlyName": "Sick",
+          "description": "No logic in colors but lightness is conserved.",
+          "defaultValue": 0
+        },
+		"puke": {
+          "keyString": "rom.shield_palettes.Puke",
+          "friendlyName": "Puke",
+          "description": "No logic at all.",
+          "defaultValue": 0
+        }
+      }
+    },
+	"sword_palettes": {
+      "keyString": "rom.sword_palettes",
+      "friendlyName": "Sword Palettes",
+      "description": "Randomize the colors of the sword, within reason.",
+      "inputType": "range",
+      "subOptions": {
+        "default": {
+          "keyString": "rom.sword_palettes.default",
+          "friendlyName": "Vanilla",
+          "description": "Sword colors will remain unchanged.",
+          "defaultValue": 50
+        },
+        "random": {
+          "keyString": "rom.sword_palettes.random",
+          "friendlyName": "Random",
+          "description": "Shuffles the colors of the sword palette.",
+          "defaultValue": 0
+        },
+        "blackout": {
+          "keyString": "rom.sword_palettes.blackout",
+          "friendlyName": "Blackout",
+          "description": "Never use this. Makes all sword palette colors black.",
+          "defaultValue": 0
+        },
+		"grayscale": {
+          "keyString": "rom.sword_palettes.grayscale",
+          "friendlyName": "Grayscale",
+          "description": "Removes all saturation of colors.",
+          "defaultValue": 0
+        },
+		"negative": {
+          "keyString": "rom.sword_palettes.negative",
+          "friendlyName": "Negative",
+          "description": "Invert all colors",
+          "defaultValue": 0
+        },
+		"classic": {
+          "keyString": "rom.sword_palettes.classic",
+          "friendlyName": "Classic",
+          "description": "Produces results similar to the website.",
+          "defaultValue": 0
+        },
+		"dizzy": {
+          "keyString": "rom.sword_palettes.dizzy",
+          "friendlyName": "Dizzy",
+          "description": "No logic in colors but saturation and lightness are conserved.",
+          "defaultValue": 0
+        },
+		"sick": {
+          "keyString": "rom.sword_palettes.sick",
+          "friendlyName": "Sick",
+          "description": "No logic in colors but lightness is conserved.",
+          "defaultValue": 0
+        },
+		"puke": {
+          "keyString": "rom.sword_palettes.Puke",
+          "friendlyName": "Puke",
+          "description": "No logic at all.",
           "defaultValue": 0
         }
       }

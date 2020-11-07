@@ -11,7 +11,7 @@ import ModuleUpdate
 ModuleUpdate.update()
 
 from Utils import parse_yaml
-from Rom import get_sprite_from_name
+from Rom import Sprite
 from EntranceRandomizer import parse_arguments
 from Main import main as ERmain
 from Main import get_seed, seeddigits
@@ -167,7 +167,7 @@ def main(args=None, callback=ERmain):
         if path:
             try:
                 settings = settings_cache[path] if settings_cache[path] else roll_settings(weights_cache[path])
-                if settings.sprite and not os.path.isfile(settings.sprite) and not get_sprite_from_name(
+                if settings.sprite and not os.path.isfile(settings.sprite) and not Sprite.get_sprite_from_name(
                         settings.sprite):
                     logging.warning(
                         f"Warning: The chosen sprite, \"{settings.sprite}\", for yaml \"{path}\", does not exist.")
@@ -444,6 +444,11 @@ def roll_settings(weights):
                  'timed_countdown': 'timed-countdown',
                  'display': 'display'}[get_choice('timer', weights, False)]
 
+    ret.countdown_start_time = int(get_choice('countdown_start_time', weights, 10))
+    ret.red_clock_time = int(get_choice('red_clock_time', weights, -2))
+    ret.blue_clock_time = int(get_choice('blue_clock_time', weights, 2))
+    ret.green_clock_time = int(get_choice('green_clock_time', weights, 4))
+
     ret.dungeon_counters = get_choice('dungeon_counters', weights, 'default')
 
     ret.progressive = convert_to_on_off(get_choice('progressive', weights, 'on'))
@@ -516,6 +521,11 @@ def roll_settings(weights):
         ret.heartbeep = convert_to_on_off(get_choice('heartbeep', romweights, "normal"))
         ret.ow_palettes = get_choice('ow_palettes', romweights, "default")
         ret.uw_palettes = get_choice('uw_palettes', romweights, "default")
+        ret.hud_palettes = get_choice('hud_palettes', romweights, "default")
+        ret.sword_palettes = get_choice('sword_palettes', romweights, "default")
+        ret.shield_palettes = get_choice('shield_palettes', romweights, "default")
+        ret.link_palettes = get_choice('link_palettes', romweights, "default")
+        
     else:
         ret.quickswap = True
         ret.sprite = "Link"

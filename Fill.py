@@ -157,13 +157,14 @@ def distribute_items_restrictive(world, gftower_trash=False, fill_locations=None
             for loc in shop.region.locations:
                 loc.item_rule = lambda item: True
 
+    print(progitempool, prioitempool, restitempool)
+
     prioitempool, fill_locations = fast_fill(world, prioitempool, fill_locations)
 
     restitempool, fill_locations = fast_fill(world, restitempool, fill_locations)
     unplaced = [item for item in progitempool + prioitempool + restitempool]
     unfilled = [location.name for location in fill_locations]
 
-    print(progitempool, prioitempool, restitempool)
     if unplaced or unfilled:
         logging.warning('Unplaced items: %s - Unfilled Locations: %s', unplaced, unfilled)
 

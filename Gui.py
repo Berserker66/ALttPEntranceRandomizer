@@ -120,6 +120,56 @@ def guiMain(args=None):
     balancingCheckbutton.pack(expand=True, anchor=W)
     patchesCheckbutton.pack(expand=True, anchor=W)
 
+
+
+    timerOptionsFrame = LabelFrame(rightHalfFrame, text="Timer options")
+    for i in range(3):
+        timerOptionsFrame.columnconfigure(i, weight=1)
+        timerOptionsFrame.rowconfigure(i, weight=1)
+
+    timerModeFrame = Frame(timerOptionsFrame)
+    timerModeFrame.grid(row=0, column=0, columnspan=3, sticky=E, padx=3)
+    timerVar = StringVar()
+    timerVar.set('none')
+    timerModeMenu = OptionMenu(timerModeFrame, timerVar, 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
+    timerLabel = Label(timerModeFrame, text='Timer setting')
+    timerLabel.pack(side=LEFT)
+    timerModeMenu.pack(side=LEFT)
+
+    timerCountdownFrame = Frame(timerOptionsFrame)
+    timerCountdownFrame.grid(row=1, column=0, columnspan=3, sticky=E, padx=3)
+    timerCountdownLabel = Label(timerCountdownFrame, text='Countdown starting time')
+    timerCountdownLabel.pack(side=LEFT)
+    timerCountdownVar = IntVar(value=10)
+    timerCountdownSpinbox = Spinbox(timerCountdownFrame, from_=0, to=480, width=3, textvariable=timerCountdownVar)
+    timerCountdownSpinbox.pack(side=LEFT)
+
+    timerRedFrame = Frame(timerOptionsFrame)
+    timerRedFrame.grid(row=2, column=0, sticky=E, padx=3)
+    timerRedLabel = Label(timerRedFrame, text='Clock adjustments: Red')
+    timerRedLabel.pack(side=LEFT)
+    timerRedVar = IntVar(value=-2)
+    timerRedSpinbox = Spinbox(timerRedFrame, from_=-60, to=60, width=3, textvariable=timerRedVar)
+    timerRedSpinbox.pack(side=LEFT)
+
+    timerBlueFrame = Frame(timerOptionsFrame)
+    timerBlueFrame.grid(row=2, column=1, sticky=E, padx=3)
+    timerBlueLabel = Label(timerBlueFrame, text='Blue')
+    timerBlueLabel.pack(side=LEFT)
+    timerBlueVar = IntVar(value=2)
+    timerBlueSpinbox = Spinbox(timerBlueFrame, from_=-60, to=60, width=3, textvariable=timerBlueVar)
+    timerBlueSpinbox.pack(side=LEFT)
+
+    timerGreenFrame = Frame(timerOptionsFrame)
+    timerGreenFrame.grid(row=2, column=2, sticky=E, padx=3)
+    timerGreenLabel = Label(timerGreenFrame, text='Green')
+    timerGreenLabel.pack(side=LEFT)
+    timerGreenVar = IntVar(value=4)
+    timerGreenSpinbox = Spinbox(timerGreenFrame, from_=-60, to=60, width=3, textvariable=timerGreenVar)
+    timerGreenSpinbox.pack(side=LEFT)
+
+
+
     romOptionsFrame = LabelFrame(rightHalfFrame, text="Rom options")
     romOptionsFrame.columnconfigure(0, weight=1)
     romOptionsFrame.columnconfigure(1, weight=1)
@@ -198,7 +248,7 @@ def guiMain(args=None):
     owPalettesLabel.pack(side=LEFT)
     owPalettesVar = StringVar()
     owPalettesVar.set('default')
-    owPalettesOptionMenu = OptionMenu(owPalettesFrame, owPalettesVar, 'default', 'random', 'blackout')
+    owPalettesOptionMenu = OptionMenu(owPalettesFrame, owPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
     owPalettesOptionMenu.pack(side=LEFT)
 
     uwPalettesFrame = Frame(romOptionsFrame)
@@ -207,11 +257,41 @@ def guiMain(args=None):
     uwPalettesLabel.pack(side=LEFT)
     uwPalettesVar = StringVar()
     uwPalettesVar.set('default')
-    uwPalettesOptionMenu = OptionMenu(uwPalettesFrame, uwPalettesVar, 'default', 'random', 'blackout')
+    uwPalettesOptionMenu = OptionMenu(uwPalettesFrame, uwPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
     uwPalettesOptionMenu.pack(side=LEFT)
 
+    hudPalettesFrame = Frame(romOptionsFrame)
+    hudPalettesFrame.grid(row=4, column=0, sticky=E)
+    hudPalettesLabel = Label(hudPalettesFrame, text='HUD palettes')
+    hudPalettesLabel.pack(side=LEFT)
+    hudPalettesVar = StringVar()
+    hudPalettesVar.set('default')
+    hudPalettesOptionMenu = OptionMenu(hudPalettesFrame, hudPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    hudPalettesOptionMenu.pack(side=LEFT)
+
+    swordPalettesFrame = Frame(romOptionsFrame)
+    swordPalettesFrame.grid(row=4, column=1, sticky=E)
+    swordPalettesLabel = Label(swordPalettesFrame, text='Sword palettes')
+    swordPalettesLabel.pack(side=LEFT)
+    swordPalettesVar = StringVar()
+    swordPalettesVar.set('default')
+    swordPalettesOptionMenu = OptionMenu(swordPalettesFrame, swordPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    swordPalettesOptionMenu.pack(side=LEFT)
+
+    shieldPalettesFrame = Frame(romOptionsFrame)
+    shieldPalettesFrame.grid(row=5, column=0, sticky=E)
+    shieldPalettesLabel = Label(shieldPalettesFrame, text='Shield palettes')
+    shieldPalettesLabel.pack(side=LEFT)
+    shieldPalettesVar = StringVar()
+    shieldPalettesVar.set('default')
+    shieldPalettesOptionMenu = OptionMenu(shieldPalettesFrame, shieldPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    shieldPalettesOptionMenu.pack(side=LEFT)
+
+
+
+
     romDialogFrame = Frame(romOptionsFrame)
-    romDialogFrame.grid(row=4, column=0, columnspan=2, sticky=W+E)
+    romDialogFrame.grid(row=6, column=0, columnspan=2, sticky=W+E)
 
     baseRomLabel = Label(romDialogFrame, text='Base Rom: ')
     romVar = StringVar(value="Zelda no Densetsu - Kamigami no Triforce (Japan).sfc")
@@ -236,6 +316,7 @@ def guiMain(args=None):
     romSelectButton.pack(side=LEFT)
 
     checkBoxFrame.pack(side=TOP, anchor=W, padx=5, pady=10)
+    timerOptionsFrame.pack(expand=True, fill=BOTH, padx=3)
     romOptionsFrame.pack(expand=True, fill=BOTH, padx=3)
 
     drowDownFrame = Frame(topFrame)
@@ -314,14 +395,6 @@ def guiMain(args=None):
     itemfunctionLabel = Label(itemfunctionFrame, text='Difficulty: item functionality')
     itemfunctionLabel.pack(side=LEFT)
 
-    timerFrame = Frame(drowDownFrame)
-    timerVar = StringVar()
-    timerVar.set('none')
-    timerOptionMenu = OptionMenu(timerFrame, timerVar, 'none', 'display', 'timed', 'timed-ohko', 'ohko', 'timed-countdown')
-    timerOptionMenu.pack(side=RIGHT)
-    timerLabel = Label(timerFrame, text='Timer setting')
-    timerLabel.pack(side=LEFT)
-
     dungeonCounterFrame = Frame(drowDownFrame)
     dungeonCounterVar = StringVar()
     dungeonCounterVar.set('auto')
@@ -382,7 +455,6 @@ def guiMain(args=None):
     swordFrame.pack(expand=True, anchor=E)
     difficultyFrame.pack(expand=True, anchor=E)
     itemfunctionFrame.pack(expand=True, anchor=E)
-    timerFrame.pack(expand=True, anchor=E)
     dungeonCounterFrame.pack(expand=True, anchor=E)
     progressiveFrame.pack(expand=True, anchor=E)
     accessibilityFrame.pack(expand=True, anchor=E)
@@ -508,6 +580,10 @@ def guiMain(args=None):
         guiargs.difficulty = difficultyVar.get()
         guiargs.item_functionality = itemfunctionVar.get()
         guiargs.timer = timerVar.get()
+        guiargs.countdown_start_time = timerCountdownVar.get()
+        guiargs.red_clock_time = timerRedVar.get()
+        guiargs.blue_clock_time = timerBlueVar.get()
+        guiargs.green_clock_time = timerGreenVar.get()
         guiargs.skip_progression_balancing = not balancingVar.get()
         if guiargs.timer == "none":
             guiargs.timer = False
@@ -538,6 +614,9 @@ def guiMain(args=None):
         guiargs.disablemusic = bool(disableMusicVar.get())
         guiargs.ow_palettes = owPalettesVar.get()
         guiargs.uw_palettes = uwPalettesVar.get()
+        guiargs.hud_palettes = hudPalettesVar.get()
+        guiargs.sword_palettes = swordPalettesVar.get()
+        guiargs.shield_palettes = shieldPalettesVar.get()
         guiargs.shuffleganon = bool(shuffleGanonVar.get())
         guiargs.hints = bool(hintsVar.get())
         guiargs.enemizercli = enemizerCLIpathVar.get()
@@ -702,22 +781,43 @@ def guiMain(args=None):
     fastMenuLabel2.pack(side=LEFT)
 
     owPalettesFrame2 = Frame(drowDownFrame2)
-    owPalettesOptionMenu2 = OptionMenu(owPalettesFrame2, owPalettesVar, 'default', 'random', 'blackout')
+    owPalettesOptionMenu2 = OptionMenu(owPalettesFrame2, owPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
     owPalettesOptionMenu2.pack(side=RIGHT)
     owPalettesLabel2 = Label(owPalettesFrame2, text='Overworld palettes')
     owPalettesLabel2.pack(side=LEFT)
 
     uwPalettesFrame2 = Frame(drowDownFrame2)
-    uwPalettesOptionMenu2 = OptionMenu(uwPalettesFrame2, uwPalettesVar, 'default', 'random', 'blackout')
+    uwPalettesOptionMenu2 = OptionMenu(uwPalettesFrame2, uwPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
     uwPalettesOptionMenu2.pack(side=RIGHT)
     uwPalettesLabel2 = Label(uwPalettesFrame2, text='Dungeon palettes')
     uwPalettesLabel2.pack(side=LEFT)
+
+    hudPalettesFrame2 = Frame(drowDownFrame2)
+    hudPalettesOptionMenu2 = OptionMenu(hudPalettesFrame2, hudPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    hudPalettesOptionMenu2.pack(side=RIGHT)
+    hudPalettesLabel2 = Label(hudPalettesFrame2, text='HUD palettes')
+    hudPalettesLabel2.pack(side=LEFT)
+
+    swordPalettesFrame2 = Frame(drowDownFrame2)
+    swordPalettesOptionMenu2 = OptionMenu(swordPalettesFrame2, swordPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    swordPalettesOptionMenu2.pack(side=RIGHT)
+    swordPalettesLabel2 = Label(swordPalettesFrame2, text='Sword palettes')
+    swordPalettesLabel2.pack(side=LEFT)
+
+    shieldPalettesFrame2 = Frame(drowDownFrame2)
+    shieldPalettesOptionMenu2 = OptionMenu(shieldPalettesFrame2, shieldPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    shieldPalettesOptionMenu2.pack(side=RIGHT)
+    shieldPalettesLabel2 = Label(shieldPalettesFrame2, text='Shield palettes')
+    shieldPalettesLabel2.pack(side=LEFT)
 
     heartbeepFrame2.pack(expand=True, anchor=E)
     heartcolorFrame2.pack(expand=True, anchor=E)
     fastMenuFrame2.pack(expand=True, anchor=E)
     owPalettesFrame2.pack(expand=True, anchor=E)
     uwPalettesFrame2.pack(expand=True, anchor=E)
+    hudPalettesFrame2.pack(expand=True, anchor=E)
+    swordPalettesFrame2.pack(expand=True, anchor=E)
+    shieldPalettesFrame2.pack(expand=True, anchor=E)
 
     bottomFrame2 = Frame(topFrame2)
 
@@ -728,6 +828,9 @@ def guiMain(args=None):
         guiargs.fastmenu = fastMenuVar.get()
         guiargs.ow_palettes = owPalettesVar.get()
         guiargs.uw_palettes = uwPalettesVar.get()
+        guiargs.hud_palettes = hudPalettesVar.get()
+        guiargs.sword_palettes = swordPalettesVar.get()
+        guiargs.shield_palettes = shieldPalettesVar.get()
         guiargs.quickswap = bool(quickSwapVar.get())
         guiargs.disablemusic = bool(disableMusicVar.get())
         guiargs.rom = romVar2.get()
@@ -741,7 +844,7 @@ def guiMain(args=None):
         else:
             messagebox.showinfo(title="Success", message="Rom patched successfully")
             from Utils import persistent_store
-            persistent_store("adjuster", "last_settings", guiargs)
+            persistent_store("adjuster", "last_settings_2", guiargs)
 
     adjustButton = Button(bottomFrame2, text='Adjust Rom', command=adjustRom)
 
@@ -1367,6 +1470,10 @@ def guiMain(args=None):
         difficultyVar.set(args.difficulty)
         itemfunctionVar.set(args.item_functionality)
         timerVar.set(args.timer)
+        timerCountdownVar.set(args.countdown_start_time)
+        timerRedVar.set(args.red_clock_time)
+        timerBlueVar.set(args.blue_clock_time)
+        timerGreenVar.set(args.green_clock_time)
         progressiveVar.set(args.progressive)
         accessibilityVar.set(args.accessibility)
         goalVar.set(args.goal)
