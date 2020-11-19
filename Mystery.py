@@ -362,9 +362,15 @@ def roll_settings(weights):
     # change minimum to required pieces to avoid problems
     ret.triforce_pieces_available = min(max(ret.triforce_pieces_required, int(ret.triforce_pieces_available)), 90)
 
+    ret.shop_shuffle_slots = int(get_choice('shop_shuffle_slots', weights, ''))
+
     ret.shop_shuffle = get_choice('shop_shuffle', weights, '')
     if not ret.shop_shuffle:
         ret.shop_shuffle = ''
+
+    ret.potion_shop_shuffle = get_choice('potion_shop_shuffle', weights, '')
+    if not ret.potion_shop_shuffle:
+        ret.potion_shop_shuffle = ''
 
     ret.mode = get_choice('world_state', weights, None)  # legacy support
     if ret.mode == 'retro':

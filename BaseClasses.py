@@ -130,6 +130,8 @@ class World(object):
             set_player_attr('triforce_pieces_available', 30)
             set_player_attr('triforce_pieces_required', 20)
             set_player_attr('shop_shuffle', 'off')
+            set_player_attr('shop_shuffle_slots', 0)
+            set_player_attr('potion_shop_shuffle', 'off')
             set_player_attr('shuffle_prizes', "g")
             set_player_attr('sprite_pool', [])
             set_player_attr('dark_room_logic', "lamp")
@@ -339,15 +341,20 @@ class World(object):
             if collect:
                 self.state.collect(item, location.event, location)
 
+            # this is probably bad practice but it's the only way I can think to filter items from fast_fill
             if location.parent_region.shop is not None and location.name != 'Potion Shop': # includes potion shop slots but not potion shop powder
                 slot_num = int(location.name[-1]) - 1
                 my_item = location.parent_region.shop.inventory[slot_num]
-                if my_item['item'] == item.name:
+                if my_item['item'] == item.name or 'Rupee' in item.name:
+                    # this will filter items that match the item in the shop or Rupees
+                    # really not a way for the player to know a renewable item from a world item
+                    # bombs can be sitting on top of arrows or a potion, but dunno if that's a big deal
                     pass
                 else:
                     my_item['replacement'] = my_item['item']
                     my_item['replacement_price'] = my_item['price']
                     my_item['item'] = item.name
+                    my_item['price'] = self.random.randrange(1, 61) * 5  # can probably replace this with a price chart
                     my_item['max'] = 1
                     my_item['player'] = item.player - 1
 
@@ -1144,7 +1151,8 @@ class Shop():
         self.inventory = [None] * self.slots
 
     def add_inventory(self, slot: int, item: str, price: int, max: int = 0,
-                      replacement: Optional[str] = None, replacement_price: int = 0, create_location: bool = False):
+                      replacement: Optional[str] = None, replacement_price: int = 0,
+                      create_location: bool = False, add_world_item: bool = False):
         self.inventory[slot] = {
             'item': item,
             'price': price,
@@ -1152,6 +1160,7 @@ class Shop():
             'replacement': replacement,
             'replacement_price': replacement_price,
             'create_location': create_location,
+            'add_world_item': add_world_item,
             'player': 0
         }
 
@@ -1166,6 +1175,7 @@ class Shop():
             'replacement': self.inventory[slot]["item"],
             'replacement_price': self.inventory[slot]["price"],
             'create_location': self.inventory[slot]["create_location"],
+            'add_world_item': self.inventory[slot]["add_world_item"],
             'player': self.inventory[slot]["player"]
         }
 
@@ -1325,6 +1335,8 @@ class Spoiler(object):
                          'triforce_pieces_available': self.world.triforce_pieces_available,
                          'triforce_pieces_required': self.world.triforce_pieces_required,
                          'shop_shuffle': self.world.shop_shuffle,
+                         'shop_shuffle_slots': self.world.shop_shuffle_slots,
+                         'potion_shop_shuffle': self.world.potion_shop_shuffle,
                          'shuffle_prizes': self.world.shuffle_prizes,
                          'sprite_pool': self.world.sprite_pool,
                          'restrict_dungeon_item_on_boss': self.world.restrict_dungeon_item_on_boss

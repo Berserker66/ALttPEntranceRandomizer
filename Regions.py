@@ -363,12 +363,48 @@ def mark_light_world_regions(world, player: int):
                 seen.add(exit.connected_region)
                 queue.append(exit.connected_region)
 
-
 def create_shops(world, player: int):
     cls_mapping = {ShopType.UpgradeShop: UpgradeShop,
                    ShopType.Shop: Shop,
                    ShopType.TakeAny: TakeAny}
-    for region_name, (room_id, type, shopkeeper, custom, locked, inventory) in shop_table.items():
+    option = world.shop_shuffle[player]
+    potion_option = world.potion_shop_shuffle[player]
+    my_shop_table = dict(shop_table)
+    if 'g' in option or 'f' in option:
+        new_basic_shop = world.random.sample(shop_generation_types['default'], k=3)
+        new_dark_shop = world.random.sample(shop_generation_types['default'], k=3)
+        for name, shop in my_shop_table.items():
+            typ, shop_id, keeper, custom, locked, items = shop
+            new_items = world.random.sample(shop_generation_types['default'], k=3)
+            if 'f' not in option:
+                if items == _basic_shop_defaults:
+                    new_items = new_basic_shop
+                elif items == _dark_world_shop_defaults:
+                    new_items = new_dark_shop
+            if name == 'Capacity Upgrade':
+                # should we have specific options for the capacity shop
+                # can have an upgrade locked behind a 250 rupee arrow
+                continue
+            if name == 'Potion Shop':
+                print(potion_option)
+                if 'b' in potion_option or 'm' in potion_option:
+                    new_items = [(x, max(10, p - 30)) for x, p in world.random.sample(shop_generation_types['potion'], k=3)]
+                elif 'a' in potion_option:
+                    pass
+                else:
+                    new_items = items
+            keeper = world.random.choice([0xA0, 0xC1, 0xFF, 0x04])
+            my_shop_table[name] = (typ, shop_id, keeper, custom, locked, new_items)
+    
+    num_slots = int(world.shop_shuffle_slots[player])
+    num_shop_table = len(shop_table) - (1 if [x not in potion_option for x in ['a', 'm']] else 0)
+    
+    my_shop_slots = [True] * num_slots + [False] * (len(shop_table) * 3)
+    my_shop_slots = my_shop_slots[:len(shop_table)*3]
+
+    world.random.shuffle(my_shop_slots)
+
+    for region_name, (room_id, type, shopkeeper, custom, locked, inventory) in my_shop_table.items():
         if world.mode[player] == 'inverted' and region_name == 'Dark Lake Hylia Shop':
             locked = True
             inventory = [('Blue Potion', 160), ('Blue Shield', 50), ('Bombs (10)', 50)]
@@ -377,7 +413,11 @@ def create_shops(world, player: int):
         region.shop = shop
         world.shops.append(shop)
         for index, item in enumerate(inventory):
-            shop.add_inventory(index, *item, create_location=world.random.choice([True, True, True, True, False]))
+            if region_name == 'Potion Shop' and [x not in potion_option for x in ['a', 'm']]:
+                c_loc = False
+            else:
+                c_loc = my_shop_slots.pop()
+            shop.add_inventory(index, *item, create_location=c_loc, add_world_item=world.random.choice(['Rupees (50)', 'Rupees (20)', 'Rupees (100)']))
 
 # (type, room_id, shopkeeper, custom, locked, [items])
 # item = (item, price, max=0, replacement=None, replacement_price=0)
@@ -393,8 +433,16 @@ shop_table = {
     'Light World Death Mountain Shop': (0x00FF, ShopType.Shop, 0xA0, True, False, _basic_shop_defaults),
     'Kakariko Shop': (0x011F, ShopType.Shop, 0xA0, True, False, _basic_shop_defaults),
     'Cave Shop (Lake Hylia)': (0x0112, ShopType.Shop, 0xA0, True, False, _basic_shop_defaults),
-    'Potion Shop': (0x0109, ShopType.Shop, 0xA0, True, False, [('Red Potion', 10), ('Green Potion', 10), ('Blue Potion', 10)]),
+    'Potion Shop': (0x0109, ShopType.Shop, 0xA0, True, False, [('Red Potion', 120), ('Green Potion', 60), ('Blue Potion', 160)]),
     'Capacity Upgrade': (0x0115, ShopType.UpgradeShop, 0x04, True, True, [('Bomb Upgrade (+5)', 100, 7), ('Arrow Upgrade (+5)', 100, 7)])
+}
+
+shop_generation_types = {
+    'default': _basic_shop_defaults + [('Bombs (3)', 20), ('Green Potion', 90), ('Bee', 10), ('Single Arrow', 5)] + [('Red Shield', 500), ('Blue Shield', 50)],
+    'potion': [('Red Potion', 150), ('Green Potion', 90), ('Blue Potion', 190), ('Bee', 10)],
+    'magic': [],
+    'weapon': [],
+    'time': [('Red Clock', 100), ('Blue Clock', 200), ('Green Clock', 300)],
 }
 
 old_location_address_to_new_location_address = {

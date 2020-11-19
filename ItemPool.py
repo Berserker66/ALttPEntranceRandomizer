@@ -368,13 +368,14 @@ def shuffle_shops(world, items, player: int):
         shops = []
         upgrade_shops = []
         total_inventory = []
+        potion_option = world.potion_shop_shuffle[player]
         for shop in world.shops:
             if shop.region.player == player:
                 if shop.type == ShopType.UpgradeShop:
                     upgrade_shops.append(shop)
                 elif shop.type == ShopType.Shop:
-                    if shop.region.name == 'Potion Shop' and 'm' not in option:
-                        continue
+                    if shop.region.name == 'Potion Shop' and potion_option in [None, '', 'none']:
+                        upgrade_shops.append(shop) # just put it with the upgrade shops/caves so we don't shuffle the items, just prices
                     else:
                         shops.append(shop)
                         total_inventory.extend(shop.inventory)
@@ -382,7 +383,7 @@ def shuffle_shops(world, items, player: int):
         if 'p' in option:
             def price_adjust(price: int) -> int:
                 # it is important that a base price of 0 always returns 0 as new price!
-                return int(price * (0.5 + world.random.random() * 1.5))
+                return int((price / 5) * (0.5 + world.random.random() * 1.5))*5
 
             def adjust_item(item):
                 if item:
@@ -474,10 +475,13 @@ def create_dynamic_shop_locations(world, player):
 
                     world.clear_location_cache()
 
-                    # if item['item'] is not None:
-                    #     world.push_item(loc, ItemFactory(item['item'], player), False)
-                    # else:
-                    world.itempool.append(ItemFactory('Rupees (50)', player))
+                    if item['add_world_item']: 
+                        # this should maybe be done anywhere else, since it is only used in one place
+                        # push_item takes the location and fills it, so this leaves the location unfilled
+                        # and just adds an item placed else where
+                        world.itempool.append(ItemFactory(item['add_world_item'], player))
+                    else:
+                        world.push_item(loc, ItemFactory(item['item'], player), False) 
 
                     loc.event = True
                     loc.locked = True
