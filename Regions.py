@@ -393,7 +393,7 @@ def create_shops(world, player: int):
                     pass
                 else:
                     new_items = items
-            keeper = world.random.choice([0xA0, 0xC1, 0xFF, 0x04])
+            keeper = world.random.choice([0xA0, 0xC1, 0xFF])
             my_shop_table[name] = (typ, shop_id, keeper, custom, locked, new_items)
     
     num_slots = int(world.shop_shuffle_slots[player])

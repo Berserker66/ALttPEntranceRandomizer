@@ -383,7 +383,8 @@ def shuffle_shops(world, items, player: int):
         if 'p' in option:
             def price_adjust(price: int) -> int:
                 # it is important that a base price of 0 always returns 0 as new price!
-                return int((price / 5) * (0.5 + world.random.random() * 1.5))*5
+                adjust = 2 if price < 100 else 5
+                return int((price / adjust) * (0.5 + world.random.random() * 1.5)) * adjust
 
             def adjust_item(item):
                 if item:

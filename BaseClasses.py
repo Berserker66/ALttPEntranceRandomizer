@@ -356,7 +356,7 @@ class World(object):
                     my_item['item'] = item.name
                     my_item['price'] = self.random.randrange(1, 61) * 5  # can probably replace this with a price chart
                     my_item['max'] = 1
-                    my_item['player'] = item.player - 1
+                    my_item['player'] = item.player if item.player != location.player else 0
 
             logging.debug('Placed %s at %s', item, location)
         else:
@@ -1262,6 +1262,10 @@ class Spoiler(object):
                 if item is None:
                     continue
                 shopdata['item_{}'.format(index)] = "{} — {}".format(item['item'], item['price']) if item['price'] else item['item']
+
+                if item['player'] > 0:
+                    shopdata['item_{}'.format(index)] = shopdata['item_{}'.format(index)].replace('—', '(Player {}) — '.format(item['player']))
+
                 if item['max'] == 0:
                     continue
                 shopdata['item_{}'.format(index)] += " x {}".format(item['max'])

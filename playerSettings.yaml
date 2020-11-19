@@ -1,4 +1,4 @@
-# What is this file?/open
+# What is this file?
 # This file contains options which allow you to configure your multiworld experience while allowing others
 # to play how they want as well.
 
@@ -197,12 +197,12 @@ beemizer: # Remove items from the global item pool and replace them with single 
   4: 0 # 100% of the non-essential item pool is replaced with bee traps
 ### Item Shuffle (shop)
 potion_shop_shuffle: # influence of potion shop by shop shuffle 
-  none: 1 # only shuffle price
+  none: 0 # only shuffle price
   b: 0 # generate/shuffle in bottle items
   m: 0 # generate/shuffle in magic items
-  a: 0 # generate/shuffle in all items
+  a: 1 # generate/shuffle in all items
   # proof of concept, could also include capacity shop in here
-  # the lower functions don't function vs progressive/pool items, only generation...
+  # don't function vs progressive/pool items, only generation...
   # plus dunno how to prevent potion shop slots from taking non magic items 
 shop_shuffle_slots: 
   0: 0
@@ -218,7 +218,7 @@ shop_shuffle:
   u: 0 # Shuffle capacity upgrades into the item pool (and allow them to traverse the multiworld)
   ip: 0 # Shuffle inventories and randomize prices
   uip: 0 # Shuffle inventories, randomize prices and shuffle capacity upgrades into the item pool
-  guip: 1
+  gup: 1
   # You can add more combos
 shuffle_prizes: # aka drops
   none: 0 # do not shuffle prize packs
