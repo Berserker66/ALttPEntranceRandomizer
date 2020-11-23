@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 JAP10HASH = '03a63945398191337e896e5771f77173'
-RANDOMIZERBASEHASH = 'e3714804e3fae1c6ac6100b94d1aee62'
+RANDOMIZERBASEHASH = 'ee1f94bf1b4ea735a0889bf0067eafbb'
 
 import io
 import json
@@ -108,7 +108,6 @@ class LocalRom(object):
 
     @staticmethod
     def verify(buffer, expected: str = RANDOMIZERBASEHASH) -> bool:
-        return True
         buffermd5 = hashlib.md5()
         buffermd5.update(buffer)
         return expected == buffermd5.hexdigest()
