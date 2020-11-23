@@ -123,6 +123,9 @@ class LocalRom(object):
                 if not os.path.exists(local_path('data', 'basepatch.bmbp')):
                     Patch.create_patch_file(local_path('basepatch.sfc'))
                 return
+            
+            if not os.path.isfile(local_path('data', 'basepatch.bmbp')):
+                raise RuntimeError('Base patch unverified.  Unable to continue.')
 
         if os.path.isfile(local_path('data', 'basepatch.bmbp')):
             _, target, buffer = Patch.create_rom_bytes(local_path('data', 'basepatch.bmbp'))
@@ -131,6 +134,7 @@ class LocalRom(object):
                 with open(local_path('basepatch.sfc'), 'wb') as stream:
                     stream.write(buffer)
                 return
+            raise RuntimeError('Base patch unverified.  Unable to continue.')
 
         raise RuntimeError('Could not find Base Patch. Unable to continue.')
 

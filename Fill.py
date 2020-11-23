@@ -152,13 +152,6 @@ def distribute_items_restrictive(world, gftower_trash=False, fill_locations=None
 
     world.random.shuffle(fill_locations)
 
-    if world.shop_shuffle[player]:
-        for shop in world.shops:
-            for loc in shop.region.locations:
-                loc.item_rule = lambda item: True
-
-    print(progitempool, prioitempool, restitempool)
-
     prioitempool, fill_locations = fast_fill(world, prioitempool, fill_locations)
 
     restitempool, fill_locations = fast_fill(world, restitempool, fill_locations)

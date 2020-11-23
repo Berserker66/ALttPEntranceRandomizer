@@ -476,13 +476,7 @@ def create_dynamic_shop_locations(world, player):
 
                     world.clear_location_cache()
 
-                    if item['add_world_item']: 
-                        # this should maybe be done anywhere else, since it is only used in one place
-                        # push_item takes the location and fills it, so this leaves the location unfilled
-                        # and just adds an item placed else where
-                        world.itempool.append(ItemFactory(item['add_world_item'], player))
-                    else:
-                        world.push_item(loc, ItemFactory(item['item'], player), False) 
+                    world.push_item(loc, ItemFactory(item['item'], player), False) 
 
                     loc.event = True
                     loc.locked = True

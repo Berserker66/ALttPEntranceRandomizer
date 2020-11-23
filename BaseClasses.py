@@ -341,18 +341,22 @@ class World(object):
             if collect:
                 self.state.collect(item, location.event, location)
 
-            # this is probably bad practice but it's the only way I can think to filter items from fast_fill
+            # TODO: Prevents fast_filling certain items.  Move this to a proper filter.
             if location.parent_region.shop is not None and location.name != 'Potion Shop': # includes potion shop slots but not potion shop powder
                 slot_num = int(location.name[-1]) - 1
                 my_item = location.parent_region.shop.inventory[slot_num]
-                if my_item['item'] == item.name or 'Rupee' in item.name:
+                if (my_item is not None and my_item['item'] == item.name) or 'Rupee' in item.name:
                     # this will filter items that match the item in the shop or Rupees
                     # really not a way for the player to know a renewable item from a world item
-                    # bombs can be sitting on top of arrows or a potion, but dunno if that's a big deal
-                    pass
+                    # bombs can be sitting on top of arrows or a potion refill, but dunno if that's a big deal
+                    logging.debug('skipping item shop {}'.format(item.name))
                 else:
-                    my_item['replacement'] = my_item['item']
-                    my_item['replacement_price'] = my_item['price']
+                    if my_item is None:
+                        location.parent_region.shop.add_inventory(slot_num, 'None', 0)
+                        my_item = location.parent_region.shop.inventory[slot_num]
+                    else:
+                        my_item['replacement'] = my_item['item']
+                        my_item['replacement_price'] = my_item['price']
                     my_item['item'] = item.name
                     my_item['price'] = self.random.randrange(1, 61) * 5  # can probably replace this with a price chart
                     my_item['max'] = 1
@@ -1151,8 +1155,7 @@ class Shop():
         self.inventory = [None] * self.slots
 
     def add_inventory(self, slot: int, item: str, price: int, max: int = 0,
-                      replacement: Optional[str] = None, replacement_price: int = 0,
-                      create_location: bool = False, add_world_item: bool = False):
+                      replacement: Optional[str] = None, replacement_price: int = 0, create_location: bool = False):
         self.inventory[slot] = {
             'item': item,
             'price': price,
@@ -1160,7 +1163,6 @@ class Shop():
             'replacement': replacement,
             'replacement_price': replacement_price,
             'create_location': create_location,
-            'add_world_item': add_world_item,
             'player': 0
         }
 
@@ -1175,7 +1177,6 @@ class Shop():
             'replacement': self.inventory[slot]["item"],
             'replacement_price': self.inventory[slot]["price"],
             'create_location': self.inventory[slot]["create_location"],
-            'add_world_item': self.inventory[slot]["add_world_item"],
             'player': self.inventory[slot]["player"]
         }
 

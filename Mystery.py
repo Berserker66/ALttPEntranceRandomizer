@@ -57,7 +57,7 @@ def main(args=None, callback=ERmain):
     seed = get_seed(args.seed)
     random.seed(seed)
 
-    seedname = "testrom.sfc"
+    seedname = "M" + (f"{random.randint(0, pow(10, seeddigits) - 1)}".zfill(seeddigits))
     print(f"Generating mystery for {args.multi} player{'s' if args.multi > 1 else ''}, {seedname} Seed {seed}")
 
     if args.race:
