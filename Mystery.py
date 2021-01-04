@@ -7,15 +7,19 @@ import typing
 import os
 
 import ModuleUpdate
+from BaseClasses import PlandoItem, PlandoConnection
 
 ModuleUpdate.update()
 
+import Bosses
 from Utils import parse_yaml
 from Rom import Sprite
 from EntranceRandomizer import parse_arguments
 from Main import main as ERmain
 from Main import get_seed, seeddigits
 from Items import item_name_groups, item_table
+from Regions import location_table
+from Text import TextTable
 
 
 def mystery_argparse():
@@ -43,10 +47,13 @@ def mystery_argparse():
     parser.add_argument('--create_diff', action="store_true")
     parser.add_argument('--yaml_output', default=0, type=lambda value: min(max(int(value), 0), 255),
                         help='Output rolled mystery results to yaml up to specified number (made for async multiworld)')
+    parser.add_argument('--plando', default="bosses",
+                        help='List of options that can be set manually. Can be combined, for example "bosses, items"')
 
     for player in range(1, multiargs.multi + 1):
         parser.add_argument(f'--p{player}', help=argparse.SUPPRESS)
     args = parser.parse_args()
+    args.plando: typing.Set[str] = {arg.strip().lower() for arg in args.plando.split(",")}
     return args
 
 
@@ -143,7 +150,8 @@ def main(args=None, callback=ERmain):
     if args.enemizercli:
         erargs.enemizercli = args.enemizercli
 
-    settings_cache = {k: (roll_settings(v) if args.samesettings else None) for k, v in weights_cache.items()}
+    settings_cache = {k: (roll_settings(v, args.plando) if args.samesettings else None)
+                      for k, v in weights_cache.items()}
     player_path_cache = {}
     for player in range(1, args.multi + 1):
         player_path_cache[player] = getattr(args, f'p{player}') if getattr(args, f'p{player}') else args.weights
@@ -166,7 +174,8 @@ def main(args=None, callback=ERmain):
         path = player_path_cache[player]
         if path:
             try:
-                settings = settings_cache[path] if settings_cache[path] else roll_settings(weights_cache[path])
+                settings = settings_cache[path] if settings_cache[path] else \
+                    roll_settings(weights_cache[path], args.plando)
                 if settings.sprite and not os.path.isfile(settings.sprite) and not Sprite.get_sprite_from_name(
                         settings.sprite):
                     logging.warning(
@@ -247,7 +256,7 @@ def get_choice(option, root, value=None) -> typing.Any:
     if any(root[option].values()):
         return interpret_on_off(
             random.choices(list(root[option].keys()), weights=list(map(int, root[option].values())))[0])
-    raise RuntimeError(f"All options specified in {option} are weighted as zero.")
+    raise RuntimeError(f"All options specified in \"{option}\" are weighted as zero.")
 
 
 def handle_name(name: str):
@@ -260,7 +269,27 @@ def prefer_int(input_data: str) -> typing.Union[str, int]:
     except:
         return input_data
 
-def roll_settings(weights):
+
+available_boss_names: typing.Set[str] = {boss.lower() for boss in Bosses.boss_table if boss not in
+                                         {'Agahnim', 'Agahnim2', 'Ganon'}}
+
+boss_shuffle_options = {None: 'none',
+                        'none': 'none',
+                        'simple': 'basic',
+                        'full': 'normal',
+                        'random': 'chaos',
+                        'singularity': 'singularity',
+                        'duality': 'singularity'
+                        }
+
+
+def roll_percentage(percentage: typing.Union[int, float]) -> bool:
+    """Roll a percentage chance.
+    percentage is expected to be in range [0, 100]"""
+    return random.random() < (float(percentage) / 100)
+
+
+def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"))):
     ret = argparse.Namespace()
     if "linked_options" in weights:
         weights = weights.copy()  # make sure we don't write back to other weights sets in same_settings
@@ -268,8 +297,18 @@ def roll_settings(weights):
             if "name" not in option_set:
                 raise ValueError("One of your linked options does not have a name.")
             try:
-                if random.random() < (float(option_set["percentage"]) / 100):
+                if roll_percentage(option_set["percentage"]):
+                    logging.debug(f"Linked option {option_set['name']} triggered.")
+                    logging.debug(f'Applying {option_set["options"]}')
+                    new_options = set(option_set["options"]) - set(weights)
                     weights.update(option_set["options"])
+                    if new_options:
+                        for new_option in new_options:
+                            logging.warning(f'Linked Suboption "{new_option}" of "{option_set["name"]}" did not '
+                                            f'overwrite a root option. '
+                                            f"This is probably in error.")
+                else:
+                    logging.debug(f"linked option {option_set['name']} skipped.")
             except Exception as e:
                 raise ValueError(f"Linked option {option_set['name']} is destroyed. "
                                  f"Please fix your linked option.") from e
@@ -386,14 +425,24 @@ def roll_settings(weights):
 
     ret.item_functionality = get_choice('item_functionality', weights)
 
-    ret.shufflebosses = {None: 'none',
-                         'none': 'none',
-                         'simple': 'basic',
-                         'full': 'normal',
-                         'random': 'chaos',
-                         'singularity': 'singularity',
-                         'duality': 'singularity'
-                         }[get_choice('boss_shuffle', weights)]
+    boss_shuffle = get_choice('boss_shuffle', weights)
+
+    if boss_shuffle in boss_shuffle_options:
+        ret.shufflebosses = boss_shuffle_options[boss_shuffle]
+    elif "bosses" in plando_options:
+        options = boss_shuffle.lower().split(";")
+        remainder_shuffle = "none"  # vanilla
+        bosses = []
+        for boss in options:
+            if boss in boss_shuffle_options:
+                remainder_shuffle = boss
+            elif boss not in available_boss_names and not "-" in boss:
+                raise ValueError(f"Unknown Boss name or Boss shuffle option {boss}.")
+            else:
+                bosses.append(boss)
+        ret.shufflebosses = ";".join(bosses + [remainder_shuffle])
+    else:
+        raise Exception(f"Boss Shuffle {boss_shuffle} is unknown and boss plando is turned off.")
 
     ret.enemy_shuffle = {'none': False,
                          'shuffled': 'shuffled',
@@ -457,6 +506,11 @@ def roll_settings(weights):
 
     ret.shuffle_prizes = get_choice('shuffle_prizes', weights, "g")
 
+    ret.required_medallions = (get_choice("misery_mire_medallion", weights, "random"),
+                               get_choice("turtle_rock_medallion", weights, "random"))
+    for medallion in ret.required_medallions:
+        if medallion not in {"random", "Ether", "Bombos", "Quake"}:
+            raise Exception(f"unknown Medallion {medallion}")
     inventoryweights = weights.get('startinventory', {})
     startitems = []
     for item in inventoryweights.keys():
@@ -501,6 +555,44 @@ def roll_settings(weights):
 
     ret.non_local_items = ",".join(ret.non_local_items)
 
+    ret.plando_items = []
+    if "items" in plando_options:
+        options = weights.get("plando_items", [])
+        for placement in options:
+            if roll_percentage(get_choice("percentage", placement, 100)):
+                item = get_choice("item", placement)
+                if item not in item_table:
+                    raise Exception(f"Could not plando item {item} as the item was not recognized")
+                location = get_choice("location", placement)
+                if location not in location_table:
+                    raise Exception(f"Could not plando item {item} at location {location} as the location was not recognized")
+                from_pool = get_choice("from_pool", placement, True)
+                location_world = get_choice("world", placement, False)
+                ret.plando_items.append(PlandoItem(item, location, location_world, from_pool))
+
+    ret.plando_texts = {}
+    if "texts" in plando_options:
+        tt = TextTable()
+        tt.removeUnwantedText()
+        options = weights.get("plando_texts", [])
+        for placement in options:
+            if roll_percentage(get_choice("percentage", placement, 100)):
+                at = str(get_choice("at", placement))
+                if at not in tt:
+                    raise Exception(f"No text target \"{at}\" found.")
+                ret.plando_texts[at] = str(get_choice("text", placement))
+
+    ret.plando_connections = []
+    if "connections" in plando_options:
+        options = weights.get("plando_connections", [])
+        for placement in options:
+            if roll_percentage(get_choice("percentage", placement, 100)):
+                ret.plando_connections.append(PlandoConnection(
+                    get_choice("entrance", placement),
+                    get_choice("exit", placement),
+                    get_choice("direction", placement, "both")
+                ))
+
     if 'rom' in weights:
         romweights = weights['rom']
 
@@ -538,7 +630,7 @@ def roll_settings(weights):
         ret.sword_palettes = get_choice('sword_palettes', romweights, "default")
         ret.shield_palettes = get_choice('shield_palettes', romweights, "default")
         ret.link_palettes = get_choice('link_palettes', romweights, "default")
-        
+
     else:
         ret.quickswap = True
         ret.sprite = "Link"

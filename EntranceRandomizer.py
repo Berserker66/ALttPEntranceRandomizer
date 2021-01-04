@@ -349,12 +349,20 @@ def parse_arguments(argv, no_defaults=False):
     create a binary patch file from which the randomized rom can be recreated using MultiClient.''')
     parser.add_argument('--disable_glitch_boots', default=defval(False), action='store_true', help='''\
     turns off starting with Pegasus Boots in glitched modes.''')
-
     if multiargs.multi:
         for player in range(1, multiargs.multi + 1):
             parser.add_argument(f'--p{player}', default=defval(''), help=argparse.SUPPRESS)
 
     ret = parser.parse_args(argv)
+
+    # shuffle medallions
+
+    ret.required_medallions = ("random", "random")
+    # cannot be set through CLI currently
+    ret.plando_items = []
+    ret.plando_texts = {}
+    ret.plando_connections = []
+
     ret.glitch_boots = not ret.disable_glitch_boots
     if ret.timer == "none":
         ret.timer = False
@@ -382,9 +390,11 @@ def parse_arguments(argv, no_defaults=False):
                          'shufflebosses', 'enemy_shuffle', 'enemy_health', 'enemy_damage', 'shufflepots',
                          'ow_palettes', 'uw_palettes', 'sprite', 'disablemusic', 'quickswap', 'fastmenu', 'heartcolor',
                          'heartbeep', "skip_progression_balancing", "triforce_pieces_available",
-                         "triforce_pieces_required", "shop_shuffle",
+                         "triforce_pieces_required", "shop_shuffle", "required_medallions",
+                         "plando_items", "plando_texts", "plando_connections",
                          'remote_items', 'progressive', 'dungeon_counters', 'glitch_boots', 'killable_thieves',
-                         'tile_shuffle', 'bush_shuffle', 'shuffle_prizes', 'sprite_pool', 'dark_room_logic', 'restrict_dungeon_item_on_boss',
+                         'tile_shuffle', 'bush_shuffle', 'shuffle_prizes', 'sprite_pool', 'dark_room_logic',
+                         'restrict_dungeon_item_on_boss',
                          'hud_palettes', 'sword_palettes', 'shield_palettes', 'link_palettes']:
                 value = getattr(defaults, name) if getattr(playerargs, name) is None else getattr(playerargs, name)
                 if player == 1:

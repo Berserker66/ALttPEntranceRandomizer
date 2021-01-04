@@ -5,13 +5,19 @@ html{
 }
 
 #tutorial-wrapper{
-    width: 70rem;
+    display: flex;
+    flex-direction: column;
+    max-width: 70rem;
     margin-left: auto;
     margin-right: auto;
     background-color: rgba(0, 0, 0, 0.15);
     border-radius: 8px;
-    padding: 1rem;
+    padding: 1rem 1rem 3rem;
     color: #eeffeb;
+}
+
+#tutorial-wrapper p{
+    margin-top: 0;
 }
 
 #tutorial-wrapper a{
@@ -88,6 +94,7 @@ html{
 }
 
 #tutorial-wrapper pre{
+    margin-top: 0;
     padding: 0.5rem 0.25rem;
     background-color: #ffeeab;
     border: 1px solid #9f916a;

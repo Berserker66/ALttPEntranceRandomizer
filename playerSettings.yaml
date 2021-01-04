@@ -173,6 +173,9 @@ item_functionality:
 progression_balancing:
   on: 50 # A system to reduce BK, as in times during which you can't do anything by moving your items into an earlier access sphere to make it likely you have stuff to do
   off: 0 # Turn this off if you don't mind a longer multiworld, or can glitch around missing items.
+tile_shuffle: # Randomize the tile layouts in flying tile rooms
+  on: 0
+  off: 50
 ### Enemizer Section ###
 boss_shuffle:
   none: 50 # Vanilla bosses
@@ -185,9 +188,6 @@ enemy_shuffle: # Randomize enemy placement
   off: 50
 killable_thieves: # Make thieves killable
   on: 0 # Usually turned on together with enemy_shuffle to make annoying thief placement more manageable
-  off: 50
-tile_shuffle: # Randomize the tile layouts in flying tile rooms
-  on: 0
   off: 50
 bush_shuffle: # Randomize the chance that bushes have enemies and the enemies under said bush
   on: 0
@@ -300,6 +300,7 @@ linked_options:
         hard: 1
         expert: 1
     percentage: 0 # Set this to the percentage chance you want enemizer
+### door rando only options ###
 door_shuffle: # Only available if the host uses the doors branch, it is ignored otherwise
   vanilla: 50 # Everything should be like in vanilla
   basic: 0 # Dungeons are shuffled within themselves
@@ -318,6 +319,7 @@ experimental: # Only available if the host uses the doors branch, it is ignored 
 debug: # Only available if the host uses the doors branch, it is ignored otherwise
   on: 0 # Enables debugging features. Currently, these are the Item collection counter. (overwrites total triforce pieces) and Castle Gate closed indicator.
   off: 50
+### end of door rando only options ###
 rom:
   random_sprite_on_event: # An alternative to specifying randomonhit / randomonexit / etc... in sprite down below.
     enabled:  # If enabled, sprite down below is ignored completely, (although it may become the sprite pool)

@@ -39,8 +39,14 @@ def uploads():
                             if file.filename.endswith(banned_zip_contents):
                                 return "Uploaded data contained a rom file, which is likely to contain copyrighted material. Your file was deleted."
                             elif file.filename.endswith(".bmbp"):
-                                player = int(file.filename.split("P")[1].split(".")[0].split("_")[0])
-                                patches.add(Patch(data=zfile.open(file, "r").read(), player=player))
+                                # get probable team and player ID from filename. Could use a better method.
+                                splitted = file.filename.split("/")[-1][3:].split("P", 1)
+                                player = int(splitted[1].split(".")[0].split("_")[0])
+                                if "T" in splitted[0]:
+                                    team = int(splitted[0].split("T")[1].split(".")[0].split("_")[0]) - 1
+                                else:
+                                    team = 0
+                                patches.add(Patch(data=zfile.open(file, "r").read(), player=player, team=team))
                             elif file.filename.endswith(".txt"):
                                 spoiler = zfile.open(file, "r").read().decode("utf-8-sig")
                             elif file.filename.endswith("multidata"):
@@ -69,9 +75,14 @@ def uploads():
                         return redirect(url_for("viewSeed", seed=seed.id))
             else:
                 flash("Not recognized file format. Awaiting a .multidata file.")
+    return render_template("hostGame.html")
+
+
+@app.route('/user-content', methods=['GET'])
+def user_content():
     rooms = select(room for room in Room if room.owner == session["_id"])
     seeds = select(seed for seed in Seed if seed.owner == session["_id"])
-    return render_template("hostGame.html", rooms=rooms, seeds=seeds)
+    return render_template("userContent.html", rooms=rooms, seeds=seeds)
 
 
 def allowed_file(filename):

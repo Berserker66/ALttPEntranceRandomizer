@@ -5,7 +5,7 @@ from enum import Enum, unique
 import logging
 import json
 from collections import OrderedDict, Counter, deque
-from typing import Union, Optional, List, Set, Dict
+from typing import Union, Optional, List, Set, Dict, NamedTuple
 import secrets
 import random
 
@@ -16,12 +16,15 @@ from Items import item_name_groups
 
 class World(object):
     debug_types = False
-    player_names: list
+    player_names: Dict[int, List[str]]
     _region_cache: dict
     difficulty_requirements: dict
     required_medallions: dict
     dark_room_logic: Dict[int, str]
     restrict_dungeon_item_on_boss: Dict[int, bool]
+    plando_texts: List[Dict[str, str]]
+    plando_items: List[PlandoItem]
+    plando_connections: List[PlandoConnection]
 
     def __init__(self, players: int, shuffle, logic, mode, swords, difficulty, difficulty_adjustments, timer,
                  progressive,
@@ -135,6 +138,9 @@ class World(object):
             set_player_attr('sprite_pool', [])
             set_player_attr('dark_room_logic', "lamp")
             set_player_attr('restrict_dungeon_item_on_boss', False)
+            set_player_attr('plando_items', [])
+            set_player_attr('plando_texts', {})
+            set_player_attr('plando_connections', [])
 
     def secure(self):
         self.random = secrets.SystemRandom()
@@ -1037,6 +1043,12 @@ class Item(object):
         self.world = None
         self.player = player
 
+    def __eq__(self, other):
+        return self.name == other.name and self.player == other.player
+
+    def __hash__(self):
+        return hash((self.name, self.player))
+
     @property
     def crystal(self) -> bool:
         return self.type == 'Crystal'
@@ -1452,3 +1464,16 @@ class Spoiler(object):
                 path_listings.append("{}\n        {}".format(location, "\n   =>   ".join(path_lines)))
 
             outfile.write('\n'.join(path_listings))
+
+
+class PlandoItem(NamedTuple):
+    item: str
+    location: str
+    world: Union[bool, str] = False  # False -> own world, True -> not own world
+    from_pool: bool = True  # if item should be removed from item pool
+
+
+class PlandoConnection(NamedTuple):
+    entrance: str
+    exit: str
+    direction: str  # entrance, exit or both

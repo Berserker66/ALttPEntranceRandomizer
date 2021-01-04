@@ -191,7 +191,7 @@ def check_enemizer(enemizercli):
                 version = lib.split("/")[-1]
                 version = tuple(int(element) for element in version.split("."))
                 logging.debug(f"Found Enemizer version {version}")
-                if version < (6, 3, 0):
+                if version < (6, 4, 0):
                     raise Exception(
                         f"Enemizer found at {enemizercli} is outdated ({info}), please update your Enemizer. "
                         f"Such as https://github.com/Ijwu/Enemizer/releases")
@@ -325,7 +325,7 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli):
         'SwordGraphics': "sword_gfx/normal.gfx",
         'BeeMizer': False,
         'BeesLevel': 0,
-        'RandomizeTileTrapPattern': world.tile_shuffle[player],
+        'RandomizeTileTrapPattern': False,
         'RandomizeTileTrapFloorTile': False,
         'AllowKillableThief': world.killable_thieves[player],
         'RandomizeSpriteOnHit': False,
@@ -415,6 +415,54 @@ def patch_enemizer(world, player: int, rom: LocalRom, enemizercli):
             os.remove(used)
         except OSError:
             pass
+
+tile_list_lock = threading.Lock()
+_tile_collection_table = []
+def _populate_tile_sets():
+    with tile_list_lock:
+        if not _tile_collection_table:
+            def load_tileset_from_file(file):
+                tileset = TileSet(file)
+                _tile_collection_table.append(tileset)
+
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                for dir in [local_path('data', 'tiles')]:
+                    for file in os.listdir(dir):
+                        pool.submit(load_tileset_from_file, os.path.join(dir, file))
+
+class TileSet:
+    def __init__(self, filename):
+        with open(filename, 'rt', encoding='utf-8-sig') as file:
+            jsondata = json.load(file)
+        self.speed = jsondata['Speed']
+        self.tiles = jsondata['Items']
+        self.name = os.path.basename(os.path.splitext(filename)[0])
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def get_bytes(self):
+        data = []
+        for tile in self.tiles:
+            data.append((tile['x'] + 3) * 16)
+        while len(data) < 22:
+            data.append(0)
+        for tile in self.tiles:
+            data.append((tile['y'] + 4) * 16)
+        return data
+
+    def get_speed(self):
+        return self.speed
+
+    def get_len(self):
+        return len(self.tiles)
+
+    @staticmethod
+    def get_random_tile_set(localrandom=random):
+        _populate_tile_sets()
+        tile_sets = list(set(_tile_collection_table))
+        tile_sets.sort(key=lambda x: x.name)
+        return localrandom.choice(tile_sets)
 
 
 sprite_list_lock = threading.Lock()
@@ -1456,6 +1504,13 @@ def patch_rom(world, rom, player, team, enemized):
         rom.write_byte(0xFED31, 0x2A)  # preopen bombable exit
         rom.write_byte(0xFEE41, 0x2A)  # preopen bombable exit
 
+    if world.tile_shuffle[player]:
+        tile_set = TileSet.get_random_tile_set(world.rom_seeds[player])
+        rom.write_byte(0x4BA21, tile_set.get_speed())
+        rom.write_byte(0x4BA1D, tile_set.get_len())
+        rom.write_bytes(0x4BA2A, tile_set.get_bytes())
+
+
     write_strings(rom, world, player, team)
 
     rom.write_byte(0x18637C, 1 if world.remote_items[player] else 0)
@@ -1546,8 +1601,6 @@ def hud_format_text(text):
 def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, sprite: str, palettes_options,
                        world=None, player=1, allow_random_on_event=False):
     local_random = random if not world else world.rom_seeds[player]
-    apply_random_sprite_on_event(rom, sprite, local_random, allow_random_on_event,
-                                 world.sprite_pool[player] if world else [])
 
     # enable instant item menu
     if fastmenu == 'instant':
@@ -1652,6 +1705,9 @@ def apply_rom_settings(rom, beep, color, quickswap, fastmenu, disable_music, spr
             blackout_uw_palettes(rom)
         elif palettes_options['dungeon'] == 'random':
             randomize_uw_palettes(rom, local_random)
+
+    apply_random_sprite_on_event(rom, sprite, local_random, allow_random_on_event,
+                                 world.sprite_pool[player] if world else [])
     if isinstance(rom, LocalRom):
         rom.write_crc()
 
@@ -2152,6 +2208,13 @@ def write_strings(rom, world, player, team):
         tt['menu_start_2'] = "{MENU}\n{SPEED0}\n≥@'s house\n Dark Chapel\n{CHOICE3}"
         tt['menu_start_3'] = "{MENU}\n{SPEED0}\n≥@'s house\n Dark Chapel\n Mountain Cave\n{CHOICE2}"
 
+    for at, text in world.plando_texts[player].items():
+
+        if at not in tt:
+            raise Exception(f"No text target \"{at}\" found.")
+        else:
+            tt[at] = text
+
     rom.write_bytes(0xE0000, tt.getBytes())
 
     credits = Credits()
@@ -2306,7 +2369,7 @@ def set_inverted_mode(world, player, rom):
     rom.write_byte(0x1607C + 0x06, 0xF2)
     rom.write_int16(0x160CB + 2 * 0x06, 0x0000)
     rom.write_int16(0x16169 + 2 * 0x06, 0x0000)
-    rom.write_int16(snes_to_pc(0x02E87B), 0x00AE)  # move flute splot 9
+    rom.write_int16(snes_to_pc(0x02E87B), 0x00AE)  # move flute spot 9
     rom.write_int16(snes_to_pc(0x02E89D), 0x0610)
     rom.write_int16(snes_to_pc(0x02E8BF), 0x077E)
     rom.write_int16(snes_to_pc(0x02E8E1), 0x0672)
