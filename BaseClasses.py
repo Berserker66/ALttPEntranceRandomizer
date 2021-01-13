@@ -5,7 +5,7 @@ from enum import Enum, unique
 import logging
 import json
 from collections import OrderedDict, Counter, deque
-from typing import Union, Optional, List, Set, Dict, NamedTuple
+from typing import Union, Optional, List, Set, Dict, NamedTuple, Iterable
 import secrets
 import random
 
@@ -392,6 +392,12 @@ class World(object):
             state = self.state
         return [location for location in self.get_locations() if
                 (player is None or location.player == player) and location.item is None and location.can_reach(state)]
+
+    def get_unfilled_locations_for_players(self, location_name: str, players: Iterable[int]):
+        for player in players:
+            location = self.get_location(location_name, player)
+            if location.item is None:
+                yield location
 
     def unlocks_new_location(self, item) -> bool:
         temp_state = self.state.copy()
@@ -1471,6 +1477,19 @@ class PlandoItem(NamedTuple):
     location: str
     world: Union[bool, str] = False  # False -> own world, True -> not own world
     from_pool: bool = True  # if item should be removed from item pool
+    force: Union[bool, str] = 'silent'  # False -> warns if item not successfully placed. True -> errors out on failure to place item.
+
+    def warn(self, warning: str):
+        if str(self.force).lower() in ['true', 'fail', 'failure', 'none', 'false', 'warn', 'warning']:
+            logging.warning(f'{warning}')
+        else:
+            logging.debug(f'{warning}')
+
+    def failed(self, warning: str, exception=Exception):
+        if str(self.force).lower() in ['true', 'fail', 'failure']:
+            raise exception(warning)
+        else:
+            self.warn(warning)
 
 
 class PlandoConnection(NamedTuple):

@@ -18,7 +18,7 @@ from EntranceRandomizer import parse_arguments
 from Main import main as ERmain
 from Main import get_seed, seeddigits
 from Items import item_name_groups, item_table
-from Regions import location_table
+from Regions import location_table, key_drop_data
 from Text import TextTable
 
 
@@ -276,8 +276,11 @@ available_boss_names: typing.Set[str] = {boss.lower() for boss in Bosses.boss_ta
 boss_shuffle_options = {None: 'none',
                         'none': 'none',
                         'simple': 'basic',
+                        'basic': 'basic',
                         'full': 'normal',
+                        'normal': 'normal',
                         'random': 'chaos',
+                        'chaos': 'chaos',
                         'singularity': 'singularity',
                         'duality': 'singularity'
                         }
@@ -370,12 +373,13 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
                 'triforce-hunt': 'triforcehunt',  # deprecated, moving all goals to `_`
                 'local_triforce_hunt': 'localtriforcehunt',
                 'ganon_triforce_hunt': 'ganontriforcehunt',
-                'local_ganon_triforce_hunt': 'localganontriforcehunt'
+                'local_ganon_triforce_hunt': 'localganontriforcehunt',
+                'ice_rod_hunt': 'icerodhunt'
                 }[goal]
 
     # TODO consider moving open_pyramid to an automatic variable in the core roller, set to True when
     # fast ganon + ganon at hole
-    ret.open_pyramid = goal in {'fast_ganon', 'ganon_triforce_hunt', 'local_ganon_triforce_hunt', 'ganon_pedestal'}
+    ret.open_pyramid = ret.goal in {'crystals', 'ganontriforcehunt', 'localganontriforcehunt', 'ganonpedestal'}
 
     ret.crystals_gt = prefer_int(get_choice('tower_open', weights))
 
@@ -435,7 +439,7 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
         bosses = []
         for boss in options:
             if boss in boss_shuffle_options:
-                remainder_shuffle = boss
+                remainder_shuffle = boss_shuffle_options[boss]
             elif boss not in available_boss_names and not "-" in boss:
                 raise ValueError(f"Unknown Boss name or Boss shuffle option {boss}.")
             else:
@@ -557,18 +561,40 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
 
     ret.plando_items = []
     if "items" in plando_options:
+        default_placement = PlandoItem(item="", location="")
+        def add_plando_item(item: str, location: str):
+            if item not in item_table:
+                raise Exception(f"Could not plando item {item} as the item was not recognized")
+            if location not in location_table and location not in key_drop_data:
+                raise Exception(f"Could not plando item {item} at location {location} as the location was not recognized")
+            ret.plando_items.append(PlandoItem(item, location, location_world, from_pool, force))
+
         options = weights.get("plando_items", [])
         for placement in options:
             if roll_percentage(get_choice("percentage", placement, 100)):
-                item = get_choice("item", placement)
-                if item not in item_table:
-                    raise Exception(f"Could not plando item {item} as the item was not recognized")
-                location = get_choice("location", placement)
-                if location not in location_table:
-                    raise Exception(f"Could not plando item {item} at location {location} as the location was not recognized")
-                from_pool = get_choice("from_pool", placement, True)
-                location_world = get_choice("world", placement, False)
-                ret.plando_items.append(PlandoItem(item, location, location_world, from_pool))
+                from_pool = get_choice("from_pool", placement, default_placement.from_pool)
+                location_world = get_choice("world", placement, default_placement.world)
+                force = get_choice("force", placement, default_placement.force)
+                if "items" in placement and "locations" in placement:
+                    items = placement["items"]
+                    locations = placement["locations"]
+                    if isinstance(items, dict):
+                        item_list = []
+                        for key, value in items.items():
+                            item_list += [key] * value
+                        items = item_list
+                    if not items or not locations:
+                        raise Exception("You must specify at least one item and one location to place items.")
+                    random.shuffle(items)
+                    random.shuffle(locations)
+                    while items and locations:
+                        item = items.pop()
+                        location = locations.pop()
+                        add_plando_item(item, location)
+                else:
+                    item = get_choice("item", placement, get_choice("items", placement))
+                    location = get_choice("location", placement)
+                    add_plando_item(item, location)
 
     ret.plando_texts = {}
     if "texts" in plando_options:

@@ -400,6 +400,13 @@ async def on_client_joined(ctx: Context, client: Client):
     ctx.notify_all(
         f"{ctx.get_aliased_name(client.team, client.slot)} (Team #{client.team + 1}) has joined the game. "
         f"Client({version_str}), {client.tags}).")
+    if client.version < [2, 1, 0] and "auto" in ctx.forfeit_mode:
+        ctx.notify_client(
+            client,
+            "Your client is too old to send game beaten information. "
+            "The automatic forfeit feature will not work."
+        )
+
     ctx.client_connection_timers[client.team, client.slot] = datetime.datetime.now(datetime.timezone.utc)
 
 async def on_client_left(ctx: Context, client: Client):
@@ -466,8 +473,8 @@ def send_new_items(ctx: Context):
 
 
 def forfeit_player(ctx: Context, team: int, slot: int):
-    all_locations = {values[0] for values in Regions.location_table.values() if type(values[0]) is int}
-    all_locations.update({values[1] for values in Regions.key_drop_data.values()})
+    # register any locations that are in the multidata
+    all_locations = {location_id for location_id, location_slot in ctx.locations if location_slot == slot}
     ctx.notify_all("%s (Team #%d) has forfeited" % (ctx.player_names[(team, slot)], team + 1))
     register_location_checks(ctx, team, slot, all_locations)
 
