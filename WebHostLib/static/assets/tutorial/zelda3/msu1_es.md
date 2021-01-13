@@ -70,8 +70,4 @@ Por favor, tened cuidado y solo streamear música para la cual tengas los derech
 A continuación enumeramos los packs MSU que,  packs which, por lo que sabemos, son seguros para vuestras retransmisiones. Se iran añadiendo mas conforme
 vayamos enterandonos. Si sabes alguno que podamos haber olvidado, por favor haznoslo saber!
 - Musica del juego original
-<<<<<<< Updated upstream
 - [Smooth McGroove](https://drive.google.com/open?id=1JDa1jCKg5hG0Km6xNpmIgf4kDMOxVp3n)
-=======
-- [Smooth McGroove](https://drive.google.com/open?id=1JDa1jCKg5hG0Km6xNpmIgf4kDMOxVp3n)
->>>>>>> Stashed changes
