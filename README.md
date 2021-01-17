@@ -1,9 +1,12 @@
-Archipelago
-======================
+# [Archipelago](https://archipelago.gg) ![Discord Shield](https://discordapp.com/api/guilds/731205301247803413/widget.png?style=shield)
 
-A Multiworld implementation for the Legend of Zelda: A Link to the Past Randomizer.  
-For setup and instructions there's a [Wiki](https://github.com/Berserker66/MultiWorld-Utilities/wiki).  
+Archipelago provides a generic framework for developing multiworld capability for game randomizers. Archipelago may also provide randomization support for some games.
+
+Presently, the following games are supported:
+| Game | Multiworld Support | Randomizer Support |
+| ---- | ------------------ | ------------------ |
+| Legend of Zelda: A Link to the Past | ✔ | ✔ |
+
+For setup and instructions check out our [tutorials page](https://archipelago.gg/tutorial).
 Downloads can be found at [Releases](https://github.com/Berserker66/MultiWorld-Utilities/releases), including compiled
 windows binaries.
-
-Readme is a work in progress.
