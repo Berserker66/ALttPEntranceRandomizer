@@ -23,6 +23,8 @@ Contributions are welcome. We have a few asks of any new contributors.
 * Ensure that all changes which affect logic are covered by unit tests. 
 * Do not introduce any unit test failures/regressions.
 
+Otherwise, we tend to judge code on a case to case basis. It is a generally good idea to stick to PEP-8 guidelines to ensure consistency with existing code. (And to make the linter happy.)
+
 ## Code of Conduct
 We conduct ourselves openly and inclusively here. Please do not contribute to an environment which makes other people uncomfortable. This means that we expect all contributors or participants here to:
 
