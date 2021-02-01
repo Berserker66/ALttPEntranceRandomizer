@@ -11,6 +11,16 @@ windows binaries.
 
 ## History
 
+Archipelago is built upon a strong legacy of brilliant hobbyists. We want to honor that legacy by showing it here. The repositories which Archipelago is built upon, inspired by, or otherwise owes its gratitude to are:
+
+* [bonta0's MultiWorld](https://github.com/Bonta0/ALttPEntranceRandomizer/tree/multiworld_31)
+* [AmazingAmpharos' Entrance Randomizer](https://github.com/AmazingAmpharos/ALttPEntranceRandomizer)
+* [VT Web Randomizer](https://github.com/sporchia/alttp_vt_randomizer)
+* [Dessyreqt's AlttPRandomizer](https://github.com/Dessyreqt/alttprandomizer)
+* [Zarby89's](https://github.com/Ijwu/Enemizer/commits?author=Zarby89) and [sosuke3's](https://github.com/Ijwu/Enemizer/commits?author=sosuke3) contributions to Enemizer.
+
+We recognize that there is a strong community of incredibly smart people that have come before us and helped pave the path. Just because one person's name may be in a repository title does not mean that only one person made that project happen. We can't hope to perfectly cover every single contribution that lead up to Archipelago but we hope to honor them fairly.
+
 ## Related Repositories
 This project makes use of multiple other projects. We wouldn't be here without these other repositories and the contributions of their developers, past and present.
 
