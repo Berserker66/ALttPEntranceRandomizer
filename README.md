@@ -1,8 +1,8 @@
 # [Archipelago](https://archipelago.gg) ![Discord Shield](https://discordapp.com/api/guilds/731205301247803413/widget.png?style=shield)
 
-Archipelago provides a generic framework for developing multiworld capability for game randomizers.
+Archipelago provides a generic framework for developing multiworld capability for game randomizers. In all cases, presently, Archipelago is also the randomizer itself.
 
-Presently, the following games are supported:
+Currently, the following games are supported:
 * The Legend of Zelda: A Link to the Past
 
 For setup and instructions check out our [tutorials page](https://archipelago.gg/tutorial).
