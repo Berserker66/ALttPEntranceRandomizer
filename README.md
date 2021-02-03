@@ -1,4 +1,4 @@
-# [Archipelago](https://archipelago.gg) ![Discord Shield](https://discordapp.com/api/guilds/731205301247803413/widget.png?style=shield)
+# [Archipelago](https://archipelago.gg) ![Discord Shield](https://discordapp.com/api/guilds/731205301247803413/widget.png?style=shield) | [Install](https://github.com/Berserker66/MultiWorld-Utilities/releases)
 
 Archipelago provides a generic framework for developing multiworld capability for game randomizers. In all cases, presently, Archipelago is also the randomizer itself.
 
@@ -16,10 +16,18 @@ Archipelago is built upon a strong legacy of brilliant hobbyists. We want to hon
 * [bonta0's MultiWorld](https://github.com/Bonta0/ALttPEntranceRandomizer/tree/multiworld_31)
 * [AmazingAmpharos' Entrance Randomizer](https://github.com/AmazingAmpharos/ALttPEntranceRandomizer)
 * [VT Web Randomizer](https://github.com/sporchia/alttp_vt_randomizer)
-* [Dessyreqt's AlttPRandomizer](https://github.com/Dessyreqt/alttprandomizer)
-* [Zarby89's](https://github.com/Ijwu/Enemizer/commits?author=Zarby89) and [sosuke3's](https://github.com/Ijwu/Enemizer/commits?author=sosuke3) contributions to Enemizer.
+* [Dessyreqt's alttprandomizer](https://github.com/Dessyreqt/alttprandomizer)
+* [Zarby89's](https://github.com/Ijwu/Enemizer/commits?author=Zarby89) and [sosuke3's](https://github.com/Ijwu/Enemizer/commits?author=sosuke3) contributions to Enemizer, which make the vast majority of Enemizer contributions.
 
 We recognize that there is a strong community of incredibly smart people that have come before us and helped pave the path. Just because one person's name may be in a repository title does not mean that only one person made that project happen. We can't hope to perfectly cover every single contribution that lead up to Archipelago but we hope to honor them fairly.
+
+### Path to the Archipelago
+Archipelago was directly forked from bonta0's `multiworld_31` branch of ALttPEntranceRandomizer (this project has a long legacy of its own, please check it out linked above) on January 12, 2020. The repository was then named to _MultiWorld-Utilities_ to better encompass its intended function. As Archipelago matured, then known as "Berserker's MultiWorld" by some, we found it necessary to transform our repository into a root level repository (as opposed to a 'forked repo') and change the name (which came later) to better reflect our project.
+
+## Running Archipelago
+For most people all you need to do is head over to the [releases](https://github.com/Berserker66/MultiWorld-Utilities/releases) page then download and run the appropriate installer. The installers function on Windows only.
+
+If you are running Archipelago from a non-Windows system then the likely scenario is that you are comfortable running source code directly. Please see our wiki page on [running Archipelago from source](https://github.com/Berserker66/MultiWorld-Utilities/wiki/Running-from-source).
 
 ## Related Repositories
 This project makes use of multiple other projects. We wouldn't be here without these other repositories and the contributions of their developers, past and present.
