@@ -205,7 +205,6 @@ item_table = {'Bow': (True, None, 0x0B, 'You have\nchosen the\narcher class.', '
               'Convenient Block': (True, 'Event', None, None, None, None, None, None, None, None),
               'Zelda Herself': (True, 'Event', None, None, None, None, None, None, None, None),
               'Zelda Delivered': (True, 'Event', None, None, None, None, None, None, None, None),
-              # should probably be converted to an actual item, for purposes for startinventory and such
               }
 
 lookup_id_to_name = {data[2]: name for name, data in item_table.items()}
