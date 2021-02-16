@@ -1706,6 +1706,7 @@ def add_key_logic_rules(world, player):
                 if keys.opposite:
                     rule = or_rule(rule, create_advanced_key_rule(d_logic, player, keys.opposite))
                 add_rule(spot, rule)
+
         for location in d_logic.bk_restricted:
             if not location.forced_item:
                 forbid_item(location, d_logic.bk_name, player)
@@ -1715,6 +1716,11 @@ def add_key_logic_rules(world, player):
             add_rule(world.get_entrance(door.name, player), create_rule(d_logic.bk_name, player))
         for chest in d_logic.bk_chests:
             add_rule(world.get_location(chest.name, player), create_rule(d_logic.bk_name, player))
+    if world.retro[player]:
+        for d_name, layout in world.key_layout[player].items():
+            for door in layout.flat_prop:
+                if world.mode[player] != 'standard' or not retro_in_hc(door.entrance):
+                    add_rule(door.entrance, create_key_rule('Small Key (Universal)', player, 1))
 
 
 def retro_in_hc(spot):

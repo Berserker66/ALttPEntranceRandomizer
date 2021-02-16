@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 JAP10HASH = '03a63945398191337e896e5771f77173'
-RANDOMIZERBASEHASH = '6ee207ec60d8daad9b1c32f422d74da8'
+RANDOMIZERBASEHASH = '80a4dd71f2fef666edaa2058272057f4'
 
 import io
 import itertools
@@ -692,7 +692,7 @@ bonk_addresses = [0x4CF6C, 0x4CFBA, 0x4CFE0, 0x4CFFB, 0x4D018, 0x4D01B, 0x4D028,
                   0x4D3F8, 0x4D416, 0x4D420, 0x4D423, 0x4D42D, 0x4D449, 0x4D48C, 0x4D4D9, 0x4D4DC, 0x4D4E3,
                   0x4D504, 0x4D507, 0x4D55E, 0x4D56A]
 
-def patch_rom(world, rom, player, team, enemized):
+def patch_rom(world, rom, player, team, enemized, is_mystery=False):
     local_random = world.rom_seeds[player]
 
     # progressive bow silver arrow hint hack
@@ -881,9 +881,18 @@ def patch_rom(world, rom, player, team, enemized):
                 rom.write_byte(0x13f000+dungeon_id, opposite_door.roomIndex)
             elif not opposite_door:
                 rom.write_byte(0x13f000+dungeon_id, 0)  # no supertile preceeding boss
-    rom.write_byte(0x138004, dr_flags.value)
+    if is_mystery:
+        dr_flags |= DROptions.Hide_Total
+    rom.write_byte(0x138004, dr_flags.value & 0xff)
+    rom.write_byte(0x138005, (dr_flags.value & 0xff00) >> 8)
     if dr_flags & DROptions.Town_Portal and world.mode[player] == 'inverted':
         rom.write_byte(0x138006, 1)
+
+    # swap in non-ER Lobby Shuffle Inverted - but only then
+    if world.mode[player] == 'inverted' and world.intensity[player] >= 3 and world.doorShuffle[player] != 'vanilla' and world.shuffle[player] == 'vanilla':
+        aga_portal = world.get_portal('Agahnims Tower', player)
+        gt_portal = world.get_portal('Ganons Tower', player)
+        aga_portal.exit_offset, gt_portal.exit_offset = gt_portal.exit_offset, aga_portal.exit_offset
 
     for portal in world.dungeon_portals[player]:
         if not portal.default:
@@ -2548,8 +2557,9 @@ def set_inverted_mode(world, player, rom):
     if world.shuffle[player] == 'vanilla':
         rom.write_byte(0xDBB73 + 0x23, 0x37)  # switch AT and GT
         rom.write_byte(0xDBB73 + 0x36, 0x24)
-        rom.write_int16(0x15AEE + 2 * 0x38, 0x00E0)
-        rom.write_int16(0x15AEE + 2 * 0x25, 0x000C)
+        if world.doorShuffle[player] == 'vanilla' or world.intensity[player] < 3:
+            rom.write_int16(0x15AEE + 2*0x38, 0x00E0)
+            rom.write_int16(0x15AEE + 2*0x25, 0x000C)
     if world.shuffle[player] in ['vanilla', 'dungeonssimple', 'dungeonsfull']:
         rom.write_byte(0x15B8C, 0x6C)
         rom.write_byte(0xDBB73 + 0x00, 0x53)  # switch bomb shop and links house

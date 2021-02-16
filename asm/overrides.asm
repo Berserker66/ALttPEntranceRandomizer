@@ -142,3 +142,10 @@ RainPrevention:
 					PLA : LDA #$0008 : RTL
 	.done PLA : RTL
 
+; A should be how much dmg to do to Aga when leaving this function
+StandardAgaDmg:
+	LDX.b #$00 ; part of what we wrote over
+	LDA.l $7EF3C6 : AND #$04 : BEQ + ; zelda's not been rescued
+		LDA.b #$10 ; hurt him!
+	+ RTL ; A is zero if the AND results in zero and then Agahnim's invincible!
+

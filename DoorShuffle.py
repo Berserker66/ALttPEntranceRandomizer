@@ -34,7 +34,7 @@ def link_doors(world, player):
                     door.dest = None
                     door.entranceFlag = False
                     ent = door.entrance
-                    if door.type != DoorType.Logical and ent.connected_region is not None:
+                    if (door.type != DoorType.Logical or door.controller) and ent.connected_region is not None:
                         ent.connected_region.entrances = [x for x in ent.connected_region.entrances if x != ent]
                         ent.connected_region = None
             for portal in world.dungeon_portals[player]:
@@ -87,7 +87,7 @@ def link_doors_main(world, player):
             world.get_portal('Desert East', player).destination = True
             if world.mode[player] == 'inverted':
                 world.get_portal('Desert West', player).destination = True
-            if world.mode[player] == 'open':
+            else:
                 world.get_portal('Skull 2 West', player).destination = True
                 world.get_portal('Turtle Rock Lazy Eyes', player).destination = True
                 world.get_portal('Turtle Rock Eye Bridge', player).destination = True
@@ -358,6 +358,7 @@ def choose_portals(world, player):
     if world.doorShuffle[player] in ['basic', 'crossed']:
         cross_flag = world.doorShuffle[player] == 'crossed'
         bk_shuffle = world.bigkeyshuffle[player]
+        std_flag = world.mode[player] == 'standard'
         # roast incognito doors
         world.get_room(0x60, player).delete(5)
         world.get_room(0x60, player).change(2, DoorKind.DungeonEntrance)
@@ -370,13 +371,14 @@ def choose_portals(world, player):
             region_map = defaultdict(list)
             reachable_portals = []
             inaccessible_portals = []
+            hc_flag = std_flag and dungeon == 'Hyrule Castle'
             for portal in portal_list:
                 placeholder = world.get_region(portal + ' Portal', player)
                 portal_region = placeholder.exits[0].connected_region
                 name = portal_region.name
                 if portal_region.type == RegionType.LightWorld:
                     world.get_portal(portal, player).light_world = True
-                if name in world.inaccessible_regions[player]:
+                if name in world.inaccessible_regions[player] or (hc_flag and portal != 'Hyrule Castle South'):
                     name_key = 'Desert Ledge' if name == 'Desert Palace Entrance (North) Spot' else name
                     region_map[name_key].append(portal)
                     inaccessible_portals.append(portal)
@@ -398,7 +400,8 @@ def choose_portals(world, player):
         portal_assignment = defaultdict(list)
         for dungeon, info in info_map.items():
             outstanding_portals = list(dungeon_portals[dungeon])
-            if dungeon == 'Hyrule Castle' and world.mode[player] == 'standard':
+            hc_flag = std_flag and dungeon == 'Hyrule Castle'
+            if hc_flag:
                 sanc = world.get_portal('Sanctuary', player)
                 sanc.destination = True
                 clean_up_portal_assignment(portal_assignment, dungeon, sanc, master_door_list, outstanding_portals)
@@ -426,7 +429,7 @@ def choose_portals(world, player):
             the_rest = info.total - len(portal_assignment[dungeon])
             for i in range(0, the_rest):
                 candidates = find_portal_candidates(master_door_list, dungeon, crossed=cross_flag,
-                                                    bk_shuffle=bk_shuffle)
+                                                    bk_shuffle=bk_shuffle, standard=hc_flag)
                 choice, portal = assign_portal(candidates, outstanding_portals, world, player)
                 clean_up_portal_assignment(portal_assignment, dungeon, portal, master_door_list, outstanding_portals)
 
@@ -537,23 +540,20 @@ def disconnect_portal(portal, world, player):
     chosen_door.entranceFlag = False
 
 
-def find_portal_candidates(door_list, dungeon, need_passage=False, dead_end_allowed=False, crossed=False, bk_shuffle=False):
-    filter_list = [x for x in door_list if bk_shuffle or not x.bk_shuffle_req]
-    if need_passage:
-        if crossed:
-            return [x for x in filter_list if x.passage and (x.dungeonLink is None or x.entrance.parent_region.dungeon.name == dungeon)]
-        else:
-            return [x for x in filter_list if x.passage and x.entrance.parent_region.dungeon.name == dungeon]
-    elif dead_end_allowed:
-        if crossed:
-            return [x for x in filter_list if x.dungeonLink is None or x.entrance.parent_region.dungeon.name == dungeon]
-        else:
-            return [x for x in filter_list if x.entrance.parent_region.dungeon.name == dungeon]
+def find_portal_candidates(door_list, dungeon, need_passage=False, dead_end_allowed=False, crossed=False,
+                           bk_shuffle=False, standard=False):
+    ret = [x for x in door_list if bk_shuffle or not x.bk_shuffle_req]
+    if crossed:
+        ret = [x for x in ret if not x.dungeonLink or x.entrance.parent_region.dungeon.name == dungeon]
     else:
-        if crossed:
-            return [x for x in filter_list if (not x.dungeonLink or x.entrance.parent_region.dungeon.name == dungeon) and not x.deadEnd]
-        else:
-            return [x for x in filter_list if x.entrance.parent_region.dungeon.name == dungeon and not x.deadEnd]
+        ret = [x for x in ret if x.entrance.parent_region.dungeon.name == dungeon]
+    if need_passage:
+        ret = [x for x in ret if x.passage]
+    if not dead_end_allowed:
+        ret = [x for x in ret if not x.deadEnd]
+    if standard:
+        ret = [x for x in ret if not x.standard_restrict]
+    return ret
 
 
 def assign_portal(candidates, possible_portals, world, player):
@@ -2020,6 +2020,7 @@ class DROptions(Flag):
     OriginalPalettes = 0x20
     Open_PoD_Wall = 0x40  # If on, pre opens the PoD wall, no bow required
     Open_Desert_Wall = 0x80  # If on, pre opens the desert wall, no fire required
+    Hide_Total = 0x100
 
 
 # DATA GOES DOWN HERE
@@ -2425,7 +2426,7 @@ interior_doors = [
     ('Skull Pull Switch S', 'Skull Big Chest N'),
     ('Skull Left Drop ES', 'Skull Compass Room WS'),
     ('Skull 2 East Lobby NW', 'Skull Big Key SW'),
-    ('Skull Big Key WN', 'Skull Lone Pot EN'),
+    ('Skull Big Key EN', 'Skull Lone Pot WN'),
     ('Skull Small Hall WS', 'Skull 2 West Lobby ES'),
     ('Skull 2 West Lobby NW', 'Skull X Room SW'),
     ('Skull 3 Lobby EN', 'Skull East Bridge WN'),

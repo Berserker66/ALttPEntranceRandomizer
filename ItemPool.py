@@ -788,6 +788,11 @@ def get_pool_core(world, player: int):
     if world.keyshuffle[player] == "universal":
         pool.extend(diff.universal_keys)
         item_to_place = 'Small Key (Universal)' if goal != 'icerodhunt' else 'Nothing'
+        if world.door_shuffle[player] != 'vanilla':
+            replace = 'Rupees (20)' if difficulty in {'easy', 'normal'} else 'Rupees (5)'
+            indices = [i for i, x in enumerate(pool) if x == replace]
+            for i in range(0, min(10, len(indices))):
+                pool[indices[i]] = 'Small Key (Universal)'
         if mode == 'standard':
             if world.doorShuffle[player] == 'vanilla':
                 key_location = world.random.choice(['Secret Passage', 'Hyrule Castle - Boomerang Chest', 'Hyrule Castle - Map Chest', 'Hyrule Castle - Zelda\'s Chest', 'Sewers - Dark Cross'])

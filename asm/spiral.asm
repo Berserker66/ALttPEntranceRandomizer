@@ -170,10 +170,10 @@ InroomStairsWarp: {
     ; should be the same as lda $0462 : and #$04 : lsr #2 : eor #$01 : sta $07
     lda $01 : and #$80 : beq .notEdge
         lda $07 : sta $03 : beq +
-            lda $01 : jsr LoadSouthMidpoint : sta $22 : lda #$e0
+            lda $01 : jsr LoadSouthMidpoint : sta $22 : lda #$f4
             bra ++
         +
-            lda $01 : jsr LoadNorthMidpoint : sta $22 : lda #$1b
+            lda $01 : jsr LoadNorthMidpoint : sta $22 : dec $21 : lda #$f7
         ++
         sta $20
         lda $01 : and #$20 : beq +
@@ -185,26 +185,36 @@ InroomStairsWarp: {
         brl .layer
     .notEdge
     lda $01 : and #$03 : cmp #$03 : bne .normal
+        txa : and #$06 : sta $07
         lda $01 : and #$30 : lsr #3 : tay
-        lda.w InroomStairsX,y : sta $22
         lda.w InroomStairsX+1,y : sta $02
         lda.w InroomStairsY+1,y : sta $03
-        lda.w InroomStairsY,y
-        ldy $07 : beq +
-            !add #$07
-        +
-        sta $20
+        cpy $07 : beq .vanillaTransition
+            lda.w InroomStairsX,y : sta $22
+            lda.w InroomStairsY,y
+            ldy $07 : beq +
+                !add #$07
+            +
+            sta $20
+            inc $07
+            bra ++
+        .vanillaTransition
+            lda #$c0 : sta $07 ; leave camera
+        ++
         %StonewallCheck($1b)
-        inc $07
         lda $01 : and #$04 : lsr #2
         bra .layer
     .normal
         lda $01 : sta $fe ; trap door
         lda $07 : sta $03 : beq +
+            ldy $a0 : cpy #$51 : beq .specialFix ; throne room
+            cpy #$02 : beq .specialFix ; sewers pull switch
+            cpy #$71 : beq .specialFix ; castle armory
             lda #$e0
-            ldy $a0 : cpy #$51 : bne ++ ; special fix for throne room
-                !sub #$18
-                bra ++
+            bra ++
+            .specialFix
+            lda #$c8
+            bra ++
         +
             %StonewallCheck($43)
             lda #$1b
@@ -235,12 +245,15 @@ InroomStairsWarp: {
         ldy #$01 : jsr ShiftQuadSimple
     .skipYQuad
 
+    lda $07 : bmi .skipCamera
     ldy #$00 : jsr SetCamera ; horizontal camera
     ldy #$01 : sty $07 : jsr SetCamera ; vertical camera
     lda $20 : cmp #$e0 : bcc +
     lda $e8 : bne +
         lda #$10 : sta $e8 ; adjust vertical camera at bottom
     +
+    .skipCamera
+
     jsr StairCleanup
     ply : plx : plb ; pull the stuff we pushed
     rts

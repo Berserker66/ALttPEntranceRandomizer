@@ -541,8 +541,8 @@ def create_doors(world, player):
         create_door(player, 'Skull 2 East Lobby WS', Nrml).dir(We, 0x57, Bot, High).pos(4),
         create_door(player, 'Skull 2 East Lobby NW', Intr).dir(No, 0x57, Left, High).pos(1),
         create_door(player, 'Skull Big Key SW', Intr).dir(So, 0x57, Left, High).pos(1),
-        create_door(player, 'Skull Big Key WN', Intr).dir(We, 0x57, Top, High).pos(0),
-        create_door(player, 'Skull Lone Pot EN', Intr).dir(Ea, 0x57, Top, High).pos(0),
+        create_door(player, 'Skull Big Key EN', Intr).dir(Ea, 0x57, Top, High).pos(0),
+        create_door(player, 'Skull Lone Pot WN', Intr).dir(We, 0x57, Top, High).pos(0),
         create_door(player, 'Skull Small Hall ES', Nrml).dir(Ea, 0x56, Bot, High).pos(3),
         create_door(player, 'Skull Small Hall WS', Intr).dir(We, 0x56, Bot, High).pos(2),
         create_door(player, 'Skull 2 West Lobby S', Nrml).dir(So, 0x56, Left, High).pos(1).portal(Z, 0x00),
@@ -1306,6 +1306,7 @@ def create_doors(world, player):
     world.get_door("GT Bob\'s Room SE", player).passage = False
     world.get_door('PoD Mimics 2 SW', player).bk_shuffle_req = True
     world.get_door('Desert Tiles 2 SE', player).bk_shuffle_req = True  # key-drop note (todo)
+    world.get_door('Swamp Lobby S', player).standard_restricted = True  # key-drop note (todo)
 
     # can't unlink from boss right now
     world.get_door('Hera Lobby S', player).dungeonLink = 'Tower of Hera'

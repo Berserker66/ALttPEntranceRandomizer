@@ -191,7 +191,9 @@ class World(object):
             region.world = self
             self._region_cache[region.player][region.name] = region
             for exit in region.exits:
-                self._entrance_cache[(exit.name, exit.player)] = exit
+                self._entrance_cache[exit.name, exit.player] = exit
+            for r_location in region.locations:
+                self._location_cache[r_location.name, r_location.player] = r_location
 
     def initialize_doors(self, doors):
         for door in doors:
@@ -1379,6 +1381,7 @@ class Door(object):
         self.passage = True
         self.dungeonLink = None
         self.bk_shuffle_req = False
+        self.standard_restrict = False  # flag if portal is not allowed in HC in standard
         # self.incognitoPos = -1
         # self.sectorLink = False
 

@@ -579,7 +579,7 @@ def progressive_ctr(new_counter, last_counter):
 def unique_child_door(child, key_counter):
     if child in key_counter.child_doors or child.dest in key_counter.child_doors:
         return False
-    if child in key_counter.open_doors or child.dest in key_counter.child_doors:
+    if child in key_counter.open_doors or child.dest in key_counter.open_doors:
         return False
     if child.bigKey and key_counter.big_key_opened:
         return False
@@ -589,7 +589,7 @@ def unique_child_door(child, key_counter):
 def unique_child_door_2(child, key_counter):
     if child in key_counter.child_doors or child.dest in key_counter.child_doors:
         return False
-    if child in key_counter.open_doors or child.dest in key_counter.child_doors:
+    if child in key_counter.open_doors or child.dest in key_counter.open_doors:
         return False
     return True
 
@@ -1463,7 +1463,10 @@ def create_odd_key_counter(door, parent_counter, key_layout, world, player):
     next_counter = find_next_counter(door, parent_counter, key_layout)
     odd_counter.free_locations = dict_difference(next_counter.free_locations, parent_counter.free_locations)
     odd_counter.key_only_locations = dict_difference(next_counter.key_only_locations, parent_counter.key_only_locations)
-    odd_counter.child_doors = dict_difference(next_counter.child_doors, parent_counter.child_doors)
+    odd_counter.child_doors = {}
+    for d in next_counter.child_doors:
+        if d not in parent_counter.child_doors and (d.type == DoorType.SpiralStairs or d.dest not in parent_counter.child_doors):
+            odd_counter.child_doors[d] = None
     odd_counter.other_locations = dict_difference(next_counter.other_locations, parent_counter.other_locations)
     odd_counter.important_locations = dict_difference(next_counter.important_locations, parent_counter.important_locations)
     for loc in odd_counter.other_locations:
