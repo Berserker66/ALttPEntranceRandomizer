@@ -1716,7 +1716,7 @@ def add_key_logic_rules(world, player):
             add_rule(world.get_entrance(door.name, player), create_rule(d_logic.bk_name, player))
         for chest in d_logic.bk_chests:
             add_rule(world.get_location(chest.name, player), create_rule(d_logic.bk_name, player))
-    if world.retro[player]:
+    if world.keyshuffle[player] == 'universal':
         for d_name, layout in world.key_layout[player].items():
             for door in layout.flat_prop:
                 if world.mode[player] != 'standard' or not retro_in_hc(door.entrance):
