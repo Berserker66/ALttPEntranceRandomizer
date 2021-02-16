@@ -788,7 +788,7 @@ def get_pool_core(world, player: int):
     if world.keyshuffle[player] == "universal":
         pool.extend(diff.universal_keys)
         item_to_place = 'Small Key (Universal)' if goal != 'icerodhunt' else 'Nothing'
-        if world.door_shuffle[player] != 'vanilla':
+        if world.doorShuffle[player] != 'vanilla':
             replace = 'Rupees (20)' if difficulty in {'easy', 'normal'} else 'Rupees (5)'
             indices = [i for i, x in enumerate(pool) if x == replace]
             for i in range(0, min(10, len(indices))):
