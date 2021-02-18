@@ -13,6 +13,10 @@ New item counter modified to show total
 
 # Bug Fixes
 
+* 0.3.0.4-u
+	* QoL fixes from Mike
+	* Allow PoD Mimics 2 as a lobby in non-keysanity seeds (Thanks @Catobat)
+	* Fix for double-counting Hera key in keydropshuffle
 * 0.3.0.3-u
 	* Disallowed Swamp Lobby in Hyrule Castle in Standard mode
 	* Prevent defeating Aga 1 before Zelda is delivered to the Sanctuary. (He can't take damage)

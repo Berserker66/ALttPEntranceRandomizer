@@ -1304,7 +1304,6 @@ def create_doors(world, player):
     world.get_door('GT Petting Zoo SE', player).dead_end()
     world.get_door('GT DMs Room SW', player).dead_end()
     world.get_door("GT Bob\'s Room SE", player).passage = False
-    world.get_door('PoD Mimics 2 SW', player).bk_shuffle_req = True
     world.get_door('Desert Tiles 2 SE', player).bk_shuffle_req = True  # key-drop note (todo)
     world.get_door('Swamp Lobby S', player).standard_restricted = True  # key-drop note (todo)
 
