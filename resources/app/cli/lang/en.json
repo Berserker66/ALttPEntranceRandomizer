@@ -263,6 +263,7 @@
     ],
     "quickswap": [ "Enable quick item swapping with L and R. (default: %(default)s)" ],
     "disablemusic": [ "Disables game music including MSU-1. (default: %(default)s)" ],
+    "reduceflashing": [ "Disables flashing animations (unfriendly to epilepsy, always disabled in race roms)" ],
     "mapshuffle": [ "Maps are no longer restricted to their dungeons, but can be anywhere. (default: %(default)s)" ],
     "compassshuffle": [ "Compasses are no longer restricted to their dungeons, but can be anywhere. (default: %(default)s)" ],
     "keyshuffle": [ "Small Keys are no longer restricted to their dungeons, but can be anywhere. (default: %(default)s)" ],

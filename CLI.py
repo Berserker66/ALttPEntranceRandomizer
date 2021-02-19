@@ -104,7 +104,7 @@ def parse_cli(argv, no_defaults=False):
     if multiargs.multi:
         defaults = copy.deepcopy(ret)
         for player in range(1, multiargs.multi + 1):
-            playerargs = parse_cli(shlex.split(getattr(ret,f"p{player}")), True)
+            playerargs = parse_cli(shlex.split(getattr(ret, f"p{player}")), True)
 
             for name in ['logic', 'mode', 'swords', 'goal', 'difficulty', 'item_functionality',
                          'shuffle', 'door_shuffle', 'intensity', 'crystals_ganon', 'crystals_gt', 'open_pyramid',
@@ -118,7 +118,7 @@ def parse_cli(argv, no_defaults=False):
                          'tile_shuffle', 'bush_shuffle', 'shop_shuffle', 'sprite_pool', 'dark_room_logic', 'restrict_dungeon_item_on_boss',
                          'hud_palettes', 'sword_palettes', 'shield_palettes', 'link_palettes', 'keydropshuffle', 'mixed_travel',
                          'standardize_palettes', 'plando_items', 'plando_texts', 'plando_connections', 'required_medallions',
-                         "shop_shuffle_slots"]:
+                         "shop_shuffle_slots", "reduceflashing"]:
                 value = getattr(defaults, name) if getattr(playerargs, name) is None else getattr(playerargs, name)
                 if player == 1:
                     setattr(ret, name, {1: value})
