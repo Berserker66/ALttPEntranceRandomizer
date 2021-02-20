@@ -109,6 +109,7 @@ def main(args, seed=None, fish=None):
     world.plando_texts = args.plando_texts.copy()
     world.plando_connections = args.plando_connections.copy()
     world.er_seeds = args.er_seeds.copy()
+    world.dr_seeds = args.dr_seeds.copy()
     world.restrict_dungeon_item_on_boss = args.restrict_dungeon_item_on_boss.copy()
     world.required_medallions = args.required_medallions.copy()
     world.potshuffle = args.shufflepots.copy()
@@ -120,11 +121,17 @@ def main(args, seed=None, fish=None):
 
     for player in range(1, world.players+1):
         world.er_seeds[player] = str(world.random.randint(0, 2 ** 64))
+        world.dr_seeds[player] = str(world.random.randint(0, 2 ** 64))
 
         if "-" in world.shuffle[player]:
             shuffle, seed = world.shuffle[player].split("-")
             world.shuffle[player] = shuffle
             world.er_seeds[player] = seed
+
+        if "-" in world.doorShuffle[player]:
+            shuffle, seed = world.doorShuffle[player].split("-")
+            world.doorShuffle[player] = shuffle
+            world.dr_seeds[player] = seed
 
     logger.info(
       world.fish.translate("cli","cli","app.title") + "\n",
@@ -237,12 +244,9 @@ def main(args, seed=None, fish=None):
     for player in range(1, world.players + 1):
         logger.info(f'Generating Dungeon layout for {world.player_names[player]} ({player}/{world.players})')
 
-        old_random = world.random
         # seeded door shuffle
-        if "-" in world.doorShuffle[player]:
-            shuffle, seed = world.doorShuffle[player].split("-")
-            world.random = random.Random(int(seed))
-            world.doorShuffle[player] = shuffle
+        old_random = world.random
+        world.random = random.Random(world.dr_seeds[player])
 
         link_doors(world, player)
         world.random = old_random

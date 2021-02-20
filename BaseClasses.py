@@ -35,6 +35,7 @@ class World(object):
     plando_items: List[PlandoItem]
     plando_connections: List[PlandoConnection]
     er_seeds: Dict[int, str]
+    dr_seeds: Dict[int, str]
 
     def __init__(self, players: int, shuffle, doorShuffle, logic, mode, swords, difficulty, item_functionality, timer, progressive,
                  goal, algorithm, accessibility, shuffle_ganon, retro, custom, customitemarray, hints):
@@ -2119,6 +2120,7 @@ class Spoiler(object):
                          'keydropshuffle': self.world.keydropshuffle,
                          'debug': self.world.debug,
                          'er_seeds': self.world.er_seeds,
+                         'dr_seeds': self.world.dr_seeds
                          }
 
     def to_json(self):
@@ -2189,7 +2191,9 @@ class Spoiler(object):
                 if self.metadata['shuffle'][player] != "vanilla":
                     outfile.write('Entrance Shuffle Seed            %s\n' % self.metadata['er_seeds'][player])
                 outfile.write('Door Shuffle:                    %s\n' % self.metadata['door_shuffle'][player])
-                outfile.write('Intensity:                       %s\n' % self.metadata['intensity'][player])
+                if self.metadata['door_shuffle'][player] != "vanilla":
+                    outfile.write('Intensity:                       %s\n' % self.metadata['intensity'][player])
+                    outfile.write('Door Shuffle Seed                %s\n' % self.metadata['dr_seeds'][player])
                 addition = ' (Random)' if self.world.crystals_gt_orig[player] == 'random' else ''
                 outfile.write('Crystals required for GT:        %s\n' % (str(self.metadata['gt_crystals'][player]) + addition))
                 addition = ' (Random)' if self.world.crystals_ganon_orig[player] == 'random' else ''
