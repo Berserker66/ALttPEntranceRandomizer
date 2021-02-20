@@ -225,17 +225,28 @@ def main(args, seed=None, fish=None):
         else:
             link_inverted_entrances(world, player)
 
+        world.random = old_random
+
     logger.info(world.fish.translate("cli","cli","shuffling.dungeons"))
 
     for player in range(1, world.players + 1):
         logger.info(f'Generating Dungeon layout for {world.player_names[player]} ({player}/{world.players})')
+
+        old_random = world.random
+        # seeded door shuffle
+        if "-" in world.doorShuffle[player]:
+            shuffle, seed = world.doorShuffle[player].split("-")
+            world.random = random.Random(int(seed))
+            world.doorShuffle[player] = shuffle
+
         link_doors(world, player)
+        world.random = old_random
+
         if world.mode[player] != 'inverted':
             mark_light_world_regions(world, player)
         else:
             mark_dark_world_regions(world, player)
 
-        world.random = old_random
         plando_connect(world, player)
     logger.info(world.fish.translate("cli","cli","generating.itempool"))
 

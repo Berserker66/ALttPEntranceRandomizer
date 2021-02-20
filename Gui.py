@@ -282,7 +282,7 @@ def guiMain(args=None):
     doorshuffleFrame = Frame(drowDownFrame)
     doorshuffleVar = StringVar()
     doorshuffleVar.set('vanilla')
-    doorshuffleOptionMenu = OptionMenu(doorshuffleFrame, doorshuffleVar, 'vanilla', 'basic', 'crossed')
+    doorshuffleOptionMenu = OptionMenu(doorshuffleFrame, doorshuffleVar, 'vanilla', 'basic', 'crossed', 'same basic', 'same crossed')
     doorshuffleOptionMenu.pack(side=RIGHT)
     doorshuffleLabel = Label(doorshuffleFrame, text='Door Shuffle')
     doorshuffleLabel.pack(side=LEFT)
@@ -472,6 +472,9 @@ def guiMain(args=None):
                                                               random.randint(0, 2**64))
         guiargs.door_shuffle = doorshuffleVar.get()
         guiargs.intensity = doorintensityVar.get()
+        if "same " in guiargs.door_shuffle:
+            guiargs.door_shuffle = guiargs.door_shuffle[5:] + "-" + str(seedVar.get() if seedVar.get() else
+                                                                        random.randint(0, 2**64))
 
         guiargs.heartbeep = rom_vars.heartbeepVar.get()
         guiargs.heartcolor = rom_vars.heartcolorVar.get()
