@@ -108,6 +108,7 @@ def main(args, seed=None, fish=None):
     world.plando_items = args.plando_items.copy()
     world.plando_texts = args.plando_texts.copy()
     world.plando_connections = args.plando_connections.copy()
+    world.er_seeds = args.er_seeds.copy()
     world.restrict_dungeon_item_on_boss = args.restrict_dungeon_item_on_boss.copy()
     world.required_medallions = args.required_medallions.copy()
     world.potshuffle = args.shufflepots.copy()
@@ -116,6 +117,14 @@ def main(args, seed=None, fish=None):
     world.standardize_palettes = args.standardize_palettes.copy()
 
     world.rom_seeds = {player: random.Random(world.random.randint(0, 999999999)) for player in range(1, world.players + 1)}
+
+    for player in range(1, world.players+1):
+        world.er_seeds[player] = str(world.random.randint(0, 2 ** 64))
+
+        if "-" in world.shuffle[player]:
+            shuffle, seed = world.shuffle[player].split("-")
+            world.shuffle[player] = shuffle
+            world.er_seeds[player] = seed
 
     logger.info(
       world.fish.translate("cli","cli","app.title") + "\n",
@@ -212,13 +221,9 @@ def main(args, seed=None, fish=None):
                 {"vanilla", "dungeonssimple", "dungeonsfull", "simple", "restricted", "full"}:
             world.fix_fake_world[player] = False
 
-        old_random = world.random
-
         # seeded entrance shuffle
-        if "-" in world.shuffle[player]:
-            shuffle, seed = world.shuffle[player].split("-")
-            world.random = random.Random(int(seed))
-            world.shuffle[player] = shuffle
+        old_random = world.random
+        world.random = random.Random(world.er_seeds[player])
 
         if world.mode[player] != 'inverted':
             link_entrances(world, player)
