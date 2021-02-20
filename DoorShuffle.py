@@ -167,6 +167,8 @@ def create_door_spoiler(world, player):
                     if door_b and not isinstance(door_b, Region):
                         done.add(door_b)
                         if not door_a.blocked and not door_b.blocked:
+                            if door_b.name < door_a.name:
+                                door_a, door_b = door_b, door_a
                             world.spoiler.set_door(door_a.name, door_b.name, 'both', player, builder.name)
                         elif door_a.blocked:
                             world.spoiler.set_door(door_b.name, door_a.name, 'entrance', player, builder.name)

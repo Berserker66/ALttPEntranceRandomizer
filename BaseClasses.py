@@ -2239,6 +2239,7 @@ class Spoiler(object):
                 outfile.write('Debug Mode:                      %s\n' % ('Yes' if self.metadata['debug'][player] else 'No'))
                 outfile.write('Key Drops shuffled:              %s\n' % ('Yes' if self.metadata['keydropshuffle'][player] else 'No'))
             if self.doors:
+                self.doors = OrderedDict(sorted(self.doors.items(), key=lambda item: (item[1]['player'], item[1]['entrance'])))
                 outfile.write('\n\nDoors:\n\n')
                 outfile.write('\n'.join(
                     ['%s%s %s %s %s' % (f'{self.world.get_player_names(entry["player"])}: ' if self.world.players > 1 else '',
