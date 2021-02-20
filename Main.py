@@ -212,6 +212,14 @@ def main(args, seed=None, fish=None):
                 {"vanilla", "dungeonssimple", "dungeonsfull", "simple", "restricted", "full"}:
             world.fix_fake_world[player] = False
 
+        old_random = world.random
+
+        # seeded entrance shuffle
+        if "-" in world.shuffle[player]:
+            shuffle, seed = world.shuffle[player].split("-")
+            world.random = random.Random(int(seed))
+            world.shuffle[player] = shuffle
+
         if world.mode[player] != 'inverted':
             link_entrances(world, player)
         else:
@@ -226,6 +234,8 @@ def main(args, seed=None, fish=None):
             mark_light_world_regions(world, player)
         else:
             mark_dark_world_regions(world, player)
+
+        world.random = old_random
         plando_connect(world, player)
     logger.info(world.fish.translate("cli","cli","generating.itempool"))
 

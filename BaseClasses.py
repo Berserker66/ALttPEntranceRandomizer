@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import functools
 import logging
 from collections import OrderedDict, Counter, deque, defaultdict
 from enum import Enum, unique
@@ -204,6 +205,10 @@ class World(object):
             del self._door_cache[(door.name, player)]
         if door in self.doors:
             self.doors.remove(door)
+
+    @functools.cached_property
+    def world_name_lookup(self):
+        return {self.player_names[player_id][0]: player_id for player_id in self.player_ids}
 
     def _recache(self):
         """Rebuild world cache"""
