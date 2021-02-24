@@ -135,10 +135,14 @@ def main(args, seed=None, fish=None):
         if "-" in world.shuffle[player]:
             shuffle, seed = world.shuffle[player].split("-", 1)
             world.shuffle[player] = shuffle
-            if seed.startswith("team-"):
+            if shuffle == "vanilla":
+                world.er_seeds[player] = "vanilla"
+            elif seed.startswith("team-"):
                 world.er_seeds[player] = get_same_seed(world, ('entrance', shuffle, seed, world.retro[player], world.mode[player], world.logic[player]))
             else:
                 world.er_seeds[player] = seed
+        elif world.shuffle[player] == "vanilla":
+            world.er_seeds[player] = "vanilla"
 
         if "-" in world.doorShuffle[player]:
             shuffle, seed = world.doorShuffle[player].split("-", 1)
