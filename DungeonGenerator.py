@@ -1249,7 +1249,7 @@ def create_dungeon_builders(all_sectors, connections_tuple, world, player,
                 for r_name in ['Hyrule Dungeon Cellblock', 'Sanctuary']:  # need to deliver zelda
                     assign_sector(find_sector(r_name, candidate_sectors), current_dungeon,
                                   candidate_sectors, global_pole)
-                standard_stair_check(dungeon_map, current_dungeon, candidate_sectors, global_pole)
+                standard_stair_check(world, dungeon_map, current_dungeon, candidate_sectors, global_pole)
         entrances_map, potentials, connections = connections_tuple
         accessible_sectors, reverse_d_map = set(), {}
         for key in dungeon_entrances.keys():
@@ -1334,13 +1334,13 @@ def create_dungeon_builders(all_sectors, connections_tuple, world, player,
     return dungeon_map
 
 
-def standard_stair_check(dungeon_map, dungeon, candidate_sectors, global_pole):
+def standard_stair_check(world, dungeon_map, dungeon, candidate_sectors, global_pole):
     # this is because there must be at least one non-dead stairway in hc to get out
     # this check may not be necessary
     filtered_sectors = [x for x in candidate_sectors if any(y for y in x.outstanding_doors if not y.dead and y.type == DoorType.SpiralStairs)]
     valid = False
     while not valid:
-        chosen_sector = random.choice(filtered_sectors)
+        chosen_sector = world.random.choice(filtered_sectors)
         filtered_sectors.remove(chosen_sector)
         valid = global_pole.is_valid_choice(dungeon_map, dungeon, [chosen_sector])
         if valid:
