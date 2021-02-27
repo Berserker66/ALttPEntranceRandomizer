@@ -218,6 +218,14 @@
     "action": "store_true",
     "type": "bool"
   },
+  "triforcehud": {
+    "choices": [
+      "normal",
+      "hide_goal",
+      "hide_required",
+      "hide_both"
+    ]
+  },
   "reduceflashing": {
     "action": "store_true",
     "type": "bool"

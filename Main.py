@@ -390,7 +390,7 @@ def main(args, seed=None, fish=None):
         palettes_options['link']=args.link_palettes[player]
         
         apply_rom_settings(rom, args.heartbeep[player], args.heartcolor[player], args.quickswap[player],
-                           args.fastmenu[player], args.disablemusic[player], args.sprite[player],
+                           args.fastmenu[player], args.disablemusic[player], args.triforcehud[player], args.sprite[player],
                            palettes_options, world, player, True, reduceflashing=args.reduceflashing[player] if not args.race else True)
 
         mcsb_name = ''
