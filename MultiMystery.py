@@ -69,6 +69,8 @@ if __name__ == "__main__":
         take_first_working = multi_mystery_options["take_first_working"]
         meta_file_path = multi_mystery_options["meta_file_path"]
         weights_file_path = multi_mystery_options["weights_file_path"]
+        pre_roll = multi_mystery_options["pre_roll"]
+        use_pre_rolled = multi_mystery_options["use_pre_rolled"]
         teams = multi_mystery_options["teams"]
         rom_file = options["general_options"]["rom_file"]
         host = options["server_options"]["host"]
@@ -134,6 +136,10 @@ if __name__ == "__main__":
             command += f" --meta {os.path.join(player_files_path, meta_file_path)}"
         if os.path.exists(weights_file_path):
             command += f" --weights {weights_file_path}"
+        if pre_roll:
+            command += " --pre_roll"
+        if use_pre_rolled:
+            command += " --use_pre_rolled"
 
         logging.info(command)
         import time
@@ -144,7 +150,7 @@ if __name__ == "__main__":
 
         def seed_exists(task):
             for file in os.listdir(task.folder.name):
-                if task.seedname in file:
+                if task.seedname in file and not file.endswith(".yaml"):
                     return True
             return False
 
