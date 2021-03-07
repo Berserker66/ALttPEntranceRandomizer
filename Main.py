@@ -156,9 +156,15 @@ def main(args, seed=None, fish=None):
             world.doorShuffle[player] = shuffle
             if shuffle == "vanilla":
                 world.dr_seeds[player] = "vanilla"
-            elif seed.startswith("team-"):
+            elif seed.startswith("group-"):  # renamed from team to group to not confuse with existing team name use
                 world.dr_seeds[player] = get_same_seed(world, ('doors', shuffle, seed, world.shuffle[player], world.er_seeds[player], world.mode[player], world.intensity[player], world.potshuffle[player], world.keydropshuffle[player], world.bigkeyshuffle[player]))
-            else:
+            elif seed.startswith("team-"):  # TODO: remove on breaking_changes
+                world.dr_seeds[player] = get_same_seed(world, ('doors', shuffle, seed, world.shuffle[player], world.er_seeds[player], world.mode[player], world.intensity[player], world.potshuffle[player], world.keydropshuffle[player], world.bigkeyshuffle[player]))
+            elif not args.race:
+                world.dr_seeds[player] = seed
+            elif seed:  # race but with a set seed, ignore set seed and use group logic instead
+                world.dr_seeds[player] = get_same_seed(world, ('doors', shuffle, seed, world.shuffle[player], world.er_seeds[player], world.mode[player], world.intensity[player], world.potshuffle[player], world.keydropshuffle[player], world.bigkeyshuffle[player]))
+            else:  # race but without a set seed
                 world.dr_seeds[player] = seed
         elif world.doorShuffle[player] == "vanilla":
             world.dr_seeds[player] = "vanilla"
