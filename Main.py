@@ -138,7 +138,7 @@ def main(args, seed=None, fish=None):
             world.shuffle[player] = shuffle
             if shuffle == "vanilla":
                 world.er_seeds[player] = "vanilla"
-            elif seed.startswith("group-"):  # renamed from team to group to not confuses with existing team name use
+            elif seed.startswith("group-"):  # renamed from team to group to not confuse with existing team name use
                 world.er_seeds[player] = get_same_seed(world, ('entrance', shuffle, seed, world.retro[player], world.mode[player], world.logic[player]))
             elif seed.startswith("team-"):  # TODO: remove on breaking_changes
                 world.er_seeds[player] = get_same_seed(world, ('entrance', shuffle, seed, world.retro[player], world.mode[player], world.logic[player]))
@@ -146,7 +146,7 @@ def main(args, seed=None, fish=None):
                 world.er_seeds[player] = seed
             elif seed:  # race but with a set seed, ignore set seed and use group logic instead
                 world.er_seeds[player] = get_same_seed(world, ('entrance', shuffle, seed, world.retro[player], world.mode[player], world.logic[player]))
-            else: # race but without a set seed
+            else:  # race but without a set seed
                 world.er_seeds[player] = seed
         elif world.shuffle[player] == "vanilla":
             world.er_seeds[player] = "vanilla"
