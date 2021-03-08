@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 JAP10HASH = '03a63945398191337e896e5771f77173'
-RANDOMIZERBASEHASH = 'f6b43d105b0b4d3b03102d61fb253613'
+RANDOMIZERBASEHASH = 'ca0a434c11bd09f2af3e8085b2879a1f'
 
 import io
 import itertools
@@ -1664,6 +1664,7 @@ def patch_rom(world, rom, player, team, enemized, is_mystery=False):
     rom.write_bytes(0x18018B, [0, 0, 0])  # Mantle respawn refills (magic, bombs, arrows)
     bow_max, bomb_max, magic_max = 0, 0, 0
     bow_small, magic_small = 0, 0
+    uncle_refill = 0
     if world.mode[player] == 'standard':
         if uncle_location.item and uncle_location.item.player == player:
             if uncle_location.item.name in {'Bow', 'Progressive Bow'}:
@@ -1672,28 +1673,34 @@ def patch_rom(world, rom, player, team, enemized, is_mystery=False):
                 rom.write_bytes(0x180185, [0, 0, 70])  # Uncle respawn refills (magic, bombs, arrows)
                 rom.write_bytes(0x180188, [0, 0, 10]) # Zelda respawn refills (magic, bombs, arrows)
                 rom.write_bytes(0x18018B, [0, 0, 10]) # Mantle respawn refills (magic, bombs, arrows)
-                bow_max, bow_small = 70, 10
+                bow_max, bow_small, uncle_refill = 70, 10, 1
             elif uncle_location.item.name in {'Bombs (10)'}:
                 rom.write_byte(0x18004E, 2) # Escape Fill (bombs)
                 rom.write_bytes(0x180185, [0, 50, 0]) # Uncle respawn refills (magic, bombs, arrows)
                 rom.write_bytes(0x180188, [0, 3, 0]) # Zelda respawn refills (magic, bombs, arrows)
                 rom.write_bytes(0x18018B, [0, 3, 0]) # Mantle respawn refills (magic, bombs, arrows)
-                bomb_max = 50
+                bomb_max, uncle_refill = 50, 2
             elif uncle_location.item.name in {'Cane of Somaria', 'Cane of Byrna', 'Fire Rod'}:
                 rom.write_byte(0x18004E, 4) # Escape Fill (magic)
                 rom.write_bytes(0x180185, [0x80, 0, 0]) # Uncle respawn refills (magic, bombs, arrows)
                 rom.write_bytes(0x180188, [0x20, 0, 0]) # Zelda respawn refills (magic, bombs, arrows)
                 rom.write_bytes(0x18018B, [0x20, 0, 0]) # Mantle respawn refills (magic, bombs, arrows)
-                magic_max, magic_small = 0x80, 0x20
+                magic_max, magic_small, uncle_refill = 0x80, 0x20, 4
         if world.doorShuffle[player] == 'crossed':
             # Uncle respawn refills (magic, bombs, arrows)
+            rom.write_byte(0x18004E, uncle_refill | (8 if world.keyshuffle[player] == "universal" else 0))
             rom.write_bytes(0x180185, [max(0x20, magic_max), max(3, bomb_max), max(10, bow_max)])
             rom.write_bytes(0x180188, [0x20, 3, 10])  # Zelda respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x18018B, [0x20, 3, 10])  # Mantle respawn refills (magic, bombs, arrows)
+            rom.write_bytes(0x18018E, [3, 1])
+            rom.write_byte(0x180196, 1)
         elif world.doorShuffle[player] == 'basic':
+            rom.write_byte(0x18004E, uncle_refill | (8 if world.keyshuffle[player] == "universal" else 0))
             rom.write_bytes(0x180185, [max(magic_small, magic_max), max(3, bomb_max), max(10, bow_max)])
             rom.write_bytes(0x180188, [magic_small, 3, bow_small])  # Zelda respawn refills (magic, bombs, arrows)
             rom.write_bytes(0x18018B, [magic_small, 3, bow_small])  # Mantle respawn refills (magic, bombs, arrows)
+            rom.write_bytes(0x18018E, [3, 1])
+            rom.write_byte(0x180196, 1)
 
     # patch swamp: Need to enable permanent drain of water as dam or swamp were moved
     rom.write_byte(0x18003D, 0x01 if world.swamp_patch_required[player] else 0x00)
