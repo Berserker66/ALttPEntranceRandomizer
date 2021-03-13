@@ -211,12 +211,12 @@ if __name__ == "__main__":
             dead_or_alive = {}
             alive = 0
 
-            def check_if_done():
+            def check_if_done(force: bool = False):
                 for x in range(1, max_attempts+1):
                     result = dead_or_alive.get(x, None)
                     if result:
                         return x
-                    elif result is None:
+                    elif result is None and not force:
                         return False
                 return False
 
@@ -284,6 +284,9 @@ if __name__ == "__main__":
                         if keep_all_seeds:
                             tqdm.write(msg)
                             copy_seed(task, os.path.join(output_path, basedir, str(task.task_id)))
+                            if keep_all_seeds is not True and alive >= keep_all_seeds:
+                                cancel_remaining()
+                                break
                         elif done:
                             tqdm.write(msg)
                             cancel_remaining()
@@ -291,8 +294,6 @@ if __name__ == "__main__":
                         elif take_first_working:
                             tqdm.write(msg)
                             cancel_remaining()
-                            def check_if_done():
-                                return task.task_id
                             break
                         else:
                             min_logical_seed = min(min_logical_seed, task.task_id)
@@ -303,7 +304,7 @@ if __name__ == "__main__":
 
             pool.shutdown(False)
 
-            task_id = check_if_done()
+            task_id = check_if_done(True)
             if not task_id:
                 if not log_output_path:
                     input("No seed was successful. Press enter to get errors.")

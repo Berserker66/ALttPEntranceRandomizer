@@ -117,6 +117,8 @@ multi_mystery_options:
   #keep in mind, that turning this on, will skew the randomness into "simpler" seeds, as they generate quicker
   take_first_working: False
   #When using max_attempts, this controls if all successful seeds will be kept.
+  #If a number is specified, then that exact number of seeds will be kept of all the successful seeds.
+  #numbers less than or equal to one will keep exactly one seed.
   keep_all_seeds: False
   #When logging is desired, this specifies the path to output the logs to. null for no output logs.
   log_output_path: "Output Logs"
