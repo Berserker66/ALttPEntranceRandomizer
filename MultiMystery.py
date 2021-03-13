@@ -151,13 +151,20 @@ if __name__ == "__main__":
                     return True
             return False
 
-        def copy_seed(task, destination: str):
+        def copy_seed(task, destination: str, keep_all_seeds: bool = False):
             # seedname = None
-            os.makedirs(destination, exist_ok=True)
+            if keep_all_seeds:
+                os.makedirs(os.path.join(destination, str(task.task_id)), exist_ok=True)
+            else:
+                os.makedirs(destination, exist_ok=True)
             for file in os.listdir(task.folder.name):
-                shutil.copy(os.path.join(task.folder.name, file), os.path.join(destination, file))
-                # if not seedname and (file.endswith("_multidata") or file.endswith(".sfc") or file.endswith("_spoiler.txt")):
-                #     seedname = file.split('.')[0].split('_')[1]
+                if file.endswith("_pre_rolled.yaml") and keep_all_seeds:
+                    dest_file = f"{os.path.splitext(file)[0]}_{task.task_id}.yaml"
+                elif keep_all_seeds:
+                    dest_file = os.path.join(str(task.task_id), file)
+                else:
+                    dest_file = file
+                shutil.copy(os.path.join(task.folder.name, file), os.path.join(destination, dest_file))
             return task.seedname
 
         def get_working_seed():#is a function for automatic deallocation of resources that are no longer needed when the server starts
@@ -283,7 +290,7 @@ if __name__ == "__main__":
                         done = check_if_done()
                         if keep_all_seeds:
                             tqdm.write(msg)
-                            copy_seed(task, os.path.join(output_path, basedir, str(task.task_id)))
+                            copy_seed(task, os.path.join(output_path, basedir), keep_all_seeds)
                             if keep_all_seeds is not True and alive >= keep_all_seeds:
                                 cancel_remaining()
                                 break
