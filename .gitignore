@@ -12,6 +12,9 @@
 *.bst
 *.wixobj
 *.lck
+*.db3
+*-errors.txt
+*.exe
 *multidata
 *multisave
 
@@ -34,32 +37,13 @@ weights/
 /logs/
 _persistent_storage.yaml
 mystery_result_*.yaml
-/db.db3
-
 resources/user/*
 !resources/user/.gitkeep
 
-*.exe
-
 get-pip.py
-
 venv
 test
-
-basic-1-errors.txt
-
-basic-2-errors.txt
-
-basic-3-errors.txt
-
-crossed-1-errors.txt
-
-crossed-2-errors.txt
-
-crossed-3-errors.txt
 
 success.txt
 output/
 Output Logs/
-
-vanilla-errors.txt
