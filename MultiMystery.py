@@ -171,6 +171,8 @@ if __name__ == "__main__":
             cpu_threads = multi_mystery_options["cpu_threads"]
             max_attempts = multi_mystery_options["max_attempts"]
             keep_all_seeds = multi_mystery_options["keep_all_seeds"]
+            if keep_all_seeds is not True and keep_all_seeds < 2:
+                keep_all_seeds = False  # Values less than or equal to 1 will Always produces exactly one seed.
             basedir = os.path.basename(tempfile.TemporaryDirectory().name) if keep_all_seeds else ""
 
             def cancel_remaining(starting_at:int = 0):
