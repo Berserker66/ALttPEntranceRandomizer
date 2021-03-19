@@ -112,10 +112,11 @@ def fill_dungeons_restrictive(world):
     """Places dungeon-native items into their dungeons, places nothing if everything is shuffled outside."""
     restricted_players = {player for player, restricted in world.restrict_dungeon_item_on_boss.items() if restricted}
 
-    locations = [location for location in world.get_unfilled_dungeon_locations()
-                 if not (location.player in restricted_players and location.name in lookup_boss_drops)] # filter boss
+    locations = {}
+    for location in [location for location in world.get_unfilled_dungeon_locations()
+                     if not (location.player in restricted_players and location.name in lookup_boss_drops)]:  # filter boss
+        locations.setdefault(location.player, {}).setdefault(location.parent_region.dungeon, []).append(location)
 
-    world.random.shuffle(locations)
     all_state_base = world.get_all_state()
 
     # with shuffled dungeon items they are distributed as part of the normal item pool
@@ -123,17 +124,55 @@ def fill_dungeons_restrictive(world):
         if (item.smallkey and world.keyshuffle[item.player]) or (item.bigkey and world.bigkeyshuffle[item.player]):
             item.advancement = True
 
-    dungeon_items = [item for item in get_dungeon_item_pool(world) if (((item.smallkey and not world.keyshuffle[item.player])
-                                                                       or (item.bigkey and not world.bigkeyshuffle[item.player])
-                                                                       or (item.map and not world.mapshuffle[item.player])
-                                                                       or (item.compass and not world.compassshuffle[item.player])
-                                                                        ) and world.goal[item.player] != 'icerodhunt')]  #
-    if dungeon_items:
+    dungeon_items = {}
+    for item in [item for item in get_dungeon_item_pool(world) if (((item.smallkey and not world.keyshuffle[item.player])
+                                                                    or (item.bigkey and not world.bigkeyshuffle[item.player])
+                                                                    or (item.map and not world.mapshuffle[item.player])
+                                                                    or (item.compass and not world.compassshuffle[item.player])
+                                                                    ) and world.goal[item.player] != 'icerodhunt')]:
+        dungeon_items.setdefault(item.player, []).append(item)
+
+    keys_in_itempool = {player: not world.keyshuffle[player] for player in range(1, world.players+1)}
+    players = list(range(1, world.players+1))
+
+    if any(dungeon_items.values()):
         # sort in the order Big Key, Small Key, Other before placing dungeon items
         sort_order = {"BigKey": 3, "SmallKey": 2}
-        dungeon_items.sort(key=lambda item: sort_order.get(item.type, 1))
-        fill_restrictive(world, all_state_base, locations, dungeon_items, 
-                         keys_in_itempool={player: not world.keyshuffle[player] for player in range(1, world.players+1)}, single_player_placement=True, lock=True)
+        for player in players:
+            dungeon_items[player].sort(key=lambda item: sort_order.get(item.type, 1))
+        import logging
+        from Fill import FillError
+
+        max_attempts = 15
+        fill_error = None
+        for attempt in range(max_attempts):
+            world.random.shuffle(players)
+            fill_error = None
+            for player in players.copy():
+                if dungeon_items[player]:
+                    for dungeon, dungeon_locations in locations[player].items():
+                        world.random.shuffle(dungeon_locations)
+                        player_dungeon_items = [item for item in dungeon_items[player] if dungeon.is_dungeon_item(item)]
+                        if player_dungeon_items:
+                            try:
+                                fill_restrictive(world, all_state_base, dungeon_locations.copy(), player_dungeon_items,
+                                                 keys_in_itempool=keys_in_itempool, single_player_placement=True, lock=True)
+                            except FillError as fe:
+                                fill_error = fe, player
+                            for location in [location for location in dungeon_locations if location.item]:
+                                locations[player][dungeon].remove(location)
+                                dungeon_items[player].remove(location.item)
+                if not dungeon_items[player]:
+                    logging.info(f"Dungeon items fully placed for player {player}")
+                    players.remove(player)
+                else:
+                    logging.info(f"Dungeon items not fully placed for player {player}")
+            if players:
+                logging.info(f"{max_attempts-attempt-1} attempts remaining to fill dungeon items for {len(players)} player{'s' if len(players) != 1 else ''}")
+            else:
+                break
+        else:
+            raise FillError(f"Could not fill dungeon items for player {fill_error[1]}") from fill_error[0]
 
 
 dungeon_music_addresses = {'Eastern Palace - Prize': [0x1559A],
