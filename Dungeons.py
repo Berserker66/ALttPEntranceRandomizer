@@ -139,7 +139,7 @@ def fill_dungeons_restrictive(world):
         # sort in the order Big Key, Small Key, Other before placing dungeon items
         sort_order = {"BigKey": 3, "SmallKey": 2}
         for player in players:
-            dungeon_items[player].sort(key=lambda item: sort_order.get(item.type, 1))
+            dungeon_items.setdefault(player, []).sort(key=lambda item: sort_order.get(item.type, 1))
         import logging
         from Fill import FillError
 
