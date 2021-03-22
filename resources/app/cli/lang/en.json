@@ -57,6 +57,7 @@
   "help": {
     "lang": [ "App Language, if available, defaults to English" ],
     "create_spoiler": [ "Output a Spoiler File" ],
+    "glitch_triforce": [ "Allow glitching to Triforce from Ganon's room" ],
     "logic": [
       "Select Enforcement of Item Requirements. (default: %(default)s)",
       "No Glitches:    No Glitch knowledge required.",

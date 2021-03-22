@@ -486,6 +486,10 @@
   },
   "names": {},
   "outputpath": {},
+  "glitch_triforce": {
+    "action": "store_true",
+    "type": "bool"
+  },
   "race": {
     "action": "store_true",
     "type": "bool"

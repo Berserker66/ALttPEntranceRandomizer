@@ -43,6 +43,7 @@ def mystery_argparse():
     parser.add_argument('--rom')
     parser.add_argument('--enemizercli')
     parser.add_argument('--outputpath')
+    parser.add_argument('--glitch_triforce', action='store_true')
     parser.add_argument('--race', action='store_true')
     parser.add_argument('--meta', default=None)
     parser.add_argument('--log_output_path', help='Path to store output log')
@@ -108,6 +109,7 @@ def main(args=None, callback=DRMain):
     erargs.create_spoiler = args.create_spoiler
     erargs.skip_playthrough = args.skip_playthrough
     erargs.create_diff = args.create_diff
+    erargs.glitch_triforce = args.glitch_triforce
     erargs.race = args.race
     erargs.outputname = seedname
     erargs.outputpath = args.outputpath

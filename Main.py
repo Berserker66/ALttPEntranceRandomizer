@@ -126,6 +126,7 @@ def main(args, seed=None, fish=None):
     world.keydropshuffle = args.keydropshuffle.copy()
     world.mixed_travel = args.mixed_travel.copy()
     world.standardize_palettes = args.standardize_palettes.copy()
+    world.glitch_triforce = args.glitch_triforce  # This is enabled/disabled globally, no per player option.
 
     world.rom_seeds = {player: random.Random(world.random.randint(0, 999999999)) for player in range(1, world.players + 1)}
 
