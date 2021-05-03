@@ -18,15 +18,15 @@ Only one person has to do this setup and host a dedicated server for everyone el
 2. Run the `forge-1.16.5-xx.x.x-installer.jar` file and choose **install server**.
     - On this page you will also choose where to install the server to remember this directory its important in the next step.
 
-3. Navigate to where you installed the server and open `forge-1.16.5-xx.x.x-installer.jar`
+3. Navigate to where you installed the server and open `forge-1.16.5-xx.x.x.jar`
     - Upon first launch of the server it will close and ask you to accept Minecraft's EULA there should be a new file in that directory called `eula.txt` that contains a link to Minecraft's EULA and change a line that you need to change to `eula=true` in there to accept Minecraft's EULA
     - This will create the appropriate directories for you to place the file in the following step.
 
-3. Place the `aprandomizer-x.x.x.jar` from the link above file into the `mods` folder of the above installation of your forge server.
+4. Place the `aprandomizer-x.x.x.jar` from the link above file into the `mods` folder of the above installation of your forge server.
     - Once again run the server, it will load up and generate the required directory `APData` for when you are ready to play a game!
 
 ### Basic Player Setup
-- Purchace and Install Minecraft from the above link.
+- Purchase and Install Minecraft from the above link.
   **Your Done**.
   Players only need to have a Vanilla unmodified version of Minecraft to play!
 
