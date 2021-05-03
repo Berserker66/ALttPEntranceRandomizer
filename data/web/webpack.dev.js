@@ -1,6 +1,13 @@
 const path = require('path');
 
 module.exports = {
+  mode: 'development',
+  watch: true,
+  resolve: {
+    fallback: {
+      crypto: require.resolve('crypto-browserify'),
+    },
+  },
   entry: {
     index: './src/js/index.js',
   },
@@ -9,7 +16,7 @@ module.exports = {
       {
         test: /\.(js|jsx|es6)$/,
         loader: 'babel-loader',
-        query: {
+        options: {
           compact: false,
           minified: false,
         },
@@ -42,5 +49,4 @@ module.exports = {
     publicPath: '/',
     filename: '[name].bundle.js',
   },
-  devtool: 'source-map',
 };

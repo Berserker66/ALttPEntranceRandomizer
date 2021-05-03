@@ -1,6 +1,15 @@
 const path = require('path');
 
 module.exports = {
+  mode: 'production',
+  watch: false,
+  resolve: {
+    fallback: {
+      crypto: require.resolve('crypto-browserify'),
+      buffer: require.resolve('buffer/'),
+      stream: require.resolve('stream-browserify'),
+    },
+  },
   entry: {
     index: './src/js/index.js',
   },
@@ -9,7 +18,7 @@ module.exports = {
       {
         test: /\.(js|jsx|es6)$/,
         loader: 'babel-loader',
-        query: {
+        options: {
           compact: true,
           minified: true,
         },

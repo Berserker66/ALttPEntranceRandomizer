@@ -7,6 +7,7 @@ import random
 import os
 import shutil
 from tkinter import Checkbutton, OptionMenu, Toplevel, LabelFrame, PhotoImage, Tk, LEFT, RIGHT, BOTTOM, TOP, StringVar, IntVar, Frame, Label, W, E, X, BOTH, Entry, Spinbox, Button, filedialog, messagebox, ttk
+import tkinter.font as font
 from urllib.parse import urlparse
 from urllib.request import urlopen
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -14,12 +15,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import ModuleUpdate
 ModuleUpdate.update()
 
-from AdjusterMain import adjust
 from EntranceRandomizer import parse_arguments
 from GuiUtils import ToolTips, set_icon, BackgroundTaskProgress
 from Main import main, get_seed, __version__ as MWVersion
 from Rom import Sprite
-from Utils import is_bundled, local_path, output_path, open_file
+from Utils import local_path, output_path, open_file
 
 
 def guiMain(args=None):
@@ -30,10 +30,8 @@ def guiMain(args=None):
 
     notebook = ttk.Notebook(mainWindow)
     randomizerWindow = ttk.Frame(notebook)
-    adjustWindow = ttk.Frame(notebook)
     customWindow = ttk.Frame(notebook)
     notebook.add(randomizerWindow, text='Randomize')
-    notebook.add(adjustWindow, text='Adjust')
     notebook.add(customWindow, text='Custom Items')
     notebook.pack()
 
@@ -57,6 +55,8 @@ def guiMain(args=None):
     # randomizer controls
 
     topFrame = Frame(randomizerWindow)
+    romFrame, romVar = get_rom_frame(topFrame)
+
     rightHalfFrame = Frame(topFrame)
     checkBoxFrame = Frame(rightHalfFrame)
 
@@ -64,8 +64,13 @@ def guiMain(args=None):
     createSpoilerCheckbutton = Checkbutton(checkBoxFrame, text="Create Spoiler Log", variable=createSpoilerVar)
     suppressRomVar = IntVar()
     suppressRomCheckbutton = Checkbutton(checkBoxFrame, text="Do not create patched Rom", variable=suppressRomVar)
-    openpyramidVar = IntVar()
-    openpyramidCheckbutton = Checkbutton(checkBoxFrame, text="Pre-open Pyramid Hole", variable=openpyramidVar)
+    openpyramidFrame = Frame(checkBoxFrame)
+    openpyramidVar = StringVar()
+    openpyramidVar.set('auto')
+    openpyramidOptionMenu = OptionMenu(openpyramidFrame, openpyramidVar, 'auto', 'goal', 'yes', 'no')
+    openpyramidLabel = Label(openpyramidFrame, text='Pre-open Pyramid Hole')
+    openpyramidLabel.pack(side=LEFT)
+    openpyramidOptionMenu.pack(side=LEFT)
     mcsbshuffleFrame = Frame(checkBoxFrame)
     mcsbLabel = Label(mcsbshuffleFrame, text="Shuffle: ")
 
@@ -102,7 +107,7 @@ def guiMain(args=None):
 
     createSpoilerCheckbutton.pack(expand=True, anchor=W)
     suppressRomCheckbutton.pack(expand=True, anchor=W)
-    openpyramidCheckbutton.pack(expand=True, anchor=W)
+    openpyramidFrame.pack(expand=True, anchor=W)
     mcsbshuffleFrame.pack(expand=True, anchor=W)
     mcsbLabel.grid(row=0, column=0)
     mapshuffleCheckbutton.grid(row=0, column=1)
@@ -114,154 +119,9 @@ def guiMain(args=None):
     hintsCheckbutton.pack(expand=True, anchor=W)
     tileShuffleButton.pack(expand=True, anchor=W)
 
-
-    romOptionsFrame = LabelFrame(rightHalfFrame, text="Rom options")
-    romOptionsFrame.columnconfigure(0, weight=1)
-    romOptionsFrame.columnconfigure(1, weight=1)
-    for i in range(5):
-        romOptionsFrame.rowconfigure(i, weight=1)
-
-    disableMusicVar = IntVar()
-    disableMusicCheckbutton = Checkbutton(romOptionsFrame, text="Disable music", variable=disableMusicVar)
-    disableMusicCheckbutton.grid(row=0, column=0, sticky=E)
-
-    spriteDialogFrame = Frame(romOptionsFrame)
-    spriteDialogFrame.grid(row=0, column=1)
-    baseSpriteLabel = Label(spriteDialogFrame, text='Sprite:')
-
-    spriteNameVar = StringVar()
-    sprite = None
-    def set_sprite(sprite_param):
-        nonlocal sprite
-        if isinstance(sprite_param, str):
-            sprite = sprite_param
-            spriteNameVar.set(sprite_param)
-        elif sprite_param is None or not sprite_param.valid:
-            sprite = None
-            spriteNameVar.set('(unchanged)')
-        else:
-            sprite = sprite_param
-            spriteNameVar.set(sprite.name)
-
-    set_sprite(None)
-    spriteNameVar.set('(unchanged)')
-    spriteEntry = Label(spriteDialogFrame, textvariable=spriteNameVar)
-
-    def SpriteSelect():
-        SpriteSelector(mainWindow, set_sprite)
-
-    spriteSelectButton = Button(spriteDialogFrame, text='...', command=SpriteSelect)
-
-    baseSpriteLabel.pack(side=LEFT)
-    spriteEntry.pack(side=LEFT)
-    spriteSelectButton.pack(side=LEFT)
-
-    quickSwapVar = IntVar(value=1)
-    quickSwapCheckbutton = Checkbutton(romOptionsFrame, text="L/R Quickswapping", variable=quickSwapVar)
-    quickSwapCheckbutton.grid(row=1, column=0, sticky=E)
-
-    fastMenuFrame = Frame(romOptionsFrame)
-    fastMenuFrame.grid(row=1, column=1, sticky=E)
-    fastMenuLabel = Label(fastMenuFrame, text='Menu speed')
-    fastMenuLabel.pack(side=LEFT)
-    fastMenuVar = StringVar()
-    fastMenuVar.set('normal')
-    fastMenuOptionMenu = OptionMenu(fastMenuFrame, fastMenuVar, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
-    fastMenuOptionMenu.pack(side=LEFT)
-
-    heartcolorFrame = Frame(romOptionsFrame)
-    heartcolorFrame.grid(row=2, column=0, sticky=E)
-    heartcolorLabel = Label(heartcolorFrame, text='Heart color')
-    heartcolorLabel.pack(side=LEFT)
-    heartcolorVar = StringVar()
-    heartcolorVar.set('red')
-    heartcolorOptionMenu = OptionMenu(heartcolorFrame, heartcolorVar, 'red', 'blue', 'green', 'yellow', 'random')
-    heartcolorOptionMenu.pack(side=LEFT)
-
-    heartbeepFrame = Frame(romOptionsFrame)
-    heartbeepFrame.grid(row=2, column=1, sticky=E)
-    heartbeepLabel = Label(heartbeepFrame, text='Heartbeep')
-    heartbeepLabel.pack(side=LEFT)
-    heartbeepVar = StringVar()
-    heartbeepVar.set('normal')
-    heartbeepOptionMenu = OptionMenu(heartbeepFrame, heartbeepVar, 'double', 'normal', 'half', 'quarter', 'off')
-    heartbeepOptionMenu.pack(side=LEFT)
-
-    owPalettesFrame = Frame(romOptionsFrame)
-    owPalettesFrame.grid(row=3, column=0, sticky=E)
-    owPalettesLabel = Label(owPalettesFrame, text='Overworld palettes')
-    owPalettesLabel.pack(side=LEFT)
-    owPalettesVar = StringVar()
-    owPalettesVar.set('default')
-    owPalettesOptionMenu = OptionMenu(owPalettesFrame, owPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    owPalettesOptionMenu.pack(side=LEFT)
-
-    uwPalettesFrame = Frame(romOptionsFrame)
-    uwPalettesFrame.grid(row=3, column=1, sticky=E)
-    uwPalettesLabel = Label(uwPalettesFrame, text='Dungeon palettes')
-    uwPalettesLabel.pack(side=LEFT)
-    uwPalettesVar = StringVar()
-    uwPalettesVar.set('default')
-    uwPalettesOptionMenu = OptionMenu(uwPalettesFrame, uwPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    uwPalettesOptionMenu.pack(side=LEFT)
-
-    hudPalettesFrame = Frame(romOptionsFrame)
-    hudPalettesFrame.grid(row=4, column=0, sticky=E)
-    hudPalettesLabel = Label(hudPalettesFrame, text='HUD palettes')
-    hudPalettesLabel.pack(side=LEFT)
-    hudPalettesVar = StringVar()
-    hudPalettesVar.set('default')
-    hudPalettesOptionMenu = OptionMenu(hudPalettesFrame, hudPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    hudPalettesOptionMenu.pack(side=LEFT)
-
-    swordPalettesFrame = Frame(romOptionsFrame)
-    swordPalettesFrame.grid(row=4, column=1, sticky=E)
-    swordPalettesLabel = Label(swordPalettesFrame, text='Sword palettes')
-    swordPalettesLabel.pack(side=LEFT)
-    swordPalettesVar = StringVar()
-    swordPalettesVar.set('default')
-    swordPalettesOptionMenu = OptionMenu(swordPalettesFrame, swordPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    swordPalettesOptionMenu.pack(side=LEFT)
-
-    shieldPalettesFrame = Frame(romOptionsFrame)
-    shieldPalettesFrame.grid(row=5, column=0, sticky=E)
-    shieldPalettesLabel = Label(shieldPalettesFrame, text='Shield palettes')
-    shieldPalettesLabel.pack(side=LEFT)
-    shieldPalettesVar = StringVar()
-    shieldPalettesVar.set('default')
-    shieldPalettesOptionMenu = OptionMenu(shieldPalettesFrame, shieldPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    shieldPalettesOptionMenu.pack(side=LEFT)
-
-
-
-
-    romDialogFrame = Frame(romOptionsFrame)
-    romDialogFrame.grid(row=6, column=0, columnspan=2, sticky=W+E)
-
-    baseRomLabel = Label(romDialogFrame, text='Base Rom: ')
-    romVar = StringVar(value="Zelda no Densetsu - Kamigami no Triforce (Japan).sfc")
-    romEntry = Entry(romDialogFrame, textvariable=romVar)
-
-    def RomSelect():
-        rom = filedialog.askopenfilename(filetypes=[("Rom Files", (".sfc", ".smc")), ("All Files", "*")])
-        import Patch
-        try:
-            Patch.get_base_rom_bytes(rom)  # throws error on checksum fail
-        except Exception as e:
-            logging.exception(e)
-            messagebox.showerror(title="Error while reading ROM", message=str(e))
-        else:
-            romVar.set(rom)
-            romSelectButton['state'] = "disabled"
-            romSelectButton["text"] = "ROM verified"
-    romSelectButton = Button(romDialogFrame, text='Select Rom', command=RomSelect)
-
-    baseRomLabel.pack(side=LEFT)
-    romEntry.pack(side=LEFT, expand=True, fill=X)
-    romSelectButton.pack(side=LEFT)
-
     checkBoxFrame.pack(side=TOP, anchor=W, padx=5, pady=10)
 
+    romOptionsFrame, rom_vars, set_sprite = get_rom_options_frame(rightHalfFrame)
     romOptionsFrame.pack(expand=True, fill=BOTH, padx=3)
 
     drowDownFrame = Frame(topFrame)
@@ -377,7 +237,8 @@ def guiMain(args=None):
     shuffleVar.set('vanilla')
     shuffleOptionMenu = OptionMenu(shuffleFrame, shuffleVar, 'vanilla', 'simple', 'restricted', 'full', 'crossed',
                                    'insanity', 'restricted_legacy', 'full_legacy', 'madness_legacy', 'insanity_legacy',
-                                   'dungeonsfull', 'dungeonssimple')
+                                   'dungeonsfull', 'dungeonssimple', "same simple", "same restricted", "same full",
+                                   "same crossed", "same insanity", "same dungeonsfull", "same dungeonssimple")
     shuffleOptionMenu.pack(side=RIGHT)
     shuffleLabel = Label(shuffleFrame, text='Entrance shuffle')
     shuffleLabel.pack(side=LEFT)
@@ -488,6 +349,18 @@ def guiMain(args=None):
     shopUpgradeShuffleButton = Checkbutton(shopframe, text="Lootable Upgrades", variable=shopUpgradeShuffleVar)
     shopUpgradeShuffleButton.grid(row=0, column=2, sticky=W)
 
+    shopInventoryShuffleVar = IntVar()
+    shopInventoryShuffleButton = Checkbutton(shopframe, text="New Inventories", variable=shopInventoryShuffleVar)
+    shopInventoryShuffleButton.grid(row=1, column=0, sticky=W)
+
+    shopPoolShuffleVar = IntVar()
+    shopPoolShuffleButton = Checkbutton(shopframe, text="Itempool in Shops", variable=shopPoolShuffleVar)
+    shopPoolShuffleButton.grid(row=1, column=1, sticky=W)
+
+    shopWitchShuffleVar = IntVar()
+    shopWitchShuffleButton = Checkbutton(shopframe, text="Custom Potion Shop", variable=shopWitchShuffleVar)
+    shopWitchShuffleButton.grid(row=1, column=2, sticky=W)
+
     multiworldframe = LabelFrame(randomizerWindow, text="Multiworld", padx=5, pady=2)
 
     worldLabel = Label(multiworldframe, text='Players per Team')
@@ -546,25 +419,29 @@ def guiMain(args=None):
         guiargs.accessibility = accessibilityVar.get()
         guiargs.algorithm = algorithmVar.get()
         guiargs.shuffle = shuffleVar.get()
-        guiargs.heartbeep = heartbeepVar.get()
-        guiargs.heartcolor = heartcolorVar.get()
-        guiargs.fastmenu = fastMenuVar.get()
+        if "same " in guiargs.shuffle:
+            guiargs.shuffle = guiargs.shuffle[5:] + "-" + str(seedVar.get() if seedVar.get() else
+                                                              random.randint(0, 2**64))
+        guiargs.heartbeep = rom_vars.heartbeepVar.get()
+        guiargs.heartcolor = rom_vars.heartcolorVar.get()
+        guiargs.fastmenu = rom_vars.fastMenuVar.get()
         guiargs.create_spoiler = bool(createSpoilerVar.get())
         guiargs.skip_playthrough = not bool(createSpoilerVar.get())
         guiargs.suppress_rom = bool(suppressRomVar.get())
-        guiargs.open_pyramid = bool(openpyramidVar.get())
+        guiargs.open_pyramid = openpyramidVar.get()
         guiargs.mapshuffle = bool(mapshuffleVar.get())
         guiargs.compassshuffle = bool(compassshuffleVar.get())
         guiargs.keyshuffle = {"on": True, "universal": "universal", "off": False}[keyshuffleVar.get()]
         guiargs.bigkeyshuffle = bool(bigkeyshuffleVar.get())
         guiargs.retro = bool(retroVar.get())
-        guiargs.quickswap = bool(quickSwapVar.get())
-        guiargs.disablemusic = bool(disableMusicVar.get())
-        guiargs.ow_palettes = owPalettesVar.get()
-        guiargs.uw_palettes = uwPalettesVar.get()
-        guiargs.hud_palettes = hudPalettesVar.get()
-        guiargs.sword_palettes = swordPalettesVar.get()
-        guiargs.shield_palettes = shieldPalettesVar.get()
+        guiargs.quickswap = bool(rom_vars.quickSwapVar.get())
+        guiargs.disablemusic = bool(rom_vars.disableMusicVar.get())
+        guiargs.reduceflashing = bool(rom_vars.disableFlashingVar.get())
+        guiargs.ow_palettes = rom_vars.owPalettesVar.get()
+        guiargs.uw_palettes = rom_vars.uwPalettesVar.get()
+        guiargs.hud_palettes = rom_vars.hudPalettesVar.get()
+        guiargs.sword_palettes = rom_vars.swordPalettesVar.get()
+        guiargs.shield_palettes = rom_vars.shieldPalettesVar.get()
         guiargs.shuffleganon = bool(shuffleGanonVar.get())
         guiargs.hints = bool(hintsVar.get())
         guiargs.enemizercli = enemizerCLIpathVar.get()
@@ -586,6 +463,12 @@ def guiMain(args=None):
             guiargs.shop_shuffle += "p"
         if shopUpgradeShuffleVar.get():
             guiargs.shop_shuffle += "u"
+        if shopInventoryShuffleVar.get():
+            guiargs.shop_shuffle += "f"
+        if shopWitchShuffleVar.get():
+            guiargs.shop_shuffle += "w"
+        if shopPoolShuffleVar.get():
+            guiargs.shop_shuffle_slots = 30
         guiargs.shuffle_prizes = {"none": "",
                                   "bonk": "b",
                                   "general": "g",
@@ -618,7 +501,10 @@ def guiMain(args=None):
                                    int(rupoorcostVar.get()), int(triforceVar.get())]
         guiargs.rom = romVar.get()
         guiargs.create_diff = patchesVar.get()
-        guiargs.sprite = sprite
+        guiargs.sprite = rom_vars.sprite
+        if rom_vars.sprite_pool:
+            guiargs.sprite_pool = rom_vars.sprite_pool
+            messagebox.showinfo(title="Sprite Pool", message=", ".join(guiargs.sprite_pool))
         # get default values for missing parameters
         for k,v in vars(parse_arguments(['--multi', str(guiargs.multi)])).items():
             if k not in vars(guiargs):
@@ -665,150 +551,6 @@ def guiMain(args=None):
     multiworldframe.pack(side=BOTTOM, expand=True, fill=X)
     enemizerFrame.pack(side=BOTTOM, fill=BOTH)
     shopframe.pack(side=BOTTOM, expand=True, fill=X)
-
-    # Adjuster Controls
-
-    topFrame2 = Frame(adjustWindow)
-    rightHalfFrame2 = Frame(topFrame2)
-    checkBoxFrame2 = Frame(rightHalfFrame2)
-
-    quickSwapCheckbutton2 = Checkbutton(checkBoxFrame2, text="L/R Item quickswapping", variable=quickSwapVar)
-    disableMusicCheckbutton2 = Checkbutton(checkBoxFrame2, text="Disable game music", variable=disableMusicVar)
-
-    quickSwapCheckbutton2.pack(expand=True, anchor=W)
-    disableMusicCheckbutton2.pack(expand=True, anchor=W)
-
-    fileDialogFrame2 = Frame(rightHalfFrame2)
-
-    romDialogFrame2 = Frame(fileDialogFrame2)
-    baseRomLabel2 = Label(romDialogFrame2, text='Rom to adjust')
-    romVar2 = StringVar()
-    romEntry2 = Entry(romDialogFrame2, textvariable=romVar2)
-
-    def RomSelect2():
-        rom = filedialog.askopenfilename(filetypes=[("Rom Files", (".sfc", ".smc", ".bmbp")), ("All Files", "*")])
-        romVar2.set(rom)
-    romSelectButton2 = Button(romDialogFrame2, text='Select Rom', command=RomSelect2)
-
-    baseRomLabel2.pack(side=LEFT)
-    romEntry2.pack(side=LEFT)
-    romSelectButton2.pack(side=LEFT)
-
-    spriteDialogFrame2 = Frame(fileDialogFrame2)
-    baseSpriteLabel2 = Label(spriteDialogFrame2, text='Link Sprite')
-    spriteEntry2 = Label(spriteDialogFrame2, textvariable=spriteNameVar)
-
-    def SpriteSelectAdjuster():
-        SpriteSelector(mainWindow, set_sprite, adjuster=True)
-
-    spriteSelectButton2 = Button(spriteDialogFrame2, text='Select Sprite', command=SpriteSelectAdjuster)
-
-    baseSpriteLabel2.pack(side=LEFT)
-    spriteEntry2.pack(side=LEFT)
-    spriteSelectButton2.pack(side=LEFT)
-
-    romDialogFrame2.pack()
-    spriteDialogFrame2.pack()
-
-    checkBoxFrame2.pack()
-    fileDialogFrame2.pack()
-
-    drowDownFrame2 = Frame(topFrame2)
-    heartbeepFrame2 = Frame(drowDownFrame2)
-    heartbeepOptionMenu2 = OptionMenu(heartbeepFrame2, heartbeepVar, 'double', 'normal', 'half', 'quarter', 'off')
-    heartbeepOptionMenu2.pack(side=RIGHT)
-    heartbeepLabel2 = Label(heartbeepFrame2, text='Heartbeep sound rate')
-    heartbeepLabel2.pack(side=LEFT)
-
-    heartcolorFrame2 = Frame(drowDownFrame2)
-    heartcolorOptionMenu2 = OptionMenu(heartcolorFrame2, heartcolorVar, 'red', 'blue', 'green', 'yellow', 'random')
-    heartcolorOptionMenu2.pack(side=RIGHT)
-    heartcolorLabel2 = Label(heartcolorFrame2, text='Heart color')
-    heartcolorLabel2.pack(side=LEFT)
-
-    fastMenuFrame2 = Frame(drowDownFrame2)
-    fastMenuOptionMenu2 = OptionMenu(fastMenuFrame2, fastMenuVar, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
-    fastMenuOptionMenu2.pack(side=RIGHT)
-    fastMenuLabel2 = Label(fastMenuFrame2, text='Menu speed')
-    fastMenuLabel2.pack(side=LEFT)
-
-    owPalettesFrame2 = Frame(drowDownFrame2)
-    owPalettesOptionMenu2 = OptionMenu(owPalettesFrame2, owPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    owPalettesOptionMenu2.pack(side=RIGHT)
-    owPalettesLabel2 = Label(owPalettesFrame2, text='Overworld palettes')
-    owPalettesLabel2.pack(side=LEFT)
-
-    uwPalettesFrame2 = Frame(drowDownFrame2)
-    uwPalettesOptionMenu2 = OptionMenu(uwPalettesFrame2, uwPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    uwPalettesOptionMenu2.pack(side=RIGHT)
-    uwPalettesLabel2 = Label(uwPalettesFrame2, text='Dungeon palettes')
-    uwPalettesLabel2.pack(side=LEFT)
-
-    hudPalettesFrame2 = Frame(drowDownFrame2)
-    hudPalettesOptionMenu2 = OptionMenu(hudPalettesFrame2, hudPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    hudPalettesOptionMenu2.pack(side=RIGHT)
-    hudPalettesLabel2 = Label(hudPalettesFrame2, text='HUD palettes')
-    hudPalettesLabel2.pack(side=LEFT)
-
-    swordPalettesFrame2 = Frame(drowDownFrame2)
-    swordPalettesOptionMenu2 = OptionMenu(swordPalettesFrame2, swordPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    swordPalettesOptionMenu2.pack(side=RIGHT)
-    swordPalettesLabel2 = Label(swordPalettesFrame2, text='Sword palettes')
-    swordPalettesLabel2.pack(side=LEFT)
-
-    shieldPalettesFrame2 = Frame(drowDownFrame2)
-    shieldPalettesOptionMenu2 = OptionMenu(shieldPalettesFrame2, shieldPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
-    shieldPalettesOptionMenu2.pack(side=RIGHT)
-    shieldPalettesLabel2 = Label(shieldPalettesFrame2, text='Shield palettes')
-    shieldPalettesLabel2.pack(side=LEFT)
-
-    heartbeepFrame2.pack(expand=True, anchor=E)
-    heartcolorFrame2.pack(expand=True, anchor=E)
-    fastMenuFrame2.pack(expand=True, anchor=E)
-    owPalettesFrame2.pack(expand=True, anchor=E)
-    uwPalettesFrame2.pack(expand=True, anchor=E)
-    hudPalettesFrame2.pack(expand=True, anchor=E)
-    swordPalettesFrame2.pack(expand=True, anchor=E)
-    shieldPalettesFrame2.pack(expand=True, anchor=E)
-
-    bottomFrame2 = Frame(topFrame2)
-
-    def adjustRom():
-        guiargs = Namespace()
-        guiargs.heartbeep = heartbeepVar.get()
-        guiargs.heartcolor = heartcolorVar.get()
-        guiargs.fastmenu = fastMenuVar.get()
-        guiargs.ow_palettes = owPalettesVar.get()
-        guiargs.uw_palettes = uwPalettesVar.get()
-        guiargs.hud_palettes = hudPalettesVar.get()
-        guiargs.sword_palettes = swordPalettesVar.get()
-        guiargs.shield_palettes = shieldPalettesVar.get()
-        guiargs.quickswap = bool(quickSwapVar.get())
-        guiargs.disablemusic = bool(disableMusicVar.get())
-        guiargs.rom = romVar2.get()
-        guiargs.baserom = romVar.get()
-        guiargs.sprite = sprite
-        try:
-            guiargs, path = adjust(args=guiargs)
-        except Exception as e:
-            logging.exception(e)
-            messagebox.showerror(title="Error while adjusting Rom", message=str(e))
-        else:
-            messagebox.showinfo(title="Success", message="Rom patched successfully")
-            from Utils import persistent_store
-            from Rom import Sprite
-            if isinstance(guiargs.sprite, Sprite):
-                guiargs.sprite = guiargs.sprite.name
-            persistent_store("adjuster", "last_settings_3", guiargs)
-
-    adjustButton = Button(bottomFrame2, text='Adjust Rom', command=adjustRom)
-
-    adjustButton.pack(side=LEFT, padx=(5, 0))
-
-    drowDownFrame2.pack(side=LEFT, pady=(0, 40))
-    rightHalfFrame2.pack(side=RIGHT)
-    topFrame2.pack(side=TOP, pady=70)
-    bottomFrame2.pack(side=BOTTOM, pady=(180, 0))
 
     # Custom Controls
 
@@ -1467,8 +1209,9 @@ def guiMain(args=None):
         keyshuffleVar.set(args.keyshuffle)
         bigkeyshuffleVar.set(args.bigkeyshuffle)
         retroVar.set(args.retro)
-        quickSwapVar.set(int(args.quickswap))
-        disableMusicVar.set(int(args.disablemusic))
+        rom_vars.quickSwapVar.set(int(args.quickswap))
+        rom_vars.disableMusicVar.set(int(args.disablemusic))
+        rom_vars.disableFlashingVar.set(int(args.reduceflashing))
         if args.count:
             countVar.set(str(args.count))
         if args.seed:
@@ -1489,10 +1232,10 @@ def guiMain(args=None):
         crystalsGanonVar.set(args.crystals_ganon)
         algorithmVar.set(args.algorithm)
         shuffleVar.set(args.shuffle)
-        heartbeepVar.set(args.heartbeep)
-        fastMenuVar.set(args.fastmenu)
+        rom_vars.heartbeepVar.set(args.heartbeep)
+        rom_vars.fastMenuVar.set(args.fastmenu)
         logicVar.set(args.logic)
-        romVar.set(args.rom)
+        rom_vars.romVar.set(args.rom)
         shuffleGanonVar.set(args.shuffleganon)
         hintsVar.set(args.hints)
         if args.sprite is not None:
@@ -1500,20 +1243,222 @@ def guiMain(args=None):
 
     mainWindow.mainloop()
 
+def get_rom_frame(parent=None):
+    romFrame = Frame(parent)
+    baseRomLabel = Label(romFrame, text='LttP Base Rom: ')
+    romVar = StringVar(value="Zelda no Densetsu - Kamigami no Triforce (Japan).sfc")
+    romEntry = Entry(romFrame, textvariable=romVar)
+
+    def RomSelect():
+        rom = filedialog.askopenfilename(filetypes=[("Rom Files", (".sfc", ".smc")), ("All Files", "*")])
+        import Patch
+        try:
+            Patch.get_base_rom_bytes(rom)  # throws error on checksum fail
+        except Exception as e:
+            logging.exception(e)
+            messagebox.showerror(title="Error while reading ROM", message=str(e))
+        else:
+            romVar.set(rom)
+            romSelectButton['state'] = "disabled"
+            romSelectButton["text"] = "ROM verified"
+    romSelectButton = Button(romFrame, text='Select Rom', command=RomSelect)
+
+    baseRomLabel.pack(side=LEFT)
+    romEntry.pack(side=LEFT, expand=True, fill=X)
+    romSelectButton.pack(side=LEFT)
+    romFrame.pack(side=TOP, expand=True, fill=X)
+
+    return romFrame, romVar
+
+
+def get_rom_options_frame(parent=None):
+    romOptionsFrame = LabelFrame(parent, text="Rom options")
+    romOptionsFrame.columnconfigure(0, weight=1)
+    romOptionsFrame.columnconfigure(1, weight=1)
+    for i in range(5):
+        romOptionsFrame.rowconfigure(i, weight=1)
+    vars = Namespace()
+
+    vars.disableMusicVar = IntVar()
+    disableMusicCheckbutton = Checkbutton(romOptionsFrame, text="Disable music", variable=vars.disableMusicVar)
+    disableMusicCheckbutton.grid(row=0, column=0, sticky=E)
+
+    vars.disableFlashingVar = IntVar(value=1)
+    disableFlashingCheckbutton = Checkbutton(romOptionsFrame, text="Disable flashing (anti-epilepsy)", variable=vars.disableFlashingVar)
+    disableFlashingCheckbutton.grid(row=6, column=0, sticky=E)
+
+    spriteDialogFrame = Frame(romOptionsFrame)
+    spriteDialogFrame.grid(row=0, column=1)
+    baseSpriteLabel = Label(spriteDialogFrame, text='Sprite:')
+
+
+
+    vars.spriteNameVar = StringVar()
+    vars.sprite = None
+    def set_sprite(sprite_param):
+        nonlocal vars
+        if isinstance(sprite_param, str):
+            vars.sprite = sprite_param
+            vars.spriteNameVar.set(sprite_param)
+        elif sprite_param is None or not sprite_param.valid:
+            vars.sprite = None
+            vars.spriteNameVar.set('(unchanged)')
+        else:
+            vars.sprite = sprite_param
+            vars.spriteNameVar.set(vars.sprite.name)
+
+    set_sprite(None)
+    vars.spriteNameVar.set('(unchanged)')
+    spriteEntry = Label(spriteDialogFrame, textvariable=vars.spriteNameVar)
+
+    def SpriteSelect():
+        nonlocal vars
+        SpriteSelector(parent, set_sprite, spritePool=vars.sprite_pool)
+
+    spriteSelectButton = Button(spriteDialogFrame, text='...', command=SpriteSelect)
+
+    baseSpriteLabel.pack(side=LEFT)
+    spriteEntry.pack(side=LEFT)
+    spriteSelectButton.pack(side=LEFT)
+
+    vars.quickSwapVar = IntVar(value=1)
+    quickSwapCheckbutton = Checkbutton(romOptionsFrame, text="L/R Quickswapping", variable=vars.quickSwapVar)
+    quickSwapCheckbutton.grid(row=1, column=0, sticky=E)
+
+    fastMenuFrame = Frame(romOptionsFrame)
+    fastMenuFrame.grid(row=1, column=1, sticky=E)
+    fastMenuLabel = Label(fastMenuFrame, text='Menu speed')
+    fastMenuLabel.pack(side=LEFT)
+    vars.fastMenuVar = StringVar()
+    vars.fastMenuVar.set('normal')
+    fastMenuOptionMenu = OptionMenu(fastMenuFrame, vars.fastMenuVar, 'normal', 'instant', 'double', 'triple', 'quadruple', 'half')
+    fastMenuOptionMenu.pack(side=LEFT)
+
+    heartcolorFrame = Frame(romOptionsFrame)
+    heartcolorFrame.grid(row=2, column=0, sticky=E)
+    heartcolorLabel = Label(heartcolorFrame, text='Heart color')
+    heartcolorLabel.pack(side=LEFT)
+    vars.heartcolorVar = StringVar()
+    vars.heartcolorVar.set('red')
+    heartcolorOptionMenu = OptionMenu(heartcolorFrame, vars.heartcolorVar, 'red', 'blue', 'green', 'yellow', 'random')
+    heartcolorOptionMenu.pack(side=LEFT)
+
+    heartbeepFrame = Frame(romOptionsFrame)
+    heartbeepFrame.grid(row=2, column=1, sticky=E)
+    heartbeepLabel = Label(heartbeepFrame, text='Heartbeep')
+    heartbeepLabel.pack(side=LEFT)
+    vars.heartbeepVar = StringVar()
+    vars.heartbeepVar.set('normal')
+    heartbeepOptionMenu = OptionMenu(heartbeepFrame, vars.heartbeepVar, 'double', 'normal', 'half', 'quarter', 'off')
+    heartbeepOptionMenu.pack(side=LEFT)
+
+    owPalettesFrame = Frame(romOptionsFrame)
+    owPalettesFrame.grid(row=3, column=0, sticky=E)
+    owPalettesLabel = Label(owPalettesFrame, text='Overworld palettes')
+    owPalettesLabel.pack(side=LEFT)
+    vars.owPalettesVar = StringVar()
+    vars.owPalettesVar.set('default')
+    owPalettesOptionMenu = OptionMenu(owPalettesFrame, vars.owPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    owPalettesOptionMenu.pack(side=LEFT)
+
+    uwPalettesFrame = Frame(romOptionsFrame)
+    uwPalettesFrame.grid(row=3, column=1, sticky=E)
+    uwPalettesLabel = Label(uwPalettesFrame, text='Dungeon palettes')
+    uwPalettesLabel.pack(side=LEFT)
+    vars.uwPalettesVar = StringVar()
+    vars.uwPalettesVar.set('default')
+    uwPalettesOptionMenu = OptionMenu(uwPalettesFrame, vars.uwPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    uwPalettesOptionMenu.pack(side=LEFT)
+
+    hudPalettesFrame = Frame(romOptionsFrame)
+    hudPalettesFrame.grid(row=4, column=0, sticky=E)
+    hudPalettesLabel = Label(hudPalettesFrame, text='HUD palettes')
+    hudPalettesLabel.pack(side=LEFT)
+    vars.hudPalettesVar = StringVar()
+    vars.hudPalettesVar.set('default')
+    hudPalettesOptionMenu = OptionMenu(hudPalettesFrame, vars.hudPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    hudPalettesOptionMenu.pack(side=LEFT)
+
+    swordPalettesFrame = Frame(romOptionsFrame)
+    swordPalettesFrame.grid(row=4, column=1, sticky=E)
+    swordPalettesLabel = Label(swordPalettesFrame, text='Sword palettes')
+    swordPalettesLabel.pack(side=LEFT)
+    vars.swordPalettesVar = StringVar()
+    vars.swordPalettesVar.set('default')
+    swordPalettesOptionMenu = OptionMenu(swordPalettesFrame, vars.swordPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    swordPalettesOptionMenu.pack(side=LEFT)
+
+    shieldPalettesFrame = Frame(romOptionsFrame)
+    shieldPalettesFrame.grid(row=5, column=0, sticky=E)
+    shieldPalettesLabel = Label(shieldPalettesFrame, text='Shield palettes')
+    shieldPalettesLabel.pack(side=LEFT)
+    vars.shieldPalettesVar = StringVar()
+    vars.shieldPalettesVar.set('default')
+    shieldPalettesOptionMenu = OptionMenu(shieldPalettesFrame, vars.shieldPalettesVar, 'default', 'random', 'blackout', 'grayscale', 'negative', 'classic', 'dizzy', 'sick', 'puke')
+    shieldPalettesOptionMenu.pack(side=LEFT)
+
+    spritePoolFrame = Frame(romOptionsFrame)
+    spritePoolFrame.grid(row=5, column=1)
+    baseSpritePoolLabel = Label(spritePoolFrame, text='Sprite Pool:')
+
+    vars.spritePoolCountVar = StringVar()
+    vars.sprite_pool = []
+    def set_sprite_pool(sprite_param):
+        nonlocal vars
+        operation = "add"
+        if isinstance(sprite_param, tuple):
+            operation, sprite_param = sprite_param
+        if isinstance(sprite_param, Sprite) and sprite_param.valid:
+            sprite_param = sprite_param.name
+        if isinstance(sprite_param, str):
+            if operation == "add":
+                vars.sprite_pool.append(sprite_param)
+            elif operation == "remove":
+                vars.sprite_pool.remove(sprite_param)
+            elif operation == "clear":
+                vars.sprite_pool.clear()
+        vars.spritePoolCountVar.set(str(len(vars.sprite_pool)))
+
+    set_sprite_pool(None)
+    vars.spritePoolCountVar.set('0')
+    spritePoolEntry = Label(spritePoolFrame, textvariable=vars.spritePoolCountVar)
+
+    def SpritePoolSelect():
+        nonlocal vars
+        SpriteSelector(parent, set_sprite_pool, randomOnEvent=False, spritePool=vars.sprite_pool)
+
+    def SpritePoolClear():
+        nonlocal vars
+        vars.sprite_pool.clear()
+        vars.spritePoolCountVar.set('0')
+
+    spritePoolSelectButton = Button(spritePoolFrame, text='...', command=SpritePoolSelect)
+    spritePoolClearButton = Button(spritePoolFrame, text='Clear', command=SpritePoolClear)
+
+    baseSpritePoolLabel.pack(side=LEFT)
+    spritePoolEntry.pack(side=LEFT)
+    spritePoolSelectButton.pack(side=LEFT)
+    spritePoolClearButton.pack(side=LEFT)
+
+    return romOptionsFrame, vars, set_sprite
+
 
 class SpriteSelector():
-    def __init__(self, parent, callback, adjuster=False):
-        if is_bundled():
-            self.deploy_icons()
+    def __init__(self, parent, callback, adjuster=False, randomOnEvent=True, spritePool=None):
+        self.deploy_icons()
         self.parent = parent
         self.window = Toplevel(parent)
         self.callback = callback
         self.adjuster = adjuster
+        self.randomOnEvent = randomOnEvent
+        self.spritePoolButtons = None
 
         self.window.wm_title("TAKE ANY ONE YOU WANT")
         self.window['padx'] = 5
         self.window['pady'] = 5
+        self.spritesPerRow = 32
         self.all_sprites = []
+        self.sprite_pool = spritePool
 
         def open_custom_sprite_dir(_evt):
             open_file(self.custom_sprite_dir)
@@ -1529,12 +1474,15 @@ class SpriteSelector():
 
         self.icon_section(alttpr_frametitle, self.alttpr_sprite_dir, 'ALTTPR sprites not found. Click "Update alttpr sprites" to download them.')
         self.icon_section(custom_frametitle, self.custom_sprite_dir, 'Put sprites in the custom sprites folder (see open link above) to have them appear here.')
+        if not randomOnEvent:
+            self.sprite_pool_section(spritePool)
 
         frame = Frame(self.window)
         frame.pack(side=BOTTOM, fill=X, pady=5)
 
-        button = Button(frame, text="Browse for file...", command=self.browse_for_sprite)
-        button.pack(side=RIGHT, padx=(5, 0))
+        if self.randomOnEvent:
+            button = Button(frame, text="Browse for file...", command=self.browse_for_sprite)
+            button.pack(side=RIGHT, padx=(5, 0))
 
         button = Button(frame, text="Update alttpr sprites", command=self.update_alttpr_sprites)
         button.pack(side=RIGHT, padx=(5, 0))
@@ -1554,24 +1502,29 @@ class SpriteSelector():
         self.randomOnSlashVar = IntVar()
         self.randomOnItemVar = IntVar()
         self.randomOnBonkVar = IntVar()
+        self.randomOnRandomVar = IntVar()
 
-        button = Checkbutton(frame, text="Hit", command=self.update_random_button, variable=self.randomOnHitVar)
-        button.pack(side=LEFT, padx=(0, 5))
+        if self.randomOnEvent:
+            button = Checkbutton(frame, text="Hit", command=self.update_random_button, variable=self.randomOnHitVar)
+            button.pack(side=LEFT, padx=(0, 5))
 
-        button = Checkbutton(frame, text="Enter", command=self.update_random_button, variable=self.randomOnEnterVar)
-        button.pack(side=LEFT, padx=(0, 5))
+            button = Checkbutton(frame, text="Enter", command=self.update_random_button, variable=self.randomOnEnterVar)
+            button.pack(side=LEFT, padx=(0, 5))
 
-        button = Checkbutton(frame, text="Exit", command=self.update_random_button, variable=self.randomOnExitVar)
-        button.pack(side=LEFT, padx=(0, 5))
+            button = Checkbutton(frame, text="Exit", command=self.update_random_button, variable=self.randomOnExitVar)
+            button.pack(side=LEFT, padx=(0, 5))
 
-        button = Checkbutton(frame, text="Slash", command=self.update_random_button, variable=self.randomOnSlashVar)
-        button.pack(side=LEFT, padx=(0, 5))
+            button = Checkbutton(frame, text="Slash", command=self.update_random_button, variable=self.randomOnSlashVar)
+            button.pack(side=LEFT, padx=(0, 5))
 
-        button = Checkbutton(frame, text="Item", command=self.update_random_button, variable=self.randomOnItemVar)
-        button.pack(side=LEFT, padx=(0, 5))
+            button = Checkbutton(frame, text="Item", command=self.update_random_button, variable=self.randomOnItemVar)
+            button.pack(side=LEFT, padx=(0, 5))
 
-        button = Checkbutton(frame, text="Bonk", command=self.update_random_button, variable=self.randomOnBonkVar)
-        button.pack(side=LEFT, padx=(0, 5))
+            button = Checkbutton(frame, text="Bonk", command=self.update_random_button, variable=self.randomOnBonkVar)
+            button.pack(side=LEFT, padx=(0, 5))
+
+            button = Checkbutton(frame, text="Random", command=self.update_random_button, variable=self.randomOnRandomVar)
+            button.pack(side=LEFT, padx=(0, 5))
 
         if adjuster:
             button = Button(frame, text="Current sprite from rom", command=self.use_default_sprite)
@@ -1580,6 +1533,62 @@ class SpriteSelector():
         set_icon(self.window)
         self.window.focus()
 
+    def remove_from_sprite_pool(self, button, spritename):
+        self.callback(("remove", spritename))
+        self.spritePoolButtons.buttons.remove(button)
+        button.destroy()
+
+    def add_to_sprite_pool(self, spritename):
+        if isinstance(spritename, str):
+            if spritename == "random":
+                button = Button(self.spritePoolButtons, text="?")
+                button['font'] = font.Font(size=19)
+                button.configure(command=lambda spr="random": self.remove_from_sprite_pool(button, spr))
+                ToolTips.register(button, "Random")
+                self.spritePoolButtons.buttons.append(button)
+            else:
+                spritename = Sprite.get_sprite_from_name(spritename)
+        if isinstance(spritename, Sprite) and spritename.valid:
+            image = get_image_for_sprite(spritename)
+            if image is None:
+                return
+            button = Button(self.spritePoolButtons, image=image)
+            button.configure(command=lambda spr=spritename: self.remove_from_sprite_pool(button, spr.name))
+            ToolTips.register(button, spritename.name +
+                              f"\nBy: {spritename.author_name if spritename.author_name else ''}")
+            button.image = image
+
+            self.spritePoolButtons.buttons.append(button)
+        self.grid_fill_sprites(self.spritePoolButtons)
+
+    def sprite_pool_section(self, spritePool):
+        def clear_sprite_pool(_evt):
+            self.callback(("clear", "Clear"))
+            for button in self.spritePoolButtons.buttons:
+                button.destroy()
+            self.spritePoolButtons.buttons.clear()
+
+        frametitle = Frame(self.window)
+        title_text = Label(frametitle, text="Sprite Pool")
+        title_link = Label(frametitle, text="(clear)", fg="blue", cursor="hand2")
+        title_text.pack(side=LEFT)
+        title_link.pack(side=LEFT)
+        title_link.bind("<Button-1>", clear_sprite_pool)
+
+        self.spritePoolButtons = LabelFrame(self.window, labelwidget=frametitle, padx=5, pady=5)
+        self.spritePoolButtons.pack(side=TOP, fill=X)
+        self.spritePoolButtons.buttons = []
+
+        def update_sprites(event):
+            self.spritesPerRow = (event.width - 10) // 38
+            self.grid_fill_sprites(self.spritePoolButtons)
+
+        self.grid_fill_sprites(self.spritePoolButtons)
+        self.spritePoolButtons.bind("<Configure>", update_sprites)
+
+        if spritePool:
+            for sprite in spritePool:
+                self.add_to_sprite_pool(sprite)
 
     def icon_section(self, frame_label, path, no_results_label):
         frame = LabelFrame(self.window, labelwidget=frame_label, padx=5, pady=5)
@@ -1610,16 +1619,16 @@ class SpriteSelector():
             label.pack()
 
         def update_sprites(event):
-            sprites_per_row = (event.width - 10) // 38
-            self.grid_fill_sprites(frame, sprites_per_row)
+            self.spritesPerRow = (event.width - 10) // 38
+            self.grid_fill_sprites(frame)
 
-        self.grid_fill_sprites(frame, 32)
+        self.grid_fill_sprites(frame)
 
         frame.bind("<Configure>", update_sprites)
 
-    def grid_fill_sprites(self, frame, sprites_per_row):
+    def grid_fill_sprites(self, frame):
         for i, button in enumerate(frame.buttons):
-            button.grid(row=i // sprites_per_row, column=i % sprites_per_row)
+            button.grid(row=i // self.spritesPerRow, column=i % self.spritesPerRow)
 
     def update_alttpr_sprites(self):
         # need to wrap in try catch. We don't want errors getting the json or downloading the files to break us.
@@ -1656,27 +1665,48 @@ class SpriteSelector():
         self.window.destroy()
 
     def use_default_link_sprite(self):
-        self.callback(Sprite.default_link_sprite())
-        self.window.destroy()
+        if self.randomOnEvent:
+            self.callback(Sprite.default_link_sprite())
+            self.window.destroy()
+        else:
+            self.callback("link")
+            self.add_to_sprite_pool("link")
 
     def update_random_button(self):
-        randomon = "-hit" if self.randomOnHitVar.get() else ""
-        randomon += "-enter" if self.randomOnEnterVar.get() else ""
-        randomon += "-exit" if self.randomOnExitVar.get() else ""
-        randomon += "-slash" if self.randomOnSlashVar.get() else ""
-        randomon += "-item" if self.randomOnItemVar.get() else ""
-        randomon += "-bonk" if self.randomOnBonkVar.get() else ""
+        if self.randomOnRandomVar.get():
+            randomon = "random"
+        else:
+            randomon = "-hit" if self.randomOnHitVar.get() else ""
+            randomon += "-enter" if self.randomOnEnterVar.get() else ""
+            randomon += "-exit" if self.randomOnExitVar.get() else ""
+            randomon += "-slash" if self.randomOnSlashVar.get() else ""
+            randomon += "-item" if self.randomOnItemVar.get() else ""
+            randomon += "-bonk" if self.randomOnBonkVar.get() else ""
+
         self.randomOnEventText.set(f"randomon{randomon}" if randomon else None)
         self.randomButtonText.set("Random On Event" if randomon else "Random")
 
     def use_random_sprite(self):
-        randomon = self.randomOnEventText.get()
-        self.callback(randomon if randomon else (random.choice(self.all_sprites) if self.all_sprites else None))
+        if not self.randomOnEvent:
+            self.callback("random")
+            self.add_to_sprite_pool("random")
+            return
+        elif self.randomOnEventText.get():
+            self.callback(self.randomOnEventText.get())
+        elif self.sprite_pool:
+            self.callback(random.choice(self.sprite_pool))
+        elif self.all_sprites:
+            self.callback(random.choice(self.all_sprites))
+        else:
+            self.callback(None)
         self.window.destroy()
 
     def select_sprite(self, spritename):
         self.callback(spritename)
-        self.window.destroy()
+        if self.randomOnEvent:
+            self.window.destroy()
+        else:
+            self.add_to_sprite_pool(spritename)
 
     def deploy_icons(self):
         if not os.path.exists(self.custom_sprite_dir):
@@ -1715,7 +1745,7 @@ def update_sprites(task, on_finish=None):
     try:
         task.update_status("Determining needed sprites")
         current_sprites = [os.path.basename(file) for file in glob(sprite_dir + '/*')]
-        alttpr_sprites = [(sprite['file'], os.path.basename(urlparse(sprite['file']).path)) for sprite in sprites_arr]
+        alttpr_sprites = [(sprite['file'], os.path.basename(urlparse(sprite['file']).path)) for sprite in sprites_arr if sprite['author'] != "Nintendo"]
         needed_sprites = [(sprite_url, filename) for (sprite_url, filename) in alttpr_sprites if filename not in current_sprites]
 
         alttpr_filenames = [filename for (_, filename) in alttpr_sprites]
@@ -1891,5 +1921,5 @@ if __name__ == '__main__':
             top.update()
         print("Done updating sprites")
     else:
-        logging.basicConfig(format='%(message)s', level=logging.INFO)
+        logging.basicConfig(level=logging.INFO)
         guiMain()

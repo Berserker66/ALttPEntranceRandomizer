@@ -13,21 +13,35 @@ from Utils import Hint
 
 
 def get_id(item_name):
-    return Items.item_table[item_name][3]
+    return Items.item_table[item_name][2]
 
 
 app.jinja_env.filters["location_name"] = lambda location: Regions.lookup_id_to_name.get(location, location)
 app.jinja_env.filters['item_name'] = lambda id: Items.lookup_id_to_name.get(id, id)
 
 icons = {
+    "Blue Shield": r"https://www.zeldadungeon.net/wiki/images/8/85/Fighters-Shield.png",
+    "Red Shield": r"https://www.zeldadungeon.net/wiki/images/5/55/Fire-Shield.png",
+    "Mirror Shield": r"https://www.zeldadungeon.net/wiki/images/8/84/Mirror-Shield.png",
+    "Fighter Sword": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/4/40/SFighterSword.png?width=1920",
+    "Master Sword": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/6/65/SMasterSword.png?width=1920",
+    "Tempered Sword": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/9/92/STemperedSword.png?width=1920",
+    "Golden Sword": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/2/28/SGoldenSword.png?width=1920",
+    "Bow": r"https://gamepedia.cursecdn.com/zelda_gamepedia_en/b/bc/ALttP_Bow_%26_Arrows_Sprite.png?version=5f85a70e6366bf473544ef93b274f74c",
+    "Silver Bow": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/6/65/Bow.png?width=1920",
+    "Green Mail": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/c/c9/SGreenTunic.png?width=1920",
+    "Blue Mail": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/9/98/SBlueTunic.png?width=1920",
+    "Red Mail": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/7/74/SRedTunic.png?width=1920",
+    "Power Glove": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/f/f5/SPowerGlove.png?width=1920",
+    "Titan Mitts": r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/c/c1/STitanMitt.png?width=1920",
     "Progressive Sword":
         r"https://gamepedia.cursecdn.com/zelda_gamepedia_en/c/cc/ALttP_Master_Sword_Sprite.png?version=55869db2a20e157cd3b5c8f556097725",
     "Pegasus Boots":
         r"https://gamepedia.cursecdn.com/zelda_gamepedia_en/e/ed/ALttP_Pegasus_Shoes_Sprite.png?version=405f42f97240c9dcd2b71ffc4bebc7f9",
     "Progressive Glove":
-        r"https://gamepedia.cursecdn.com/zelda_gamepedia_en/5/53/ALttP_Titan's_Mitt_Sprite.png?version=6ac54c3016a23b94413784881fcd3c75",
+        r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/c/c1/STitanMitt.png?width=1920",
     "Flippers":
-        r"https://gamepedia.cursecdn.com/zelda_gamepedia_en/8/88/ALttP_Zora's_Flippers_Sprite.png?version=b9d7521bb3a5a4d986879f70a70bc3da",
+        r"https://oyster.ignimgs.com/mediawiki/apis.ign.com/the-legend-of-zelda-a-link-to-the-past/4/4c/ZoraFlippers.png?width=1920",
     "Moon Pearl":
         r"https://gamepedia.cursecdn.com/zelda_gamepedia_en/6/63/ALttP_Moon_Pearl_Sprite.png?version=d601542d5abcc3e006ee163254bea77e",
     "Progressive Bow":
@@ -152,7 +166,7 @@ tracking_names = ["Progressive Sword", "Progressive Bow", "Book of Mudora", "Ham
                   "Red Boomerang", "Bug Catching Net", "Cape", "Shovel", "Lamp",
                   "Mushroom", "Magic Powder",
                   "Cane of Somaria", "Cane of Byrna", "Fire Rod", "Ice Rod", "Bombos", "Ether", "Quake",
-                  "Bottle", "Triforce"]  # TODO make sure this list has what we need and sort it better
+                  "Bottle", "Triforce"]
 
 default_locations = {
     'Light World': {1572864, 1572865, 60034, 1572867, 1572868, 60037, 1572869, 1572866, 60040, 59788, 60046, 60175,
@@ -228,14 +242,18 @@ for item in tracking_names:
 
 small_key_ids = {}
 big_key_ids = {}
+ids_small_key = {}
+ids_big_key = {}
 
 for item_name, data in Items.item_table.items():
     if "Key" in item_name:
         area = item_name.split("(")[1][:-1]
         if "Small" in item_name:
-            small_key_ids[area] = data[3]
+            small_key_ids[area] = data[2]
+            ids_small_key[data[2]] = area
         else:
-            big_key_ids[area] = data[3]
+            big_key_ids[area] = data[2]
+            ids_big_key[data[2]] = area
 
 from MultiServer import get_item_name_from_id
 
@@ -246,6 +264,14 @@ def attribute_item(inventory, team, recipient, item):
         inventory[team][recipient][target_item] = max(inventory[team][recipient][target_item], levels[item])
     else:
         inventory[team][recipient][target_item] += 1
+
+
+def attribute_item_solo(inventory, item):
+    target_item = links.get(item, item)
+    if item in levels:  # non-progressive
+        inventory[target_item] = max(inventory[target_item], levels[item])
+    else:
+        inventory[target_item] += 1
 
 
 @app.template_filter()
@@ -298,9 +324,160 @@ def get_static_room_data(room: Room):
                                  for playernumber in range(1, len(names[0]) + 1)}
         player_location_to_area = {playernumber: get_location_table(multidata["checks_in_area"][f'{playernumber}'])
                                    for playernumber in range(1, len(names[0]) + 1)}
-    result = locations, names, use_door_tracker, player_checks_in_area, player_location_to_area
+
+    player_big_key_locations = {playernumber: set() for playernumber in range(1, len(names[0]) + 1)}
+    player_small_key_locations = {playernumber: set() for playernumber in range(1, len(names[0]) + 1)}
+    for _, (item_id, item_player) in multidata["locations"]:
+        if item_id in ids_big_key:
+            player_big_key_locations[item_player].add(ids_big_key[item_id])
+        if item_id in ids_small_key:
+            player_small_key_locations[item_player].add(ids_small_key[item_id])
+
+    result = locations, names, use_door_tracker, player_checks_in_area, player_location_to_area, player_big_key_locations, player_small_key_locations
     _multidata_cache[room.seed.id] = result
     return result
+
+
+@app.route('/tracker/<suuid:tracker>/<int:tracked_team>/<int:tracked_player>')
+@cache.memoize(timeout=15)
+def getPlayerTracker(tracker: UUID, tracked_team: int, tracked_player: int):
+    # Team and player must be positive and greater than zero
+    if tracked_team < 0 or tracked_player < 1:
+        abort(404)
+
+    room = Room.get(tracker=tracker)
+    if not room:
+        abort(404)
+
+    # Collect seed information and pare it down to a single player
+    locations, names, use_door_tracker, seed_checks_in_area, player_location_to_area, player_big_key_locations, player_small_key_locations = get_static_room_data(room)
+    player_name = names[tracked_team][tracked_player - 1]
+    seed_checks_in_area = seed_checks_in_area[tracked_player]
+    location_to_area = player_location_to_area[tracked_player]
+    inventory = collections.Counter()
+    checks_done = {loc_name: 0 for loc_name in default_locations}
+
+    # Add starting items to inventory
+    starting_items = room.seed.multidata.get("precollected_items", None)[tracked_player - 1]
+    if starting_items:
+        for item_id in starting_items:
+            attribute_item_solo(inventory, item_id)
+
+    # Add items to player inventory
+    for (ms_team, ms_player), locations_checked in room.multisave.get("location_checks", {}):
+        # logging.info(f"{ms_team}, {ms_player}, {locations_checked}")
+        # Skip teams and players not matching the request
+
+        if ms_team == tracked_team:
+            # If the player does not have the item, do nothing
+            for location in locations_checked:
+                if (location, ms_player) not in locations:
+                    continue
+
+                item, recipient = locations[location, ms_player]
+                if recipient == tracked_player: # a check done for the tracked player
+                    attribute_item_solo(inventory, item)
+                if ms_player == tracked_player: # a check done by the tracked player
+                    checks_done[location_to_area[location]] += 1
+                    checks_done["Total"] += 1
+
+    # Note the presence of the triforce item
+    for (ms_team, ms_player), game_state in room.multisave.get("client_game_state", []):
+        # Skip teams and players not matching the request
+        if ms_team != tracked_team or ms_player != tracked_player:
+            continue
+
+        if game_state:
+            inventory[106] = 1  # Triforce
+
+    acquired_items = []
+    for itm in inventory:
+        acquired_items.append(get_item_name_from_id(itm))
+
+    # Progressive items need special handling for icons and class
+    progressive_items = {
+        "Progressive Sword": 94,
+        "Progressive Glove": 97,
+        "Progressive Bow": 100,
+        "Progressive Mail": 96,
+        "Progressive Shield": 95,
+    }
+
+    # Determine which icon to use for the sword
+    sword_url = icons["Fighter Sword"]
+    sword_acquired = False
+    sword_names = ['Fighter Sword', 'Master Sword', 'Tempered Sword', 'Golden Sword']
+    if "Progressive Sword" in acquired_items:
+        sword_url = icons[sword_names[min(inventory[progressive_items["Progressive Sword"]], 4) - 1]]
+        sword_acquired = True
+    else:
+        for sword in reversed(sword_names):
+            if sword in acquired_items:
+                sword_url = icons[sword]
+                sword_acquired = True
+                break
+
+    gloves_url = icons["Power Glove"]
+    gloves_acquired = False
+    glove_names = ["Power Glove", "Titan Mitts"]
+    if "Progressive Glove" in acquired_items:
+        gloves_url = icons[glove_names[min(inventory[progressive_items["Progressive Glove"]], 2) - 1]]
+        gloves_acquired = True
+    else:
+        for glove in reversed(glove_names):
+            if glove in acquired_items:
+                gloves_url = icons[glove]
+                gloves_acquired = True
+                break
+
+    bow_url = icons["Bow"]
+    bow_acquired = False
+    bow_names = ["Bow", "Silver Bow"]
+    if "Progressive Bow" in acquired_items:
+        bow_url = icons[bow_names[min(inventory[progressive_items["Progressive Bow"]], 2) - 1]]
+        bow_acquired = True
+    else:
+        for bow in reversed(bow_names):
+            if bow in acquired_items:
+                bow_url = icons[bow]
+                bow_acquired = True
+                break
+
+    mail_url = icons["Green Mail"]
+    mail_names = ["Blue Mail", "Red Mail"]
+    if "Progressive Mail" in acquired_items:
+        mail_url = icons[mail_names[min(inventory[progressive_items["Progressive Mail"]], 2) - 1]]
+    else:
+        for mail in reversed(mail_names):
+            if mail in acquired_items:
+                mail_url = icons[mail]
+                break
+
+    shield_url = icons["Blue Shield"]
+    shield_acquired = False
+    shield_names = ["Blue Shield", "Red Shield", "Mirror Shield"]
+    if "Progressive Shield" in acquired_items:
+        shield_url = icons[shield_names[min(inventory[progressive_items["Progressive Shield"]], 3) - 1]]
+        shield_acquired = True
+    else:
+        for shield in reversed(shield_names):
+            if shield in acquired_items:
+                shield_url = icons[shield]
+                shield_acquired = True
+                break
+
+    # The single player tracker doesn't care about overworld, underworld, and total checks. Maybe it should?
+    sp_areas = ordered_areas[2:15]
+
+    return render_template("playerTracker.html", inventory=inventory, get_item_name_from_id=get_item_name_from_id,
+                           player_name=player_name, room=room, icons=icons, checks_done=checks_done,
+                           checks_in_area=seed_checks_in_area, acquired_items=acquired_items,
+                           sword_url=sword_url, sword_acquired=sword_acquired, gloves_url=gloves_url,
+                           gloves_acquired=gloves_acquired, bow_url=bow_url, bow_acquired=bow_acquired,
+                           small_key_ids=small_key_ids, big_key_ids=big_key_ids, sp_areas=sp_areas,
+                           key_locations=player_small_key_locations[tracked_player],
+                           big_key_locations=player_big_key_locations[tracked_player],
+                           mail_url=mail_url, shield_url=shield_url, shield_acquired=shield_acquired)
 
 
 @app.route('/tracker/<suuid:tracker>')
@@ -309,7 +486,7 @@ def getTracker(tracker: UUID):
     room = Room.get(tracker=tracker)
     if not room:
         abort(404)
-    locations, names, use_door_tracker, seed_checks_in_area, player_location_to_area = get_static_room_data(room)
+    locations, names, use_door_tracker, seed_checks_in_area, player_location_to_area, player_big_key_locations, player_small_key_locations = get_static_room_data(room)
 
     inventory = {teamnumber: {playernumber: collections.Counter() for playernumber in range(1, len(team) + 1)}
                  for teamnumber, team in enumerate(names)}
@@ -342,6 +519,12 @@ def getTracker(tracker: UUID):
         if game_state:
             inventory[team][player][106] = 1  # Triforce
 
+    group_big_key_locations = set()
+    group_key_locations = set()
+    for player in range(1, len(names[0]) + 1):
+        group_key_locations |= player_small_key_locations[player]
+        group_big_key_locations |= player_big_key_locations[player]
+
     activity_timers = {}
     now = datetime.datetime.utcnow()
     for (team, player), timestamp in room.multisave.get("client_activity_timers", []):
@@ -365,6 +548,6 @@ def getTracker(tracker: UUID):
                            tracking_names=tracking_names, tracking_ids=tracking_ids, room=room, icons=icons,
                            multi_items=multi_items, checks_done=checks_done, ordered_areas=ordered_areas,
                            checks_in_area=seed_checks_in_area, activity_timers=activity_timers,
-                           key_locations=key_locations, small_key_ids=small_key_ids, big_key_ids=big_key_ids,
-                           video=video, big_key_locations=key_locations if use_door_tracker else big_key_locations,
+                           key_locations=group_key_locations, small_key_ids=small_key_ids, big_key_ids=big_key_ids,
+                           video=video, big_key_locations=group_big_key_locations,
                            hints=hints, long_player_names = long_player_names)

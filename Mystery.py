@@ -5,6 +5,8 @@ import urllib.request
 import urllib.parse
 import typing
 import os
+from collections import Counter
+import string
 
 import ModuleUpdate
 from BaseClasses import PlandoItem, PlandoConnection
@@ -37,9 +39,11 @@ def mystery_argparse():
     parser.add_argument('--teams', default=1, type=lambda value: max(int(value), 1))
     parser.add_argument('--create_spoiler', action='store_true')
     parser.add_argument('--skip_playthrough', action='store_true')
+    parser.add_argument('--pre_roll', action='store_true')
     parser.add_argument('--rom')
     parser.add_argument('--enemizercli')
     parser.add_argument('--outputpath')
+    parser.add_argument('--glitch_triforce', action='store_true')
     parser.add_argument('--race', action='store_true')
     parser.add_argument('--meta', default=None)
     parser.add_argument('--log_output_path', help='Path to store output log')
@@ -104,6 +108,7 @@ def main(args=None, callback=ERmain):
     erargs.name = {x: "" for x in range(1, args.multi + 1)}  # only so it can be overwrittin in mystery
     erargs.create_spoiler = args.create_spoiler
     erargs.create_diff = args.create_diff
+    erargs.glitch_triforce = args.glitch_triforce
     erargs.race = args.race
     erargs.skip_playthrough = args.skip_playthrough
     erargs.outputname = seedname
@@ -170,6 +175,7 @@ def main(args=None, callback=ERmain):
                     elif type(players_meta) == dict and players_meta[key] and option not in players_meta[key]:
                         weights_cache[path][key] = option
 
+    name_counter = Counter()
     for player in range(1, args.multi + 1):
         path = player_path_cache[player]
         if path:
@@ -180,6 +186,27 @@ def main(args=None, callback=ERmain):
                         settings.sprite):
                     logging.warning(
                         f"Warning: The chosen sprite, \"{settings.sprite}\", for yaml \"{path}\", does not exist.")
+                if args.pre_roll:
+                    import yaml
+                    if path == args.weights:
+                        settings.name = f"Player{player}"
+                    elif not settings.name:
+                        settings.name = os.path.splitext(os.path.split(path)[-1])[0]
+
+                    if "-" not in settings.shuffle and settings.shuffle != "vanilla":
+                        settings.shuffle += f"-{random.randint(0, 2 ** 64)}"
+
+                    pre_rolled = dict()
+                    pre_rolled["original_seed_number"] = seed
+                    pre_rolled["original_seed_name"] = seedname
+                    pre_rolled["pre_rolled"] = vars(settings).copy()
+                    if "plando_items" in pre_rolled["pre_rolled"]:
+                        pre_rolled["pre_rolled"]["plando_items"] = [item.to_dict() for item in pre_rolled["pre_rolled"]["plando_items"]]
+                    if "plando_connections" in pre_rolled["pre_rolled"]:
+                        pre_rolled["pre_rolled"]["plando_connections"] = [connection.to_dict() for connection in pre_rolled["pre_rolled"]["plando_connections"]]
+
+                    with open(os.path.join(args.outputpath if args.outputpath else ".", f"{os.path.split(path)[-1].split('.')[0]}_pre_rolled.yaml"), "wt") as f:
+                        yaml.dump(pre_rolled, f)
                 for k, v in vars(settings).items():
                     if v is not None:
                         getattr(erargs, k)[player] = v
@@ -190,7 +217,9 @@ def main(args=None, callback=ERmain):
         if path == args.weights:  # if name came from the weights file, just use base player name
             erargs.name[player] = f"Player{player}"
         elif not erargs.name[player]:  # if name was not specified, generate it from filename
-            erargs.name[player] = os.path.split(path)[-1].split(".")[0]
+            erargs.name[player] = os.path.splitext(os.path.split(path)[-1])[0]
+        erargs.name[player] = handle_name(erargs.name[player], player, name_counter)
+        logging.info(erargs.name[player])
     erargs.names = ",".join(erargs.name[i] for i in range(1, args.multi + 1))
     del (erargs.name)
     if args.yaml_output:
@@ -199,10 +228,10 @@ def main(args=None, callback=ERmain):
         for option, player_settings in vars(erargs).items():
             if type(player_settings) == dict:
                 if all(type(value) != list for value in player_settings.values()):
-                    if len(frozenset(player_settings.values())) > 1:
+                    if len(player_settings.values()) > 1:
                         important[option] = {player: value for player, value in player_settings.items() if
                                              player <= args.yaml_output}
-                    elif len(frozenset(player_settings.values())) > 0:
+                    elif len(player_settings.values()) > 0:
                         important[option] = player_settings[1]
                     else:
                         logging.debug(f"No player settings defined for option '{option}'")
@@ -259,8 +288,19 @@ def get_choice(option, root, value=None) -> typing.Any:
     raise RuntimeError(f"All options specified in \"{option}\" are weighted as zero.")
 
 
-def handle_name(name: str):
-    return name.strip().replace(' ', '_')[:16]
+class SafeDict(dict):
+    def __missing__(self, key):
+        return '{' + key + '}'
+
+
+def handle_name(name: str, player: int, name_counter: Counter):
+    name_counter[name] += 1
+    new_name = "%".join([x.replace("%number%", "{number}").replace("%player%", "{player}") for x in name.split("%%")])
+    new_name = string.Formatter().vformat(new_name, (), SafeDict(number=name_counter[name],
+                                                                 NUMBER=(name_counter[name] if name_counter[name] > 1 else ''),
+                                                                 player=player,
+                                                                 PLAYER=(player if player > 1 else '')))
+    return new_name.strip().replace(' ', '_')[:16]
 
 
 def prefer_int(input_data: str) -> typing.Union[str, int]:
@@ -272,6 +312,8 @@ def prefer_int(input_data: str) -> typing.Union[str, int]:
 
 available_boss_names: typing.Set[str] = {boss.lower() for boss in Bosses.boss_table if boss not in
                                          {'Agahnim', 'Agahnim2', 'Ganon'}}
+available_boss_locations: typing.Set[str] = {f"{loc.lower()}{f' {level}' if level else ''}" for loc, level in
+                                             Bosses.boss_location_table}
 
 boss_shuffle_options = {None: 'none',
                         'none': 'none',
@@ -291,34 +333,138 @@ def roll_percentage(percentage: typing.Union[int, float]) -> bool:
     percentage is expected to be in range [0, 100]"""
     return random.random() < (float(percentage) / 100)
 
+def update_weights(weights: dict, new_weights: dict, type: str, name: str) -> dict:
+    logging.debug(f'Applying {new_weights}')
+    new_options = set(new_weights) - set(weights)
+    weights.update(new_weights)
+    if new_options:
+        for new_option in new_options:
+            logging.warning(f'{type} Suboption "{new_option}" of "{name}" did not '
+                            f'overwrite a root option. '
+                            f'This is probably in error.')
+    return weights
 
-def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"))):
-    ret = argparse.Namespace()
-    if "linked_options" in weights:
-        weights = weights.copy()  # make sure we don't write back to other weights sets in same_settings
-        for option_set in weights["linked_options"]:
-            if "name" not in option_set:
-                raise ValueError("One of your linked options does not have a name.")
+def roll_linked_options(weights: dict) -> dict:
+    weights = weights.copy()  # make sure we don't write back to other weights sets in same_settings
+    for option_set in weights["linked_options"]:
+        if "name" not in option_set:
+            raise ValueError("One of your linked options does not have a name.")
+        try:
+            if roll_percentage(option_set["percentage"]):
+                logging.debug(f"Linked option {option_set['name']} triggered.")
+                if "options" in option_set:
+                    weights = update_weights(weights, option_set["options"], "Linked", option_set["name"])
+                if "rom_options" in option_set:
+                    rom_weights = weights.get("rom", dict())
+                    rom_weights = update_weights(rom_weights, option_set["rom_options"], "Linked Rom", option_set["name"])
+                    weights["rom"] = rom_weights
+            else:
+                logging.debug(f"linked option {option_set['name']} skipped.")
+        except Exception as e:
+            raise ValueError(f"Linked option {option_set['name']} is destroyed. "
+                             f"Please fix your linked option.") from e
+    return weights
+
+def roll_triggers(weights: dict) -> dict:
+    weights = weights.copy()  # make sure we don't write back to other weights sets in same_settings
+    weights["_Generator_Version"] = "Main"  # Some means for triggers to know if the seed is on main or doors.
+    for option_set in weights["triggers"]:
+        try:
+            key = get_choice("option_name", option_set)
+            if key not in weights:
+                logging.warning(f'Specified option name {option_set["option_name"]} did not '
+                                f'match with a root option. '
+                                f'This is probably in error.')
+            trigger_result = get_choice("option_result", option_set)
+            result = get_choice(key, weights)
+            if result == trigger_result and roll_percentage(get_choice("percentage", option_set, 100)):
+                if "options" in option_set:
+                    weights = update_weights(weights, option_set["options"], "Triggered", option_set["option_name"])
+                if "rom_options" in option_set:
+                    rom_weights = weights.get("rom", dict())
+                    rom_weights = update_weights(rom_weights, option_set["rom_options"], "Triggered Rom", option_set["option_name"])
+                    weights["rom"] = rom_weights
+            weights[key] = result
+        except Exception as e:
+            raise ValueError(f"A trigger is destroyed. "
+                             f"Please fix your triggers.") from e
+    return weights
+
+
+def get_plando_bosses(boss_shuffle: str, plando_options: typing.Set[str]) -> str:
+    if boss_shuffle in boss_shuffle_options:
+        return boss_shuffle_options[boss_shuffle]
+    elif "bosses" in plando_options:
+        options = boss_shuffle.lower().split(";")
+        remainder_shuffle = "none"  # vanilla
+        bosses = []
+        for boss in options:
+            if boss in boss_shuffle_options:
+                remainder_shuffle = boss_shuffle_options[boss]
+            elif "-" in boss:
+                loc, boss_name = boss.split("-")
+                if boss_name not in available_boss_names:
+                    raise ValueError(f"Unknown Boss name {boss_name}")
+                if loc not in available_boss_locations:
+                    raise ValueError(f"Unknown Boss Location {loc}")
+                level = ''
+                if loc.split(" ")[-1] in {"top", "middle", "bottom"}:
+                    # split off level
+                    loc = loc.split(" ")
+                    level = f" {loc[-1]}"
+                    loc = " ".join(loc[:-1])
+                loc = loc.title().replace("Of", "of")
+                if not Bosses.can_place_boss(boss_name.title(), loc, level):
+                    raise ValueError(f"Cannot place {boss_name} at {loc}{level}")
+                bosses.append(boss)
+            elif boss not in available_boss_names:
+                raise ValueError(f"Unknown Boss name or Boss shuffle option {boss}.")
+            else:
+                bosses.append(boss)
+        return ";".join(bosses + [remainder_shuffle])
+    else:
+        raise Exception(f"Boss Shuffle {boss_shuffle} is unknown and boss plando is turned off.")
+
+
+def roll_settings(weights: dict, plando_options: typing.Set[str] = frozenset(("bosses"))):
+    if "pre_rolled" in weights:
+        pre_rolled = weights["pre_rolled"]
+
+        if "plando_items" in pre_rolled:
+            pre_rolled["plando_items"] = [PlandoItem(item["item"],
+                                                     item["location"],
+                                                     item["world"],
+                                                     item["from_pool"],
+                                                     item["force"]) for item in pre_rolled["plando_items"]]
+            if "items" not in plando_options and pre_rolled["plando_items"]:
+                raise Exception("Item Plando is turned off. Reusing this pre-rolled setting not permitted.")
+
+        if "plando_connections" in pre_rolled:
+            pre_rolled["plando_connections"] = [PlandoConnection(connection["entrance"],
+                                                                 connection["exit"],
+                                                                 connection["direction"]) for connection in pre_rolled["plando_connections"]]
+            if "connections" not in plando_options and pre_rolled["plando_connections"]:
+                raise Exception("Connection Plando is turned off. Reusing this pre-rolled setting not permitted.")
+
+        if "bosses" not in plando_options:
             try:
-                if roll_percentage(option_set["percentage"]):
-                    logging.debug(f"Linked option {option_set['name']} triggered.")
-                    logging.debug(f'Applying {option_set["options"]}')
-                    new_options = set(option_set["options"]) - set(weights)
-                    weights.update(option_set["options"])
-                    if new_options:
-                        for new_option in new_options:
-                            logging.warning(f'Linked Suboption "{new_option}" of "{option_set["name"]}" did not '
-                                            f'overwrite a root option. '
-                                            f"This is probably in error.")
-                else:
-                    logging.debug(f"linked option {option_set['name']} skipped.")
-            except Exception as e:
-                raise ValueError(f"Linked option {option_set['name']} is destroyed. "
-                                 f"Please fix your linked option.") from e
+                pre_rolled["shufflebosses"] = get_plando_bosses(pre_rolled["shufflebosses"], plando_options)
+            except Exception as ex:
+                raise Exception("Boss Plando is turned off. Reusing this pre-rolled setting not permitted.") from ex
 
+        if pre_rolled.get("plando_texts") and "texts" not in plando_options:
+            raise Exception("Text Plando is turned off. Reusing this pre-rolled setting not permitted.")
+
+        return argparse.Namespace(**pre_rolled)
+
+    if "linked_options" in weights:
+        weights = roll_linked_options(weights)
+
+    if "triggers" in weights:
+        weights = roll_triggers(weights)
+
+    ret = argparse.Namespace()
     ret.name = get_choice('name', weights)
-    if ret.name:
-        ret.name = handle_name(ret.name)
 
     glitches_required = get_choice('glitches_required', weights)
     if glitches_required not in [None, 'none', 'no_logic', 'overworld_glitches', 'minor_glitches']:
@@ -360,8 +506,11 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
 
     ret.accessibility = get_choice('accessibility', weights)
 
-    entrance_shuffle = get_choice('entrance_shuffle', weights)
-    ret.shuffle = entrance_shuffle if entrance_shuffle != 'none' else 'vanilla'
+    entrance_shuffle = get_choice('entrance_shuffle', weights, 'vanilla')
+    if entrance_shuffle.startswith('none-'):
+        ret.shuffle = 'vanilla'
+    else:
+        ret.shuffle = entrance_shuffle if entrance_shuffle != 'none' else 'vanilla'
 
     goal = get_choice('goals', weights, 'ganon')
     ret.goal = {'ganon': 'ganon',
@@ -379,7 +528,7 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
 
     # TODO consider moving open_pyramid to an automatic variable in the core roller, set to True when
     # fast ganon + ganon at hole
-    ret.open_pyramid = ret.goal in {'crystals', 'ganontriforcehunt', 'localganontriforcehunt', 'ganonpedestal'}
+    ret.open_pyramid = get_choice('open_pyramid', weights, 'goal')
 
     ret.crystals_gt = prefer_int(get_choice('tower_open', weights))
 
@@ -404,6 +553,11 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
 
     # change minimum to required pieces to avoid problems
     ret.triforce_pieces_available = min(max(ret.triforce_pieces_required, int(ret.triforce_pieces_available)), 90)
+    shuffle_slots = get_choice('shop_shuffle_slots', weights, '0')
+    if str(shuffle_slots).lower() == "random":
+        ret.shop_shuffle_slots = random.randint(0, 30)
+    else:
+        ret.shop_shuffle_slots = int(shuffle_slots)
 
     ret.shop_shuffle = get_choice('shop_shuffle', weights, '')
     if not ret.shop_shuffle:
@@ -430,23 +584,7 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
     ret.item_functionality = get_choice('item_functionality', weights)
 
     boss_shuffle = get_choice('boss_shuffle', weights)
-
-    if boss_shuffle in boss_shuffle_options:
-        ret.shufflebosses = boss_shuffle_options[boss_shuffle]
-    elif "bosses" in plando_options:
-        options = boss_shuffle.lower().split(";")
-        remainder_shuffle = "none"  # vanilla
-        bosses = []
-        for boss in options:
-            if boss in boss_shuffle_options:
-                remainder_shuffle = boss_shuffle_options[boss]
-            elif boss not in available_boss_names and not "-" in boss:
-                raise ValueError(f"Unknown Boss name or Boss shuffle option {boss}.")
-            else:
-                bosses.append(boss)
-        ret.shufflebosses = ";".join(bosses + [remainder_shuffle])
-    else:
-        raise Exception(f"Boss Shuffle {boss_shuffle} is unknown and boss plando is turned off.")
+    ret.shufflebosses = get_plando_bosses(boss_shuffle, plando_options)
 
     ret.enemy_shuffle = {'none': False,
                          'shuffled': 'shuffled',
@@ -510,11 +648,15 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
 
     ret.shuffle_prizes = get_choice('shuffle_prizes', weights, "g")
 
-    ret.required_medallions = (get_choice("misery_mire_medallion", weights, "random"),
-                               get_choice("turtle_rock_medallion", weights, "random"))
-    for medallion in ret.required_medallions:
-        if medallion not in {"random", "Ether", "Bombos", "Quake"}:
-            raise Exception(f"unknown Medallion {medallion}")
+    ret.required_medallions = [get_choice("misery_mire_medallion", weights, "random"),
+                               get_choice("turtle_rock_medallion", weights, "random")]
+
+    for index, medallion in enumerate(ret.required_medallions):
+        ret.required_medallions[index] = {"ether": "Ether", "quake": "Quake", "bombos": "Bombos", "random": "random"}\
+            .get(medallion.lower(), None)
+        if not ret.required_medallions[index]:
+            raise Exception(f"unknown Medallion {medallion} for {'misery mire' if index == 0 else 'turtle rock'}")
+
     inventoryweights = weights.get('startinventory', {})
     startitems = []
     for item in inventoryweights.keys():
@@ -561,7 +703,7 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
 
     ret.plando_items = []
     if "items" in plando_options:
-        default_placement = PlandoItem(item="", location="")
+
         def add_plando_item(item: str, location: str):
             if item not in item_table:
                 raise Exception(f"Could not plando item {item} as the item was not recognized")
@@ -572,9 +714,9 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
         options = weights.get("plando_items", [])
         for placement in options:
             if roll_percentage(get_choice("percentage", placement, 100)):
-                from_pool = get_choice("from_pool", placement, default_placement.from_pool)
-                location_world = get_choice("world", placement, default_placement.world)
-                force = get_choice("force", placement, default_placement.force)
+                from_pool = get_choice("from_pool", placement, PlandoItem._field_defaults["from_pool"])
+                location_world = get_choice("world", placement, PlandoItem._field_defaults["world"])
+                force = str(get_choice("force", placement, PlandoItem._field_defaults["force"])).lower()
                 if "items" in placement and "locations" in placement:
                     items = placement["items"]
                     locations = placement["locations"]
@@ -587,9 +729,7 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
                         raise Exception("You must specify at least one item and one location to place items.")
                     random.shuffle(items)
                     random.shuffle(locations)
-                    while items and locations:
-                        item = items.pop()
-                        location = locations.pop()
+                    for item, location in zip(items, locations):
                         add_plando_item(item, location)
                 else:
                     item = get_choice("item", placement, get_choice("items", placement))
@@ -646,8 +786,10 @@ def roll_settings(weights, plando_options: typing.Set[str] = frozenset(("bosses"
                             ret.sprite_pool += [key] * int(value)
 
         ret.disablemusic = get_choice('disablemusic', romweights, False)
+        ret.triforcehud = get_choice('triforcehud', romweights, 'hide_goal')
         ret.quickswap = get_choice('quickswap', romweights, True)
         ret.fastmenu = get_choice('menuspeed', romweights, "normal")
+        ret.reduceflashing = get_choice('reduceflashing', romweights, False)
         ret.heartcolor = get_choice('heartcolor', romweights, "red")
         ret.heartbeep = convert_to_on_off(get_choice('heartbeep', romweights, "normal"))
         ret.ow_palettes = get_choice('ow_palettes', romweights, "default")

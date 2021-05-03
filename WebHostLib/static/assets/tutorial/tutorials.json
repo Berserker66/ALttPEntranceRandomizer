@@ -69,6 +69,39 @@
             ]
           }
         ]
+      },
+      {
+        "name": "Plando Tutorial",
+        "description": "A guide to creating Multiworld Plandos",
+        "files": [
+          {
+            "language": "English",
+            "filename": "zelda3/plando_en.md",
+            "link": "zelda3/plando/en",
+            "authors": [
+              "Berserker"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "gameTitle": "Minecraft",
+    "tutorials": [
+      {
+        "name": "Multiworld Setup Tutorial",
+        "description": "A guide to setting up the Archipelago Minecraft software on your computer. This guide covers single-player, multiworld, and related software.",
+        "files": [
+          {
+            "language": "English",
+            "filename": "minecraft/minecraft_en.md",
+            "link": "minecraft/minecraft/en",
+            "authors": [
+              "Kono Tyran"
+            ]
+          }
+        ]
       }
     ]
   }

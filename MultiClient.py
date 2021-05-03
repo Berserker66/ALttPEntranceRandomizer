@@ -13,9 +13,12 @@ import sys
 import typing
 import os
 import subprocess
+import re
+import shutil
 
 from random import randrange
 
+import Shops
 from Utils import get_item_name_from_id, get_location_name_from_address, ReceivedItem
 
 exit_func = atexit.register(input, "Press enter to close.")
@@ -34,6 +37,11 @@ import WebUI
 
 import Regions
 import Utils
+import Items
+
+# logging note:
+# logging.* gets send to only the text console, logger.* gets send to the WebUI as well, if it's initialized.
+logger = logging.getLogger("Client")
 
 
 def create_named_task(coro, *args, name=None):
@@ -52,6 +60,7 @@ class Context():
 
         # WebUI Stuff
         self.ui_node = WebUI.WebUiClient()
+        logger.addHandler(self.ui_node)
         self.custom_address = None
         self.webui_socket_port: typing.Optional[int] = port
         self.hint_cost = 0
@@ -84,18 +93,18 @@ class Context():
         self.team = None
         self.slot = None
         self.player_names: typing.Dict[int: str] = {}
+        self.locations_recognized = set()
         self.locations_checked = set()
-        self.unsafe_locations_checked = set()
         self.locations_scouted = set()
         self.items_received = []
         self.items_missing = []
+        self.items_checked = None
         self.locations_info = {}
         self.awaiting_rom = False
         self.rom = None
         self.prev_rom = None
         self.auth = None
         self.found_items = found_items
-        self.send_unsafe = False
         self.finished_game = False
         self.slow_mode = False
 
@@ -118,6 +127,7 @@ class Context():
             return
         await self.server.socket.send(json.dumps(msgs))
 
+
 color_codes = {'reset': 0, 'bold': 1, 'underline': 4, 'black': 30, 'red': 31, 'green': 32, 'yellow': 33, 'blue': 34,
                'magenta': 35, 'cyan': 36, 'white': 37, 'black_bg': 40, 'red_bg': 41, 'green_bg': 42, 'yellow_bg': 43,
                'blue_bg': 44, 'purple_bg': 45, 'cyan_bg': 46, 'white_bg': 47}
@@ -130,6 +140,13 @@ def color_code(*args):
 def color(text, *args):
     return color_code(*args) + text + color_code('reset')
 
+
+def color_item(item_id: int, green: bool = False) -> str:
+    item_name = get_item_name_from_id(item_id)
+    item_colors = ['green' if green else 'cyan']
+    if item_name in Items.progression_items:
+        item_colors.append("white_bg")
+    return color(item_name, *item_colors)
 
 START_RECONNECT_DELAY = 5
 SNES_RECONNECT_DELAY = 5
@@ -158,6 +175,11 @@ SCOUT_LOCATION_ADDR = SAVEDATA_START + 0x4D7        # 1 byte
 SCOUTREPLY_LOCATION_ADDR = SAVEDATA_START + 0x4D8   # 1 byte
 SCOUTREPLY_ITEM_ADDR = SAVEDATA_START + 0x4D9       # 1 byte
 SCOUTREPLY_PLAYER_ADDR = SAVEDATA_START + 0x4DA     # 1 byte
+SHOP_ADDR = SAVEDATA_START + 0x302                  # 2 bytes
+
+
+location_shop_order = [name for name, info in Shops.shop_table.items()] # probably don't leave this here.  This relies on python 3.6+ dictionary keys having defined order
+location_shop_ids = set([info[0] for name, info in Shops.shop_table.items()])
 
 location_table_uw = {"Blind's Hideout - Top": (0x11d, 0x10),
                      "Blind's Hideout - Left": (0x11d, 0x20),
@@ -422,11 +444,11 @@ def launch_qusb2snes(ctx: Context):
         qusb2snes_path = Utils.local_path(qusb2snes_path)
 
     if os.path.isfile(qusb2snes_path):
-        ctx.ui_node.log_info(f"Attempting to start {qusb2snes_path}")
+        logger.info(f"Attempting to start {qusb2snes_path}")
         import subprocess
         subprocess.Popen(qusb2snes_path, cwd=os.path.dirname(qusb2snes_path))
     else:
-        ctx.ui_node.log_info(
+        logger.info(
             f"Attempt to start (Q)Usb2Snes was aborted as path {qusb2snes_path} was not found, "
             f"please start it yourself if it is not running")
 
@@ -434,7 +456,7 @@ def launch_qusb2snes(ctx: Context):
 async def _snes_connect(ctx: Context, address: str):
     address = f"ws://{address}" if "://" not in address else address
 
-    ctx.ui_node.log_info("Connecting to QUsb2snes at %s ..." % address)
+    logger.info("Connecting to QUsb2snes at %s ..." % address)
     seen_problems = set()
     succesful = False
     while not succesful:
@@ -446,7 +468,7 @@ async def _snes_connect(ctx: Context, address: str):
             # only tell the user about new problems, otherwise silently lay in wait for a working connection
             if problem not in seen_problems:
                 seen_problems.add(problem)
-                ctx.ui_node.log_error(f"Error connecting to QUsb2snes ({problem})")
+                logger.error(f"Error connecting to QUsb2snes ({problem})")
 
                 if len(seen_problems) == 1:
                     # this is the first problem. Let's try launching QUsb2snes if it isn't already running
@@ -469,7 +491,7 @@ async def get_snes_devices(ctx: Context):
     devices = reply['Results'] if 'Results' in reply and len(reply['Results']) > 0 else None
 
     if not devices:
-        ctx.ui_node.log_info('No SNES device found. Ensure QUsb2Snes is running and connect it to the multibridge.')
+        logger.info('No SNES device found. Ensure QUsb2Snes is running and connect it to the multibridge.')
         while not devices:
             await asyncio.sleep(1)
             await socket.send(json.dumps(DeviceList_Request))
@@ -484,7 +506,7 @@ async def get_snes_devices(ctx: Context):
 async def snes_connect(ctx: Context, address):
     global SNES_RECONNECT_DELAY
     if ctx.snes_socket is not None and ctx.snes_state == SNES_CONNECTED:
-        ctx.ui_node.log_error('Already connected to snes')
+        logger.error('Already connected to snes')
         return
 
     recv_task = None
@@ -510,7 +532,7 @@ async def snes_connect(ctx: Context, address):
             return
 
 
-        ctx.ui_node.log_info("Attaching to " + device)
+        logger.info("Attaching to " + device)
 
         Attach_Request = {
             "Opcode": "Attach",
@@ -523,12 +545,12 @@ async def snes_connect(ctx: Context, address):
         ctx.ui_node.send_connection_status(ctx)
 
         if 'sd2snes' in device.lower() or 'COM' in device:
-            ctx.ui_node.log_info("SD2SNES/FXPAK Detected")
+            logger.info("SD2SNES/FXPAK Detected")
             ctx.is_sd2snes = True
             await ctx.snes_socket.send(json.dumps({"Opcode" : "Info", "Space" : "SNES"}))
             reply = json.loads(await ctx.snes_socket.recv())
             if reply and 'Results' in reply:
-                ctx.ui_node.log_info(reply['Results'])
+                logger.info(reply['Results'])
         else:
             ctx.is_sd2snes = False
 
@@ -548,9 +570,9 @@ async def snes_connect(ctx: Context, address):
                 ctx.snes_socket = None
             ctx.snes_state = SNES_DISCONNECTED
         if not ctx.snes_reconnect_address:
-            ctx.ui_node.log_error("Error connecting to snes (%s)" % e)
+            logger.error("Error connecting to snes (%s)" % e)
         else:
-            ctx.ui_node.log_error(f"Error connecting to snes, attempt again in {SNES_RECONNECT_DELAY}s")
+            logger.error(f"Error connecting to snes, attempt again in {SNES_RECONNECT_DELAY}s")
             asyncio.create_task(snes_autoreconnect(ctx))
         SNES_RECONNECT_DELAY *= 2
 
@@ -577,11 +599,11 @@ async def snes_recv_loop(ctx: Context):
     try:
         async for msg in ctx.snes_socket:
             ctx.snes_recv_queue.put_nowait(msg)
-        ctx.ui_node.log_warning("Snes disconnected")
+        logger.warning("Snes disconnected")
     except Exception as e:
         if not isinstance(e, websockets.WebSocketException):
-            logging.exception(e)
-        ctx.ui_node.log_error("Lost connection to the snes, type /snes to reconnect")
+            logger.exception(e)
+        logger.error("Lost connection to the snes, type /snes to reconnect")
     finally:
         socket, ctx.snes_socket = ctx.snes_socket, None
         if socket is not None and not socket.closed:
@@ -595,7 +617,7 @@ async def snes_recv_loop(ctx: Context):
         ctx.rom = None
 
         if ctx.snes_reconnect_address:
-            ctx.ui_node.log_info(f"...reconnecting in {SNES_RECONNECT_DELAY}s")
+            logger.info(f"...reconnecting in {SNES_RECONNECT_DELAY}s")
             asyncio.create_task(snes_autoreconnect(ctx))
 
 
@@ -624,10 +646,10 @@ async def snes_read(ctx : Context, address, size):
                 break
 
         if len(data) != size:
-            logging.error('Error reading %s, requested %d bytes, received %d' % (hex(address), size, len(data)))
+            logger.error('Error reading %s, requested %d bytes, received %d' % (hex(address), size, len(data)))
             if len(data):
-                ctx.ui_node.log_error(str(data))
-                ctx.ui_node.log_warning('Unable to connect to SNES Device because QUsb2Snes broke temporarily.'
+                logger.error(str(data))
+                logger.warning('Unable to connect to SNES Device because QUsb2Snes broke temporarily.'
                                         'Try un-selecting and re-selecting the SNES Device.')
             if ctx.snes_socket is not None and not ctx.snes_socket.closed:
                 await ctx.snes_socket.close()
@@ -652,7 +674,7 @@ async def snes_write(ctx : Context, write_list):
 
             for address, data in write_list:
                 if (address < WRAM_START) or ((address + len(data)) > (WRAM_START + WRAM_SIZE)):
-                    ctx.ui_node.log_error("SD2SNES: Write out of range %s (%d)" % (hex(address), len(data)))
+                    logger.error("SD2SNES: Write out of range %s (%d)" % (hex(address), len(data)))
                     return False
                 for ptr, byte in enumerate(data, address + 0x7E0000 - WRAM_START):
                     cmd += b'\xA9' # LDA
@@ -669,7 +691,7 @@ async def snes_write(ctx : Context, write_list):
                     await ctx.snes_socket.send(json.dumps(PutAddress_Request))
                     await ctx.snes_socket.send(cmd)
                 else:
-                    logging.warning(f"Could not send data to SNES: {cmd}")
+                    logger.warning(f"Could not send data to SNES: {cmd}")
             except websockets.ConnectionClosed:
                 return False
         else:
@@ -682,7 +704,7 @@ async def snes_write(ctx : Context, write_list):
                         await ctx.snes_socket.send(json.dumps(PutAddress_Request))
                         await ctx.snes_socket.send(data)
                     else:
-                        logging.warning(f"Could not send data to SNES: {data}")
+                        logger.warning(f"Could not send data to SNES: {data}")
             except websockets.ConnectionClosed:
                 return False
 
@@ -719,7 +741,7 @@ async def server_loop(ctx: Context, address=None):
     ctx.ui_node.send_connection_status(ctx)
     cached_address = None
     if ctx.server and ctx.server.socket:
-        ctx.ui_node.log_error('Already connected')
+        logger.error('Already connected')
         return
 
     if address is None:  # set through CLI or BMBP
@@ -731,22 +753,22 @@ async def server_loop(ctx: Context, address=None):
             servers = cached_address = Utils.persistent_load()["servers"]
             address = servers[rom] if rom and rom in servers else servers["default"]
         except Exception as e:
-            logging.debug(f"Could not find cached server address. {e}")
+            logger.debug(f"Could not find cached server address. {e}")
 
     # Wait for the user to provide a multiworld server address
     if not address:
-        logging.info('Please connect to a multiworld server.')
+        logger.info('Please connect to a multiworld server.')
         ctx.ui_node.poll_for_server_ip()
         return
 
     address = f"ws://{address}" if "://" not in address else address
     port = urllib.parse.urlparse(address).port or 38281
 
-    ctx.ui_node.log_info('Connecting to multiworld server at %s' % address)
+    logger.info('Connecting to multiworld server at %s' % address)
     try:
         socket = await websockets.connect(address, port=port, ping_timeout=None, ping_interval=None)
         ctx.server = Endpoint(socket)
-        ctx.ui_node.log_info('Connected')
+        logger.info('Connected')
         ctx.server_address = address
         ctx.ui_node.send_connection_status(ctx)
         SERVER_RECONNECT_DELAY = START_RECONNECT_DELAY
@@ -754,21 +776,21 @@ async def server_loop(ctx: Context, address=None):
             for msg in json.loads(data):
                 cmd, args = (msg[0], msg[1]) if len(msg) > 1 else (msg, None)
                 await process_server_cmd(ctx, cmd, args)
-        ctx.ui_node.log_warning('Disconnected from multiworld server, type /connect to reconnect')
+        logger.warning('Disconnected from multiworld server, type /connect to reconnect')
     except WebUI.WaitingForUiException:
         pass
     except ConnectionRefusedError:
         if cached_address:
-            ctx.ui_node.log_error('Unable to connect to multiworld server at cached address. '
+            logger.error('Unable to connect to multiworld server at cached address. '
                                   'Please use the connect button above.')
         else:
-            ctx.ui_node.log_error('Connection refused by the multiworld server')
+            logger.error('Connection refused by the multiworld server')
     except (OSError, websockets.InvalidURI):
-        ctx.ui_node.log_error('Failed to connect to the multiworld server')
+        logger.error('Failed to connect to the multiworld server')
     except Exception as e:
-        ctx.ui_node.log_error('Lost connection to the multiworld server, type /connect to reconnect')
+        logger.error('Lost connection to the multiworld server, type /connect to reconnect')
         if not isinstance(e, websockets.WebSocketException):
-            logging.exception(e)
+            logger.exception(e)
     finally:
         ctx.awaiting_rom = False
         ctx.auth = None
@@ -780,7 +802,7 @@ async def server_loop(ctx: Context, address=None):
         ctx.server = None
         ctx.server_task = None
         if ctx.server_address:
-            ctx.ui_node.log_info(f"... reconnecting in {SERVER_RECONNECT_DELAY}s")
+            logger.info(f"... reconnecting in {SERVER_RECONNECT_DELAY}s")
             ctx.ui_node.send_connection_status(ctx)
             asyncio.create_task(server_autoreconnect(ctx))
         SERVER_RECONNECT_DELAY *= 2
@@ -795,22 +817,34 @@ async def server_autoreconnect(ctx: Context):
         ctx.server_task = asyncio.create_task(server_loop(ctx))
 
 
+missing_unknown = re.compile("Unknown Location ID: (?P<ID>\d+)")
+def convert_unknown_missing(missing_items: list) -> list:
+    missing = []
+    for location in missing_items:
+        match = missing_unknown.match(location)
+        if match:
+            missing.append(Regions.lookup_id_to_name.get(int(match['ID']), location))
+        else:
+            missing.append(location)
+    return missing
+
+
 async def process_server_cmd(ctx: Context, cmd, args):
     if cmd == 'RoomInfo':
-        ctx.ui_node.log_info('--------------------------------')
-        ctx.ui_node.log_info('Room Information:')
-        ctx.ui_node.log_info('--------------------------------')
+        logger.info('--------------------------------')
+        logger.info('Room Information:')
+        logger.info('--------------------------------')
         version = args.get("version", "unknown Bonta Protocol")
         if isinstance(version, list):
             ctx.server_version = tuple(version)
             version = ".".join(str(item) for item in version)
         else:
             ctx.server_version = (0, 0, 0)
-        ctx.ui_node.log_info(f'Server protocol version: {version}')
+        logger.info(f'Server protocol version: {version}')
         if "tags" in args:
-            ctx.ui_node.log_info("Server protocol tags: " + ", ".join(args["tags"]))
+            logger.info("Server protocol tags: " + ", ".join(args["tags"]))
         if args['password']:
-            ctx.ui_node.log_info('Password required')
+            logger.info('Password required')
         if "forfeit_mode" in args: # could also be version > 2.2.1, but going with implicit content here
             logging.info(f"Forfeit setting: {args['forfeit_mode']}")
             logging.info(f"Remaining setting: {args['remaining_mode']}")
@@ -822,16 +856,16 @@ async def process_server_cmd(ctx: Context, cmd, args):
             ctx.remaining_mode = args['remaining_mode']
             ctx.ui_node.send_game_info(ctx)
         if len(args['players']) < 1:
-            ctx.ui_node.log_info('No player connected')
+            logger.info('No player connected')
         else:
             args['players'].sort()
             current_team = -1
-            ctx.ui_node.log_info('Connected players:')
+            logger.info('Connected players:')
             for team, slot, name in args['players']:
                 if team != current_team:
-                    ctx.ui_node.log_info(f'  Team #{team + 1}')
+                    logger.info(f'  Team #{team + 1}')
                     current_team = team
-                ctx.ui_node.log_info('    %s (Player %d)' % (name, slot))
+                logger.info('    %s (Player %d)' % (name, slot))
         await server_auth(ctx, args['password'])
 
     elif cmd == 'ConnectionRefused':
@@ -848,7 +882,7 @@ async def process_server_cmd(ctx: Context, cmd, args):
             raise Exception('Server reported your client version as incompatible')
         #last to check, recoverable problem
         elif 'InvalidPassword' in args:
-            ctx.ui_node.log_error('Invalid password')
+            logger.error('Invalid password')
             ctx.password = None
             await server_auth(ctx, True)
         else:
@@ -856,9 +890,6 @@ async def process_server_cmd(ctx: Context, cmd, args):
         raise Exception('Connection refused by the multiworld host, no reason provided')
 
     elif cmd == 'Connected':
-        if ctx.send_unsafe:
-            ctx.send_unsafe = False
-            ctx.ui_node.log_info(f'Turning off sending of ALL location checks not declared as missing.  If you want it on, please use /send_unsafe true')
         Utils.persistent_store("servers", "default", ctx.server_address)
         Utils.persistent_store("servers", ctx.rom, ctx.server_address)
         ctx.team, ctx.slot = args[0]
@@ -872,11 +903,12 @@ async def process_server_cmd(ctx: Context, cmd, args):
             await ctx.send_msgs(msgs)
         if ctx.finished_game:
             await send_finished_game(ctx)
-        ctx.items_missing = args[2] if len(args) >= 3 else []  # Get the server side view of missing as of time of connecting.
+        ctx.items_missing = convert_unknown_missing(args[2] if len(args) >= 3 else [])  # Get the server side view of missing as of time of connecting.
+        ctx.items_checked = convert_unknown_missing(args[3]) if len(args) >= 4 else None
         # This list is used to only send to the server what is reported as ACTUALLY Missing.
         # This also serves to allow an easy visual of what locations were already checked previously
         # when /missing is used for the client side view of what is missing.
-        if not ctx.items_missing:
+        if not ctx.items_missing and not ctx.items_checked:
             asyncio.create_task(ctx.send_msgs([['Say', '!missing']]))
 
     elif cmd == 'ReceivedItems':
@@ -898,7 +930,7 @@ async def process_server_cmd(ctx: Context, cmd, args):
             if location not in ctx.locations_info:
                 replacements = {0xA2: 'Small Key', 0x9D: 'Big Key', 0x8D: 'Compass', 0x7D: 'Map'}
                 item_name = replacements.get(item, get_item_name_from_id(item))
-                ctx.ui_node.log_info(
+                logger.info(
                     f"Saw {color(item_name, 'red', 'bold')} at {list(Regions.location_table.keys())[location - 1]}")
                 ctx.locations_info[location] = (item, player)
         ctx.watcher_event.set()
@@ -907,8 +939,9 @@ async def process_server_cmd(ctx: Context, cmd, args):
         player_sent, location, player_recvd, item = args
         ctx.ui_node.notify_item_sent(ctx.player_names[player_sent], ctx.player_names[player_recvd],
                                      get_item_name_from_id(item), get_location_name_from_address(location),
-                                     player_sent == ctx.slot, player_recvd == ctx.slot)
-        item = color(get_item_name_from_id(item), 'cyan' if player_sent != ctx.slot else 'green')
+                                     player_sent == ctx.slot, player_recvd == ctx.slot,
+                                     get_item_name_from_id(item) in Items.progression_items)
+        item = color_item(item, player_sent == ctx.slot)
         player_sent = color(ctx.player_names[player_sent], 'yellow' if player_sent != ctx.slot else 'magenta')
         player_recvd = color(ctx.player_names[player_recvd], 'yellow' if player_recvd != ctx.slot else 'magenta')
         logging.info(
@@ -918,20 +951,25 @@ async def process_server_cmd(ctx: Context, cmd, args):
     elif cmd == 'ItemFound':
         found = ReceivedItem(*args)
         ctx.ui_node.notify_item_found(ctx.player_names[found.player], get_item_name_from_id(found.item),
-                                      get_location_name_from_address(found.location), found.player == ctx.slot)
-        item = color(get_item_name_from_id(found.item), 'cyan' if found.player != ctx.slot else 'green')
+                                      get_location_name_from_address(found.location), found.player == ctx.slot,
+                                      get_item_name_from_id(found.item) in Items.progression_items)
+        item = color_item(found.item, found.player == ctx.slot)
         player_sent = color(ctx.player_names[found.player], 'yellow' if found.player != ctx.slot else 'magenta')
         logging.info('%s found %s (%s)' % (player_sent, item, color(get_location_name_from_address(found.location),
                                                                     'blue_bg', 'white')))
 
     elif cmd == 'Missing':
         if 'locations' in args:
-            locations = json.loads(args['locations'])
+            locations = convert_unknown_missing(json.loads(args['locations']))
             if ctx.items_missing:
                 for location in locations:
-                    ctx.ui_node.log_info(f'Missing: {location}')
-                ctx.ui_node.log_info(f'Found {len(locations)} missing location checks')
-            ctx.items_missing = [location for location in locations]
+                    logger.info(f'Missing: {location}')
+            ctx.items_missing = locations
+            if 'locations_checked' in args:
+                ctx.items_checked = convert_unknown_missing(json.loads(args['locations_checked']))
+                logger.info(f'Missing {len(locations)}/{len(locations)+len(ctx.items_checked)} location checks')
+            else:
+                logger.info(f'Found {len(locations)} missing location checks')
 
     elif cmd == 'Hint':
         hints = [Utils.Hint(*hint) for hint in args]
@@ -940,7 +978,7 @@ async def process_server_cmd(ctx: Context, cmd, args):
                                   get_item_name_from_id(hint.item), get_location_name_from_address(hint.location),
                                   hint.found, hint.finding_player == ctx.slot, hint.receiving_player == ctx.slot,
                                   hint.entrance if hint.entrance else None)
-            item = color(get_item_name_from_id(hint.item), 'green' if hint.found else 'cyan')
+            item = color_item(hint.item, hint.found)
             player_find = color(ctx.player_names[hint.finding_player],
                                 'yellow' if hint.finding_player != ctx.slot else 'magenta')
             player_recvd = color(ctx.player_names[hint.receiving_player],
@@ -957,13 +995,13 @@ async def process_server_cmd(ctx: Context, cmd, args):
         ctx.player_names = {p: n for p, n in args}
 
     elif cmd == 'Print':
-        ctx.ui_node.log_info(args)
+        logger.info(args)
 
     elif cmd == 'HintPointUpdate':
         ctx.hint_points = args[0]
 
     else:
-        logging.debug(f"unknown command {args}")
+        logger.debug(f"unknown command {args}")
 
 
 def get_tags(ctx: Context):
@@ -975,11 +1013,11 @@ def get_tags(ctx: Context):
 
 async def server_auth(ctx: Context, password_requested):
     if password_requested and not ctx.password:
-        ctx.ui_node.log_info('Enter the password required to join this game:')
+        logger.info('Enter the password required to join this game:')
         ctx.password = await console_input(ctx)
     if ctx.rom is None:
         ctx.awaiting_rom = True
-        ctx.ui_node.log_info(
+        logger.info(
             'No ROM detected, awaiting snes connection to authenticate to the multiworld server (/snes)')
         return
     ctx.awaiting_rom = False
@@ -1009,7 +1047,7 @@ class ClientCommandProcessor(CommandProcessor):
         self.ctx = ctx
 
     def output(self, text: str):
-        self.ctx.ui_node.log_info(text)
+        logger.info(text)
 
     def _cmd_exit(self) -> bool:
         """Close connections and client"""
@@ -1046,11 +1084,12 @@ class ClientCommandProcessor(CommandProcessor):
 
     def _cmd_received(self) -> bool:
         """List all received items"""
-        self.ctx.ui_node.log_info('Received items:')
+        logger.info('Received items:')
         for index, item in enumerate(self.ctx.items_received, 1):
             self.ctx.ui_node.notify_item_received(self.ctx.player_names[item.player], get_item_name_from_id(item.item),
                                                   get_location_name_from_address(item.location), index,
-                                                  len(self.ctx.items_received))
+                                                  len(self.ctx.items_received),
+                                                  get_item_name_from_id(item.item) in Items.progression_items)
             logging.info('%s from %s (%s) (%d/%d in list)' % (
                 color(get_item_name_from_id(item.item), 'red', 'bold'),
                 color(self.ctx.player_names[item.player], 'yellow'),
@@ -1061,30 +1100,17 @@ class ClientCommandProcessor(CommandProcessor):
         """List all missing location checks, from your local game state"""
         count = 0
         checked_count = 0
-        for location in [k for k, v in Regions.location_table.items() if type(v[0]) is int]:
+        for location, location_id in Regions.lookup_name_to_id.items():
+            if location_id < 0:
+                continue
             if location not in self.ctx.locations_checked:
-                if location not in self.ctx.items_missing:
-                    self.output('Checked: ' + location)
-                    checked_count += 1
-                else:
+                if location in self.ctx.items_missing:
                     self.output('Missing: ' + location)
-                count += 1
-
-        key_drop_count = 0
-        for location in [k for k, v in Regions.key_drop_data.items()]:
-            if location not in self.ctx.items_missing:
-                key_drop_count += 1
-
-        # No point on reporting on missing key drop locations if the server doesn't declare ANY of them missing.
-        if key_drop_count != len(Regions.key_drop_data.items()):
-            for location in [k for k, v in Regions.key_drop_data.items()]:
-                if location not in self.ctx.locations_checked:
-                    if location not in self.ctx.items_missing:
-                        self.output('Checked: ' + location)
-                        key_drop_count += 1
-                    else:
-                        self.output('Missing: ' + location)
                     count += 1
+                elif self.ctx.items_checked is None or location in self.ctx.items_checked:
+                    self.output('Checked: ' + location)
+                    count += 1
+                    checked_count += 1
 
         if count:
             self.output(f"Found {count} missing location checks{f'. {checked_count} locations checks previously visited.' if checked_count else ''}")
@@ -1098,7 +1124,7 @@ class ClientCommandProcessor(CommandProcessor):
             self.ctx.found_items = toggle.lower() in {"1", "true", "on"}
         else:
             self.ctx.found_items = not self.ctx.found_items
-        self.ctx.ui_node.log_info(f"Set showing team items to {self.ctx.found_items}")
+        logger.info(f"Set showing team items to {self.ctx.found_items}")
         asyncio.create_task(self.ctx.send_msgs([['UpdateTags', get_tags(self.ctx)]]))
         return True
 
@@ -1109,22 +1135,13 @@ class ClientCommandProcessor(CommandProcessor):
         else:
             self.ctx.slow_mode = not self.ctx.slow_mode
 
-        self.ctx.ui_node.log_info(f"Setting slow mode to {self.ctx.slow_mode}")
+        logger.info(f"Setting slow mode to {self.ctx.slow_mode}")
 
     def _cmd_web(self):
         if self.ctx.webui_socket_port:
             webbrowser.open(f'http://localhost:5050?port={self.ctx.webui_socket_port}')
         else:
             self.output("Web UI was never started.")
-
-    def _cmd_send_unsafe(self, toggle: str = ""):
-        """Force sending of locations the server did not specify was actually missing. WARNING: This may brick online trackers. Turned off on reconnect."""
-        if toggle:
-            self.ctx.send_unsafe = toggle.lower() in {"1", "true", "on"}
-            self.ctx.ui_node.log_info(f'Turning {("on" if self.ctx.send_unsafe else "off")} the option to send ALL location checks to the multiserver.')
-        else:
-            self.ctx.ui_node.log_info("You must specify /send_unsafe true explicitly.")
-            self.ctx.send_unsafe = False
 
     def default(self, raw: str):
         asyncio.create_task(self.ctx.send_msgs([['Say', raw]]))
@@ -1155,22 +1172,45 @@ async def track_locations(ctx : Context, roomid, roomdata):
     new_locations = []
 
     def new_check(location):
-        ctx.unsafe_locations_checked.add(location)
-        ctx.ui_node.log_info("New check: %s (%d/216)" % (location, len(ctx.unsafe_locations_checked)))
+        ctx.locations_checked.add(location)
+
+        check = None
+        if ctx.items_checked is None:
+            check = f'New Check: {location} ({len(ctx.locations_checked)}/{len(Regions.lookup_name_to_id)})'
+        else:
+            items_total = len(ctx.items_missing) + len(ctx.items_checked)
+            if location in ctx.items_missing or location in ctx.items_checked:
+                ctx.locations_recognized.add(location)
+                check = f'New Check: {location} ({len(ctx.locations_recognized)}/{items_total})'
+
+        if check:
+            logger.info(check)
         ctx.ui_node.send_location_check(ctx, location)
+
+    try:
+        if roomid in location_shop_ids:
+            misc_data = await snes_read(ctx, SHOP_ADDR, (len(location_shop_order)*3)+5)
+            for cnt, b in enumerate(misc_data):
+                my_check = Shops.shop_table_by_location_id[Shops.SHOP_ID_START + cnt]
+                if int(b) > 0 and my_check not in ctx.locations_checked:
+                    new_check(my_check)
+    except Exception as e:
+        print(e)
+        logger.info(f"Exception: {e}")
+
 
     for location, (loc_roomid, loc_mask) in location_table_uw.items():
         try:
-            if location not in ctx.unsafe_locations_checked and loc_roomid == roomid and (roomdata << 4) & loc_mask != 0:
+            if location not in ctx.locations_checked and loc_roomid == roomid and (roomdata << 4) & loc_mask != 0:
                 new_check(location)
         except Exception as e:
-            ctx.ui_node.log_info(f"Exception: {e}")
+            logger.exception(f"Exception: {e}")
 
     uw_begin = 0x129
     uw_end = 0
     uw_unchecked = {}
     for location, (roomid, mask) in location_table_uw.items():
-        if location not in ctx.unsafe_locations_checked:
+        if location not in ctx.locations_checked:
             uw_unchecked[location] = (roomid, mask)
             uw_begin = min(uw_begin, roomid)
             uw_end = max(uw_end, roomid + 1)
@@ -1187,7 +1227,7 @@ async def track_locations(ctx : Context, roomid, roomdata):
     ow_end = 0
     ow_unchecked = {}
     for location, screenid in location_table_ow.items():
-        if location not in ctx.unsafe_locations_checked:
+        if location not in ctx.locations_checked:
             ow_unchecked[location] = screenid
             ow_begin = min(ow_begin, screenid)
             ow_end = max(ow_end, screenid + 1)
@@ -1198,26 +1238,30 @@ async def track_locations(ctx : Context, roomid, roomdata):
                 if ow_data[screenid - ow_begin] & 0x40 != 0:
                     new_check(location)
 
-    if not all([location in ctx.unsafe_locations_checked for location in location_table_npc.keys()]):
+    if not all([location in ctx.locations_checked for location in location_table_npc.keys()]):
         npc_data = await snes_read(ctx, SAVEDATA_START + 0x410, 2)
         if npc_data is not None:
             npc_value = npc_data[0] | (npc_data[1] << 8)
             for location, mask in location_table_npc.items():
-                if npc_value & mask != 0 and location not in ctx.unsafe_locations_checked:
+                if npc_value & mask != 0 and location not in ctx.locations_checked:
                     new_check(location)
 
-    if not all([location in ctx.unsafe_locations_checked for location in location_table_misc.keys()]):
+    if not all([location in ctx.locations_checked for location in location_table_misc.keys()]):
         misc_data = await snes_read(ctx, SAVEDATA_START + 0x3c6, 4)
         if misc_data is not None:
             for location, (offset, mask) in location_table_misc.items():
                 assert(0x3c6 <= offset <= 0x3c9)
-                if misc_data[offset - 0x3c6] & mask != 0 and location not in ctx.unsafe_locations_checked:
+                if misc_data[offset - 0x3c6] & mask != 0 and location not in ctx.locations_checked:
                     new_check(location)
 
-    for location in ctx.unsafe_locations_checked:
-        if (location in ctx.items_missing and location not in ctx.locations_checked) or ctx.send_unsafe:
-            ctx.locations_checked.add(location)
-            new_locations.append(Regions.lookup_name_to_id[location])
+    for location in ctx.locations_checked:
+        try:
+            my_id = Regions.lookup_name_to_id.get(location, Shops.shop_table_by_location.get(location, -1))
+            new_locations.append(my_id)
+        except Exception as e:
+            print(e)
+            logger.info(f"Exception: {e}")
+
 
     await ctx.send_msgs([['LocationChecks', new_locations]])
 
@@ -1227,7 +1271,7 @@ async def send_finished_game(ctx: Context):
         await ctx.send_msgs([['GameFinished', '']])
         ctx.finished_game = True
     except Exception as ex:
-        logging.exception(ex)
+        logger.exception(ex)
 
 
 async def game_watcher(ctx : Context):
@@ -1249,7 +1293,6 @@ async def game_watcher(ctx : Context):
             ctx.rom = rom.decode()
             if not ctx.prev_rom or ctx.prev_rom != ctx.rom:
                 ctx.locations_checked = set()
-                ctx.unsafe_locations_checked = set()
                 ctx.locations_scouted = set()
             ctx.prev_rom = ctx.rom
 
@@ -1257,7 +1300,7 @@ async def game_watcher(ctx : Context):
                 await server_auth(ctx, False)
 
         if ctx.auth and ctx.auth != ctx.rom:
-            ctx.ui_node.log_warning("ROM change detected, please reconnect to the multiworld server")
+            logger.warning("ROM change detected, please reconnect to the multiworld server")
             await ctx.disconnect()
 
         gamemode = await snes_read(ctx, WRAM_START + 0x10, 1)
@@ -1304,7 +1347,8 @@ async def game_watcher(ctx : Context):
             item = ctx.items_received[recv_index]
             ctx.ui_node.notify_item_received(ctx.player_names[item.player], get_item_name_from_id(item.item),
                                              get_location_name_from_address(item.location), recv_index + 1,
-                                             len(ctx.items_received))
+                                             len(ctx.items_received),
+                                             get_item_name_from_id(item.item) in Items.progression_items)
             logging.info('Received %s from %s (%s) (%d/%d in list)' % (
                 color(get_item_name_from_id(item.item), 'red', 'bold'), color(ctx.player_names[item.player], 'yellow'),
                 get_location_name_from_address(item.location), recv_index + 1, len(ctx.items_received)))
@@ -1321,7 +1365,7 @@ async def game_watcher(ctx : Context):
 
         if scout_location > 0 and scout_location not in ctx.locations_scouted:
             ctx.locations_scouted.add(scout_location)
-            ctx.ui_node.log_info(f'Scouting item at {list(Regions.location_table.keys())[scout_location - 1]}')
+            logger.info(f'Scouting item at {list(Regions.location_table.keys())[scout_location - 1]}')
             await ctx.send_msgs([['LocationScouts', [scout_location]]])
         await track_locations(ctx, roomid, roomdata)
 
@@ -1412,7 +1456,7 @@ async def main():
         adjustedromfile, adjusted = Utils.get_adjuster_settings(romfile)
         if adjusted:
             try:
-                os.replace(adjustedromfile, romfile)
+                shutil.move(adjustedromfile, romfile)
                 adjustedromfile = romfile
             except Exception as e:
                 logging.exception(e)

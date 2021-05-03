@@ -49,6 +49,7 @@ if __name__ == "__main__":
         enemizer_path = multi_mystery_options["enemizer_path"]
         player_files_path = multi_mystery_options["player_files_path"]
         target_player_count = multi_mystery_options["players"]
+        glitch_triforce = multi_mystery_options["glitch_triforce_room"]
         race = multi_mystery_options["race"]
         plando_options = multi_mystery_options["plando_options"]
         create_spoiler = multi_mystery_options["create_spoiler"]
@@ -61,6 +62,7 @@ if __name__ == "__main__":
         player_name = multi_mystery_options["player_name"]
         meta_file_path = multi_mystery_options["meta_file_path"]
         weights_file_path = multi_mystery_options["weights_file_path"]
+        pre_roll = multi_mystery_options["pre_roll"]
         teams = multi_mystery_options["teams"]
         rom_file = options["general_options"]["rom_file"]
         host = options["server_options"]["host"]
@@ -113,12 +115,16 @@ if __name__ == "__main__":
                 command += " --skip_playthrough"
         if zip_diffs:
             command += " --create_diff"
+        if glitch_triforce:
+            command += " --glitch_triforce"
         if race:
             command += " --race"
         if os.path.exists(os.path.join(player_files_path, meta_file_path)):
             command += f" --meta {os.path.join(player_files_path, meta_file_path)}"
         if os.path.exists(weights_file_path):
             command += f" --weights {weights_file_path}"
+        if pre_roll:
+            command += " --pre_roll"
 
         logging.info(command)
         import time

@@ -72,6 +72,26 @@
         }
       }
     },
+    "restrict_dungeon_item_on_boss": {
+      "keyString": "restrict_dungeon_item_on_boss",
+      "friendlyName": "Dungeon Item on Boss",
+      "description": "Prevent dungeon bosses from dropping maps, compasses, and keys.",
+      "inputType": "range",
+      "subOptions": {
+        "on": {
+          "keyString": "restrict_dungeon_item_on_boss.on",
+          "friendlyName": "On",
+          "description": "Dungeon bosses will never drop maps, compasses, or keys.",
+          "defaultValue": 0
+        },
+        "off": {
+          "keyString": "restrict_dungeon_item_on_boss.off",
+          "friendlyName": "Off",
+          "description": "Dungeon bosses may drop any item.",
+          "defaultValue": 0
+        }
+      }
+    },
     "map_shuffle": {
       "keyString": "map_shuffle",
       "friendlyName": "Map Shuffle",
@@ -376,6 +396,44 @@
           "keyString": "goals.local_ganon_triforce_hunt",
           "friendlyName": "Local Triforce hunt /w Ganon",
           "description": "Same as Local Triforce Hunt, but you need to defeat Ganon in his lair instead of talking with Murahadala.",
+          "defaultValue": 0
+        },
+        "ice_rod_hunt": {
+          "keyString": "goals.ice_rod_hunt",
+          "friendlyName": "Ice Rod Hunt",
+          "description": "Look for the Ice Rod within your 215 available checks, then go kill Trinexx at Turtle rock.",
+          "defaultValue": 0
+        }
+      }
+    },
+    "pyramid_open": {
+      "keyString": "pyramid_open",
+      "friendlyName": "Pyramid Open",
+      "description": "",
+      "inputType": "range",
+      "subOptions": {
+        "goal": {
+          "keyString": "pyramid_open.goal",
+          "friendlyName": "Goal",
+          "description": "Opens the pyramid if the goal requires you to kill Ganon, unless the goal is Slow Ganon or All Dungeons.",
+          "defaultValue": 50
+        },
+        "auto": {
+          "keyString": "pyramid_open.auto",
+          "friendlyName": "Auto",
+          "description": "Same as Goal, but also opens when any non-dungeon entrance shuffle is used.",
+          "defaultValue": 0
+        },
+        "yes": {
+          "keyString": "pyramid_open.yes",
+          "friendlyName": "Always Open",
+          "description": "Pyramid hole is always open. Ganon's vulnerable condition is still required before he can he hurt.",
+          "defaultValue": 0
+        },
+        "no": {
+          "keyString": "pyramid_open.no",
+          "friendlyName": "Always Closed",
+          "description": "Pyramid hole is always closed until you defeat Agahnim atop Ganon's Tower.",
           "defaultValue": 0
         }
       }
@@ -944,6 +1002,70 @@
         }
       }
     },
+    "misery_mire_medallion": {
+      "keyString": "misery_mire_medallion",
+      "friendlyName": "Misery Mire Medallion",
+      "description": "Determines the medallion required to access Misery Mire",
+      "inputType": "range",
+      "subOptions": {
+        "random": {
+          "keyString": "misery_mire_medallion.random",
+          "friendlyName": "Random",
+          "description": "Choose the medallion randomly.",
+          "defaultValue": 50
+        },
+        "quake": {
+          "keyString": "misery_mire_medallion.quake",
+          "friendlyName": "Quake",
+          "description": "Quake will be required ot enter Misery Mire.",
+          "defaultValue": 0
+        },
+        "bombos": {
+          "keyString": "misery_mire_medallion.bombos",
+          "friendlyName": "Bombos",
+          "description": "Bombos will be required ot enter Misery Mire.",
+          "defaultValue": 0
+        },
+        "ether": {
+          "keyString": "misery_mire_medallion.ether",
+          "friendlyName": "Ether",
+          "description": "Ether will be required ot enter Misery Mire.",
+          "defaultValue": 0
+        }
+      }
+    },
+    "turtle_rock_medallion": {
+      "keyString": "turtle_rock_medallion",
+      "friendlyName": "Turtle Rock Medallion",
+      "description": "Determines the medallion required to access Turtle Rock",
+      "inputType": "range",
+      "subOptions": {
+        "random": {
+          "keyString": "turtle_rock_medallion.random",
+          "friendlyName": "Random",
+          "description": "Choose the medallion randomly.",
+          "defaultValue": 50
+        },
+        "quake": {
+          "keyString": "turtle_rock_medallion.quake",
+          "friendlyName": "Quake",
+          "description": "Quake will be required ot enter Turtle Rock.",
+          "defaultValue": 0
+        },
+        "bombos": {
+          "keyString": "turtle_rock_medallion.bombos",
+          "friendlyName": "Bombos",
+          "description": "Bombos will be required ot enter Turtle Rock.",
+          "defaultValue": 0
+        },
+        "ether": {
+          "keyString": "turtle_rock_medallion.ether",
+          "friendlyName": "Ether",
+          "description": "Ether will be required ot enter Turtle Rock.",
+          "defaultValue": 0
+        }
+      }
+    },
     "bush_shuffle": {
       "keyString": "bush_shuffle",
       "friendlyName": "Bush Shuffle",
@@ -1017,7 +1139,7 @@
         "expert": {
           "keyString": "enemy_health.expert",
           "friendlyName": "Armor-Plated",
-          "description": "Enemies will be very heard to defeat.",
+          "description": "Enemies will be very hard to defeat.",
           "defaultValue": 0
         }
       }
@@ -1045,7 +1167,7 @@
     "beemizer": {
       "keyString": "beemizer",
       "friendlyName": "Beemizer",
-      "description": "Remove items from the global item pool and replace them with single bees and bee traps.",
+      "description": "Remove non-health items from the global item pool and replace them with single bees and bee traps.",
       "inputType": "range",
       "subOptions": {
         "0": {
@@ -1057,25 +1179,25 @@
         "1": {
           "keyString": "beemizer.1",
           "friendlyName": "Level 1",
-          "description": "25% of the non-essential item pool is replaced with bee traps.",
+          "description": "25% of rupees, bombs and arrows are replaced with bees, of which 60% are traps and 40% single bees",
           "defaultValue": 1
         },
         "2": {
           "keyString": "beemizer.2",
           "friendlyName": "Level 2",
-          "description": "60% of the non-essential item pool is replaced with bee traps, of which 20% could be single bees.",
+          "description": "50% of rupees, bombs and arrows are replaced with bees, of which 70% are traps and 30% single bees",
           "defaultValue": 2
         },
         "3": {
           "keyString": "beemizer.3",
           "friendlyName": "Level 3",
-          "description": "100% of the non-essential item pool is replaced with bee traps, of which 50% could be single bees.",
+          "description": "75% of rupees, bombs and arrows are replaced with bees, of which 80% are traps and 20% single bees",
           "defaultValue": 3
         },
         "4": {
           "keyString": "beemizer.4",
           "friendlyName": "Level 4",
-          "description": "100% of the non-essential item pool is replaced with bee traps.",
+          "description": "100% of rupees, bombs and arrows are replaced with bees, of which 90% are traps and 10% single bees",
           "defaultValue": 4
         }
       }
@@ -1092,10 +1214,16 @@
           "description": "Shop contents are left unchanged.",
           "defaultValue": 50
         },
-        "i": {
-          "keyString": "shop_shuffle.i",
-          "friendlyName": "Inventory Shuffle",
-          "description": "Randomizes the inventories of shops.",
+        "g": {
+          "keyString": "shop_shuffle.g",
+          "friendlyName": "Pool Shuffle",
+          "description": "Shuffles the inventory of shops.",
+          "defaultValue": 0
+        },
+        "f": {
+          "keyString": "shop_shuffle.f",
+          "friendlyName": "Random Shuffle",
+          "description": "Randomly generate an inventory for each shop from a pool of non-progression items.",
           "defaultValue": 0
         },
         "p": {
@@ -1110,16 +1238,66 @@
           "description": "Shuffles capacity upgrades throughout the game world.",
           "defaultValue": 0
         },
-        "ip": {
-          "keyString": "shop_shuffle.ip",
-          "friendlyName": "Inventory & Prices",
+        "gp": {
+          "keyString": "shop_shuffle.gp",
+          "friendlyName": "Pool & Prices",
           "description": "Shuffles the inventory and randomizes the prices of items in shops.",
           "defaultValue": 0
         },
-        "uip": {
-          "keyString": "shop_shuffle.uip",
+        "fp": {
+          "keyString": "shop_shuffle.fp",
           "friendlyName": "Full Shuffle",
-          "description": "Shuffles the inventory and randomizes the prices of items in shops. Also distributes capacity upgrades throughout the world.",
+          "description": "Randomizes the inventory and prices of shops.",
+          "defaultValue": 0
+        },
+        "ufp": {
+          "keyString": "shop_shuffle.ufp",
+          "friendlyName": "Full Shuffle & Capacity",
+          "description": "Randomizes the inventory and prices in shops, and distributes capacity upgrades throughout the world.",
+          "defaultValue": 0
+        },
+        "wfp": {
+          "keyString": "shop_shuffle.wfp",
+          "friendlyName": "Full Shuffle & Potion Shop",
+          "description": "Randomizes the inventory prices of shops, and shuffles items in the potion shop.",
+          "defaultValue": 0
+        },
+        "ufpw": {
+          "keyString": "shop_shuffle.ufpw",
+          "friendlyName": "Randomize Everything",
+          "description": "Randomizes the inventory and prices in shops, distributes capacity upgrades throughout the world, and shuffles items in the potion shop.",
+          "defaultValue": 0
+        }
+      }
+    },
+    "shop_shuffle_slots": {
+      "keyString": "shop_shuffle_slots",
+      "friendlyName": "Pay (Rupees) to Win",
+      "description": "Move items from the general item pool into shops for purchase.",
+      "inputType": "range",
+      "subOptions": {
+        "0": {
+          "keyString": "shop_shuffle_slots.0",
+          "friendlyName": "Off",
+          "description": "No items are moved",
+          "defaultValue": 50
+        },
+        "10": {
+          "keyString": "shop_shuffle_slots.10",
+          "friendlyName": "Level 1",
+          "description": "10 Items are moved into shops.",
+          "defaultValue": 0
+        },
+        "20": {
+          "keyString": "shop_shuffle_slots.20",
+          "friendlyName": "Level 2",
+          "description": "20 Items are moved into shops.",
+          "defaultValue": 0
+        },
+        "30": {
+          "keyString": "shop_shuffle_slots.30",
+          "friendlyName": "Level 3",
+          "description": "30 Items are moved into shops.",
           "defaultValue": 0
         }
       }
@@ -1424,6 +1602,26 @@
         }
       }
     },
+    "reduceflashing": {
+      "keyString": "rom.reduceflashing",
+      "friendlyName": "Full-Screen Flashing Effects",
+      "description": "Enable or disable full-screen flashing effects in game.",
+      "inputType": "range",
+      "subOptions": {
+        "on": {
+          "keyString": "rom.reduceflashing.on",
+          "friendlyName": "Disabled",
+          "description": "Disables flashing.",
+          "defaultValue": 50
+        },
+        "off": {
+          "keyString": "rom.reduceflashing.off",
+          "friendlyName": "Enabled",
+          "description": "Enables flashing.",
+          "defaultValue": 0
+        }
+      }
+    },
     "quickswap": {
       "keyString": "rom.quickswap",
       "friendlyName": "Item Quick-Swap",
@@ -1441,6 +1639,38 @@
           "friendlyName": "Disabled",
           "description": "Disable quick-swap.",
           "defaultValue": 50
+        }
+      }
+    },
+    "triforcehud": {
+      "keyString": "rom.triforcehud",
+      "friendlyName": "Triforce Hunt HUD Options",
+      "description": "Hide the triforce hud in certain circumstances.",
+      "inputType": "range",
+      "subOptions": {
+        "normal": {
+          "keyString": "rom.triforcehud.normal",
+          "friendlyName": "Always Show",
+          "description": "Always display HUD",
+          "defaultValue": 50
+        },
+        "hide_goal": {
+          "keyString": "rom.triforcehud.hide_goal",
+          "friendlyName": "Hide HUD",
+          "description": "Hide Triforce HUD elements until a single triforce piece is acquired or you speak to Murahadala",
+          "defaultValue": 0
+        },
+        "hide_total": {
+          "keyString": "rom.triforcehud.hide_required",
+          "friendlyName": "Hide Total",
+          "description": "Hide total triforce pieces needed to win the game until you speak with Murahadala",
+          "defaultValue": 0
+        },
+        "hide_both": {
+          "keyString": "rom.triforcehud.hide_both",
+          "friendlyName": "Hide HUD Total",
+          "description": "Combination of Hide HUD and Hide Total",
+          "defaultValue": 0
         }
       }
     },
@@ -1619,7 +1849,7 @@
           "defaultValue": 0
         },
 		"puke": {
-          "keyString": "rom.ow_palettes.Puke",
+          "keyString": "rom.ow_palettes.puke",
           "friendlyName": "Puke",
           "description": "No logic at all.",
           "defaultValue": 0
@@ -1681,7 +1911,7 @@
           "defaultValue": 0
         },
 		"puke": {
-          "keyString": "rom.uw_palettes.Puke",
+          "keyString": "rom.uw_palettes.puke",
           "friendlyName": "Puke",
           "description": "No logic at all.",
           "defaultValue": 0
@@ -1743,7 +1973,7 @@
           "defaultValue": 0
         },
 		"puke": {
-          "keyString": "rom.hud_palettes.Puke",
+          "keyString": "rom.hud_palettes.puke",
           "friendlyName": "Puke",
           "description": "No logic at all.",
           "defaultValue": 0
@@ -1805,7 +2035,7 @@
           "defaultValue": 0
         },
 		"puke": {
-          "keyString": "rom.shield_palettes.Puke",
+          "keyString": "rom.shield_palettes.puke",
           "friendlyName": "Puke",
           "description": "No logic at all.",
           "defaultValue": 0
@@ -1867,7 +2097,7 @@
           "defaultValue": 0
         },
 		"puke": {
-          "keyString": "rom.sword_palettes.Puke",
+          "keyString": "rom.sword_palettes.puke",
           "friendlyName": "Puke",
           "description": "No logic at all.",
           "defaultValue": 0

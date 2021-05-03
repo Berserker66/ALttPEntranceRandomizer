@@ -1,7 +1,9 @@
 import logging
 import typing
+import collections
+import itertools
 
-from BaseClasses import CollectionState, PlandoItem
+from BaseClasses import CollectionState, PlandoItem, Location
 from Items import ItemFactory
 from Regions import key_drop_data
 
@@ -10,7 +12,8 @@ class FillError(RuntimeError):
     pass
 
 
-def fill_restrictive(world, base_state: CollectionState, locations, itempool, single_player_placement=False):
+def fill_restrictive(world, base_state: CollectionState, locations, itempool, single_player_placement=False,
+                     lock=False):
     def sweep_from_pool():
         new_state = base_state.copy()
         for item in itempool:
@@ -39,9 +42,10 @@ def fill_restrictive(world, base_state: CollectionState, locations, itempool, si
             for item_to_place in items_to_place:
                 perform_access_check = True
                 if world.accessibility[item_to_place.player] == 'none':
-                    perform_access_check = not world.has_beaten_game(maximum_exploration_state, item_to_place.player) if single_player_placement else not has_beaten_game
+                    perform_access_check = not world.has_beaten_game(maximum_exploration_state,
+                                                                     item_to_place.player) if single_player_placement else not has_beaten_game
                 for location in locations:
-                    if (not single_player_placement or location.player == item_to_place.player)\
+                    if (not single_player_placement or location.player == item_to_place.player) \
                             and location.can_fill(maximum_exploration_state, item_to_place, perform_access_check):
                         spot_to_fill = location
                         break
@@ -59,11 +63,14 @@ def fill_restrictive(world, base_state: CollectionState, locations, itempool, si
                                     f'Already placed {len(placements)}: {", ".join(str(place) for place in placements)}')
 
                 world.push_item(spot_to_fill, item_to_place, False)
+                if lock:
+                    spot_to_fill.locked = True
                 locations.remove(spot_to_fill)
                 placements.append(spot_to_fill)
                 spot_to_fill.event = True
 
     itempool.extend(unplaced_items)
+
 
 def distribute_items_restrictive(world, gftower_trash=False, fill_locations=None):
     # If not passed in, then get a shuffled list of locations to fill in
@@ -74,21 +81,14 @@ def distribute_items_restrictive(world, gftower_trash=False, fill_locations=None
     # get items to distribute
     world.random.shuffle(world.itempool)
     progitempool = []
-    localprioitempool = {player: [] for player in range(1, world.players + 1)}
     localrestitempool = {player: [] for player in range(1, world.players + 1)}
-    prioitempool = []
     restitempool = []
 
     for item in world.itempool:
         if item.advancement:
             progitempool.append(item)
         elif item.name in world.local_items[item.player]:
-            if item.priority:
-                localprioitempool[item.player].append(item)
-            else:
-                localrestitempool[item.player].append(item)
-        elif item.priority:
-            prioitempool.append(item)
+            localrestitempool[item.player].append(item)
         else:
             restitempool.append(item)
 
@@ -138,24 +138,13 @@ def distribute_items_restrictive(world, gftower_trash=False, fill_locations=None
 
     fill_restrictive(world, world.state, fill_locations, progitempool)
 
-    if any(localprioitempool.values() or
-           localrestitempool.values()):  # we need to make sure some fills are limited to certain worlds
+    if any(localrestitempool.values()):  # we need to make sure some fills are limited to certain worlds
         local_locations = {player: [] for player in world.player_ids}
         for location in fill_locations:
             local_locations[location.player].append(location)
         for locations in local_locations.values():
             world.random.shuffle(locations)
 
-        for player, items in localprioitempool.items():  # items already shuffled
-            player_local_locations = local_locations[player]
-            for item_to_place in items:
-                if not player_local_locations:
-                    logging.warning(f"Ran out of local locations for player {player}, "
-                                    f"cannot place {item_to_place}.")
-                    break
-                spot_to_fill = player_local_locations.pop()
-                world.push_item(spot_to_fill, item_to_place, False)
-                fill_locations.remove(spot_to_fill)
         for player, items in localrestitempool.items():  # items already shuffled
             player_local_locations = local_locations[player]
             for item_to_place in items:
@@ -168,11 +157,13 @@ def distribute_items_restrictive(world, gftower_trash=False, fill_locations=None
                 fill_locations.remove(spot_to_fill)
 
     world.random.shuffle(fill_locations)
-    prioitempool, fill_locations = fast_fill(world, prioitempool, fill_locations)
 
     restitempool, fill_locations = fast_fill(world, restitempool, fill_locations)
-    unplaced = [item for item in progitempool + prioitempool + restitempool]
+    unplaced = [item for item in progitempool + restitempool]
     unfilled = [location.name for location in fill_locations]
+
+    for location in fill_locations:
+        world.push_item(location, ItemFactory('Nothing', location.player), False)
 
     if unplaced or unfilled:
         logging.warning('Unplaced items: %s - Unfilled Locations: %s', unplaced, unfilled)
@@ -235,7 +226,7 @@ def flood_items(world):
         location_list = world.get_reachable_locations()
         world.random.shuffle(location_list)
         for location in location_list:
-            if location.item is not None and not location.item.advancement and not location.item.priority and not location.item.smallkey and not location.item.bigkey:
+            if location.item is not None and not location.item.advancement and not location.item.smallkey and not location.item.bigkey:
                 # safe to replace
                 replace_item = location.item
                 replace_item.location = None
@@ -244,6 +235,7 @@ def flood_items(world):
                 itempool.remove(item_to_place)
                 break
 
+
 def balance_multiworld_progression(world):
     balanceable_players = {player for player in range(1, world.players + 1) if world.progression_balancing[player]}
     if not balanceable_players:
@@ -251,15 +243,14 @@ def balance_multiworld_progression(world):
     else:
         logging.info(f'Balancing multiworld progression for {len(balanceable_players)} Players.')
         state = CollectionState(world)
-        checked_locations = []
-        unchecked_locations = world.get_locations().copy()
-        world.random.shuffle(unchecked_locations)
+        checked_locations = set()
+        unchecked_locations = set(world.get_locations())
 
-        reachable_locations_count = {player: 0 for player in range(1, world.players + 1)}
+        reachable_locations_count = {player: 0 for player in world.player_ids}
 
         def get_sphere_locations(sphere_state, locations):
             sphere_state.sweep_for_events(key_only=True, locations=locations)
-            return [loc for loc in locations if sphere_state.can_reach(loc)]
+            return {loc for loc in locations if sphere_state.can_reach(loc)}
 
         while True:
             sphere_locations = get_sphere_locations(state, unchecked_locations)
@@ -269,42 +260,44 @@ def balance_multiworld_progression(world):
 
             if checked_locations:
                 threshold = max(reachable_locations_count.values()) - 20
-                balancing_players = [player for player, reachables in reachable_locations_count.items() if
-                                     reachables < threshold and player in balanceable_players]
+                balancing_players = {player for player, reachables in reachable_locations_count.items() if
+                                     reachables < threshold and player in balanceable_players}
                 if balancing_players:
                     balancing_state = state.copy()
                     balancing_unchecked_locations = unchecked_locations.copy()
                     balancing_reachables = reachable_locations_count.copy()
                     balancing_sphere = sphere_locations.copy()
-                    candidate_items = []
+                    candidate_items = collections.defaultdict(set)
                     while True:
                         for location in balancing_sphere:
-                            if location.event and (
-                                    world.keyshuffle[location.item.player] or not location.item.smallkey) and (
-                                    world.bigkeyshuffle[location.item.player] or not location.item.bigkey):
+                            if location.event:
                                 balancing_state.collect(location.item, True, location)
-                                if location.item.player in balancing_players and not location.locked:
-                                    candidate_items.append(location)
+                                player = location.item.player
+                                # only replace items that end up in another player's world
+                                if not location.locked and player in balancing_players and location.player != player:
+                                    candidate_items[player].add(location)
                         balancing_sphere = get_sphere_locations(balancing_state, balancing_unchecked_locations)
                         for location in balancing_sphere:
                             balancing_unchecked_locations.remove(location)
                             balancing_reachables[location.player] += 1
                         if world.has_beaten_game(balancing_state) or all(
-                                [reachables >= threshold for reachables in balancing_reachables.values()]):
+                                reachables >= threshold for reachables in balancing_reachables.values()):
                             break
                         elif not balancing_sphere:
                             raise RuntimeError('Not all required items reachable. Something went terribly wrong here.')
-
-                    unlocked_locations = [l for l in unchecked_locations if l not in balancing_unchecked_locations]
+                    unlocked_locations = collections.defaultdict(set)
+                    for l in unchecked_locations:
+                        if l not in balancing_unchecked_locations:
+                            unlocked_locations[l.player].add(l)
                     items_to_replace = []
                     for player in balancing_players:
-                        locations_to_test = [l for l in unlocked_locations if l.player == player]
-                        # only replace items that end up in another player's world
-                        items_to_test = [l for l in candidate_items if l.item.player == player and l.player != player]
+                        locations_to_test = unlocked_locations[player]
+                        items_to_test = candidate_items[player]
                         while items_to_test:
                             testing = items_to_test.pop()
                             reducing_state = state.copy()
-                            for location in [*[l for l in items_to_replace if l.item.player == player], *items_to_test]:
+                            for location in itertools.chain((l for l in items_to_replace if l.item.player == player),
+                                                            items_to_test):
                                 reducing_state.collect(location.item, True, location)
 
                             reducing_state.sweep_for_events(locations=locations_to_test)
@@ -318,34 +311,40 @@ def balance_multiworld_progression(world):
                                     items_to_replace.append(testing)
 
                     replaced_items = False
-                    replacement_locations = [l for l in checked_locations if not l.event and not l.locked]
+
+                    # sort then shuffle to maintain deterministic behaviour,
+                    # while allowing use of set for better algorithm growth behaviour elsewhere
+                    replacement_locations = sorted(l for l in checked_locations if not l.event and not l.locked)
+                    world.random.shuffle(replacement_locations)
+                    items_to_replace.sort()
+                    world.random.shuffle(items_to_replace)
+
                     while replacement_locations and items_to_replace:
-                        new_location = replacement_locations.pop()
                         old_location = items_to_replace.pop()
+                        for new_location in replacement_locations:
+                            if new_location.can_fill(state, old_location.item, False) and \
+                                    old_location.can_fill(state, new_location.item, False):
+                                replacement_locations.remove(new_location)
+                                swap_location_item(old_location, new_location)
+                                logging.debug(f"Progression balancing moved {new_location.item} to {new_location}, "
+                                              f"displacing {old_location.item} into {old_location}")
+                                state.collect(new_location.item, True, new_location)
+                                replaced_items = True
+                                break
+                        else:
+                            logging.warning(f"Could not Progression Balance {old_location.item}")
 
-                        while not new_location.can_fill(state, old_location.item, False) or (
-                                new_location.item and not old_location.can_fill(state, new_location.item, False)):
-                            replacement_locations.insert(0, new_location)
-                            new_location = replacement_locations.pop()
-
-                        new_location.item, old_location.item = old_location.item, new_location.item
-                        new_location.event, old_location.event = True, False
-                        logging.debug(f"Progression balancing moved {new_location.item} to {new_location}, "
-                                      f"displacing {old_location.item} in {old_location}")
-                        state.collect(new_location.item, True, new_location)
-                        replaced_items = True
                     if replaced_items:
-                        for location in get_sphere_locations(state, [l for l in unlocked_locations if
-                                                                     l.player in balancing_players]):
+                        unlocked = {fresh for player in balancing_players for fresh in unlocked_locations[player]}
+                        for location in get_sphere_locations(state, unlocked):
                             unchecked_locations.remove(location)
                             reachable_locations_count[location.player] += 1
-                            sphere_locations.append(location)
+                            sphere_locations.add(location)
 
             for location in sphere_locations:
-                if location.event and (world.keyshuffle[location.item.player] or not location.item.smallkey) and (
-                        world.bigkeyshuffle[location.item.player] or not location.item.bigkey):
+                if location.event:
                     state.collect(location.item, True, location)
-            checked_locations.extend(sphere_locations)
+            checked_locations |= sphere_locations
 
             if world.has_beaten_game(state):
                 break
@@ -353,14 +352,28 @@ def balance_multiworld_progression(world):
                 raise RuntimeError('Not all required items reachable. Something went terribly wrong here.')
 
 
+def swap_location_item(location_1: Location, location_2: Location, check_locked=True):
+    """Swaps Items of locations. Does NOT swap flags like shop_slot or locked, but does swap event"""
+    if check_locked:
+        if location_1.locked:
+            logging.warning(f"Swapping {location_1}, which is marked as locked.")
+        if location_2.locked:
+            logging.warning(f"Swapping {location_2}, which is marked as locked.")
+    location_2.item, location_1.item = location_1.item, location_2.item
+    location_1.item.location = location_1
+    location_2.item.location = location_2
+    location_1.event, location_2.event = location_2.event, location_1.event
+
+
 def distribute_planned(world):
-    world_name_lookup = {world.player_names[player_id][0]: player_id for player_id in world.player_ids}
+    world_name_lookup = world.world_name_lookup
 
     for player in world.player_ids:
         placement: PlandoItem
         for placement in world.plando_items[player]:
             if placement.location in key_drop_data:
-                placement.warn(f"Can't place '{placement.item}' at '{placement.location}', as key drop shuffle locations are not supported yet.")
+                placement.warn(
+                    f"Can't place '{placement.item}' at '{placement.location}', as key drop shuffle locations are not supported yet.")
                 continue
             item = ItemFactory(placement.item, player)
             target_world: int = placement.world
@@ -372,7 +385,8 @@ def distribute_planned(world):
                     set(world.player_ids) - {player}) if location.item_rule(item)
                                 )
                 if not unfilled:
-                    placement.failed(f"Could not find a world with an unfilled location {placement.location}", FillError)
+                    placement.failed(f"Could not find a world with an unfilled location {placement.location}",
+                                     FillError)
                     continue
 
                 target_world = world.random.choice(unfilled).player
@@ -383,18 +397,22 @@ def distribute_planned(world):
                     set(world.player_ids)) if location.item_rule(item)
                                 )
                 if not unfilled:
-                    placement.failed(f"Could not find a world with an unfilled location {placement.location}", FillError)
+                    placement.failed(f"Could not find a world with an unfilled location {placement.location}",
+                                     FillError)
                     continue
 
                 target_world = world.random.choice(unfilled).player
 
             elif type(target_world) == int:  # target world by player id
                 if target_world not in range(1, world.players + 1):
-                    placement.failed(f"Cannot place item in world {target_world} as it is not in range of (1, {world.players})", ValueError)
+                    placement.failed(
+                        f"Cannot place item in world {target_world} as it is not in range of (1, {world.players})",
+                        ValueError)
                     continue
             else:  # find world by name
                 if target_world not in world_name_lookup:
-                    placement.failed(f"Cannot place item to {target_world}'s world as that world does not exist.", ValueError)
+                    placement.failed(f"Cannot place item to {target_world}'s world as that world does not exist.",
+                                     ValueError)
                     continue
                 target_world = world_name_lookup[target_world]
 

@@ -1,7 +1,7 @@
 {% extends 'tablepage.html' %}
 {% block head %}
     {{ super() }}
-    <title>Multiworld Tracker for Room {{ room.id }}</title>
+    <title>Multiworld Tracker</title>
     <link rel="stylesheet" type="text/css" href="{{ static_autoversion("styles/tracker.css") }}"/>
     <script type="application/ecmascript" src="{{ static_autoversion("assets/jquery.scrollsync.js") }}"></script>
     <script type="application/ecmascript" src="{{ static_autoversion("assets/tracker.js") }}"></script>
@@ -35,16 +35,17 @@
                                     <th class="center-column">
                                             <img class="alttp-sprite" src="{{ icons[name] }}" alt="{{ name|e }}">
                                         </th>
-                                    {%- else -%}
-                                        <th class="center-column">{{ name|e }}</th>
-                                    {%- endif -%}
-                                {%- endfor -%}
+                                {%- else -%}
+                                    <th class="center-column">{{ name|e }}</th>
+                                {%- endif -%}
+                            {%- endfor -%}
                             </tr>
                         </thead>
                         <tbody>
                             {%- for player, items in players.items() -%}
                                 <tr>
-                                    <td>{{ loop.index }}</td>
+                                    <td><a href="{{ url_for("getPlayerTracker", tracker=room.tracker,
+                                    tracked_team=team, tracked_player=player)}}">{{ loop.index }}</a></td>
                                     {%- if (team, loop.index) in video -%}
                                         {%- if video[(team, loop.index)][0] == "Twitch" -%}
                                         <td>
@@ -120,7 +121,8 @@
                         <tbody>
                             {%- for player, checks in players.items() -%}
                                 <tr>
-                                    <td>{{ loop.index }}</td>
+                                    <td><a href="{{ url_for("getPlayerTracker", tracker=room.tracker,
+                                    tracked_team=team, tracked_player=player)}}">{{ loop.index }}</a></td>
                                     <td>{{ player_names[(team, loop.index)]|e }}</td>
                                     {%- for area in ordered_areas -%}
                                         {%- set checks_done = checks[area] -%}
@@ -151,7 +153,7 @@
             {% endfor %}
             {% for team, hints in hints.items() %}
                 <div class="table-wrapper">
-                    <table class="table non-unique-item-table">
+                    <table class="table non-unique-item-table" data-order='[[5, "asc"], [0, "asc"]]'>
                         <thead>
                         <tr>
                             <th>Finder</th>

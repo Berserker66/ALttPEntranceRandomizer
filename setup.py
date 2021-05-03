@@ -48,8 +48,8 @@ def manifest_creation():
             path = os.path.join(dirpath, filename)
             hashes[os.path.relpath(path, start=buildfolder)] = pool.submit(_threaded_hash, path)
     import json
-    manifest = {"buildtime": buildtime.isoformat(sep=" ", timespec="seconds")}
-    manifest["hashes"] = {path: hash.result() for path, hash in hashes.items()}
+    manifest = {"buildtime": buildtime.isoformat(sep=" ", timespec="seconds"),
+                "hashes": {path: hash.result() for path, hash in hashes.items()}}
     json.dump(manifest, open(manifestpath, "wt"), indent=4)
     print("Created Manifest")
 
@@ -58,14 +58,15 @@ scripts = {"MultiClient.py": "BerserkerMultiClient",
            "MultiMystery.py": "BerserkerMultiMystery",
            "MultiServer.py": "BerserkerMultiServer",
            "gui.py": "BerserkerMultiCreator",
-           "Mystery.py": "BerserkerMystery"}
+           "Mystery.py": "BerserkerMystery",
+           "Adjuster.py": "BerserkerLttPAdjuster"}
 
 exes = []
 
 for script, scriptname in scripts.items():
     exes.append(cx_Freeze.Executable(
         script=script,
-        targetName=scriptname + ("" if sys.platform == "linux" else ".exe"),
+        target_name=scriptname + ("" if sys.platform == "linux" else ".exe"),
         icon=icon,
     ))
 
@@ -133,10 +134,14 @@ if os.path.exists(qusb2sneslog):
 qusb2snesconfig = buildfolder / "QUsb2Snes" / "config.ini"
 if os.path.exists(qusb2snesconfig):
     os.remove(qusb2snesconfig)
+alttpr_sprites_folder = buildfolder / "data" / "sprites" / "alttpr"
+for file in os.listdir(alttpr_sprites_folder):
+    if file != ".gitignore":
+        os.remove(alttpr_sprites_folder / file)
 
 if signtool:
     for exe in exes:
-        print(f"Signing {exe.targetName}")
-        os.system(signtool + exe.targetName)
+        print(f"Signing {exe.target_name}")
+        os.system(signtool + os.path.join(buildfolder, exe.target_name))
 
 manifest_creation()

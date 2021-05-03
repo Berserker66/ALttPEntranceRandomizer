@@ -29,7 +29,7 @@ import Utils
 from Utils import get_item_name_from_id, get_location_name_from_address, ReceivedItem, _version_tuple
 from NetUtils import Node, Endpoint
 
-console_names = frozenset(set(Items.item_table) | set(Regions.location_table) | set(Items.item_name_groups) | set(Regions.key_drop_data))
+console_names = frozenset(set(Items.item_table) | set(Items.item_name_groups) | set(Regions.lookup_name_to_id))
 
 CLIENT_PLAYING = 0
 CLIENT_GOAL = 1
@@ -429,9 +429,10 @@ async def countdown(ctx: Context, timer):
         ctx.notify_all(f'[Server]: GO')
         ctx.countdown_timer = 0
 
-async def missing(ctx: Context, client: Client, locations: list):
+async def missing(ctx: Context, client: Client, locations: list, checked_locations: list):
     await ctx.send_msgs(client, [['Missing', {
-        'locations': json.dumps(locations)
+        'locations': json.dumps(locations),
+        'checked_locations': json.dumps(checked_locations)
     }]])
 
 
@@ -538,7 +539,7 @@ def notify_team(ctx: Context, team: int, text: str):
 
 def collect_hints(ctx: Context, team: int, slot: int, item: str) -> typing.List[Utils.Hint]:
     hints = []
-    seeked_item_id = Items.item_table[item][3]
+    seeked_item_id = Items.item_table[item][2]
     for check, result in ctx.locations.items():
         item_id, receiving_player = result
         if receiving_player == slot and item_id == seeked_item_id:
@@ -836,6 +837,7 @@ class ClientMessageProcessor(CommonCommandProcessor):
         """List all missing location checks from the server's perspective"""
 
         locations = get_missing_checks(self.ctx, self.client)
+        checked_locations = get_checked_checks(self.ctx, self.client)
 
         if len(locations) > 0:
             if self.client.version < [2, 3, 0]:
@@ -844,7 +846,7 @@ class ClientMessageProcessor(CommonCommandProcessor):
                     buffer += f'Missing: {location}\n'
                 self.output(buffer + f"Found {len(locations)} missing location checks")
             else:
-                asyncio.create_task(missing(self.ctx, self.client, locations))
+                asyncio.create_task(missing(self.ctx, self.client, locations, checked_locations))
         else:
             self.output("No missing location checks found.")
         return True
@@ -873,7 +875,7 @@ class ClientMessageProcessor(CommonCommandProcessor):
         if self.ctx.item_cheat:
             item_name, usable, response = get_intended_text(item_name, Items.item_table.keys())
             if usable:
-                new_item = ReceivedItem(Items.item_table[item_name][3], -1, self.client.slot)
+                new_item = ReceivedItem(Items.item_table[item_name][2], -1, self.client.slot)
                 get_received_items(self.ctx, self.client.team, self.client.slot).append(new_item)
                 self.ctx.notify_all('Cheat console: sending "' + item_name + '" to ' + self.ctx.get_aliased_name(self.client.team, self.client.slot))
                 send_new_items(self.ctx)
@@ -964,19 +966,25 @@ class ClientMessageProcessor(CommonCommandProcessor):
                 self.output(response)
                 return False
 
+
+def get_checked_checks(ctx: Context, client: Client) -> list:
+    return [Regions.lookup_id_to_name.get(location_id, f'Unknown Location ID: {location_id}') for
+            location_id, slot in ctx.locations if
+            slot == client.slot and
+            location_id in ctx.location_checks[client.team, client.slot]]
+
+
 def get_missing_checks(ctx: Context, client: Client) -> list:
-    locations = []
-    #for location_id in [k[0] for k, v in ctx.locations if k[1] == client.slot]:
-    #    if location_id not in ctx.location_checks[client.team, client.slot]:
-    #        locations.append(Regions.lookup_id_to_name.get(location_id, f'Unknown Location ID: {location_id}'))
-    for location_id, location_name in Regions.lookup_id_to_name.items():  # cheat console is -1, keep in mind
-        if location_id != -1 and location_id not in ctx.location_checks[client.team, client.slot] and (location_id, client.slot) in ctx.locations:
-            locations.append(location_name)
-    return locations
+    return [Regions.lookup_id_to_name.get(location_id, f'Unknown Location ID: {location_id}') for
+            location_id, slot in ctx.locations if
+            slot == client.slot and
+            location_id not in ctx.location_checks[client.team, client.slot]]
+
 
 def get_client_points(ctx: Context, client: Client) -> int:
     return (ctx.location_check_points * len(ctx.location_checks[client.team, client.slot]) -
             ctx.hint_cost * ctx.hints_used[client.team, client.slot])
+
 
 async def process_client_cmd(ctx: Context, client: Client, cmd, args):
     if type(cmd) is not str:
@@ -1033,7 +1041,7 @@ async def process_client_cmd(ctx: Context, client: Client, cmd, args):
             client.tags = args.get('tags', Client.tags)
             reply = [['Connected', [(client.team, client.slot),
                                     [(p, ctx.get_aliased_name(t, p)) for (t, p), n in ctx.player_names.items() if
-                                     t == client.team], get_missing_checks(ctx, client)]]]
+                                     t == client.team], get_missing_checks(ctx, client), get_checked_checks(ctx, client)]]]
             items = get_received_items(ctx, client.team, client.slot)
             if items:
                 reply.append(['ReceivedItems', (0, tuplize_received_items(items))])
@@ -1067,7 +1075,7 @@ async def process_client_cmd(ctx: Context, client: Client, cmd, args):
                 target_item, target_player = ctx.locations[(Regions.location_table[loc_name][0], client.slot)]
 
                 replacements = {'SmallKey': 0xA2, 'BigKey': 0x9D, 'Compass': 0x8D, 'Map': 0x7D}
-                item_type = [i[2] for i in Items.item_table.values() if type(i[3]) is int and i[3] == target_item]
+                item_type = [i[1] for i in Items.item_table.values() if type(i[2]) is int and i[2] == target_item]
                 if item_type:
                     target_item = replacements.get(item_type[0], target_item)
 
@@ -1220,7 +1228,7 @@ class ServerCommandProcessor(CommonCommandProcessor):
             if usable:
                 for client in self.ctx.endpoints:
                     if client.name == seeked_player:
-                        new_item = ReceivedItem(Items.item_table[item][3], -1, client.slot)
+                        new_item = ReceivedItem(Items.item_table[item][2], -1, client.slot)
                         get_received_items(self.ctx, client.team, client.slot).append(new_item)
                         self.ctx.notify_all('Cheat console: sending "' + item + '" to ' + self.ctx.get_aliased_name(client.team, client.slot))
                         send_new_items(self.ctx)

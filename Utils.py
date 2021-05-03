@@ -13,7 +13,7 @@ class Version(typing.NamedTuple):
     micro: int
 
 
-__version__ = "3.6.0"
+__version__ = "4.1.3"
 _version_tuple = tuplize_version(__version__)
 
 import os
@@ -54,7 +54,10 @@ def snes_to_pc(value):
 def parse_player_names(names, players, teams):
     names = tuple(n for n in (n.strip() for n in names.split(",")) if n)
     if len(names) != len(set(names)):
-        raise ValueError("Duplicate Player names is not supported.")
+        import collections
+        name_counter = collections.Counter(names)
+        raise ValueError(f"Duplicate Player names is not supported, "
+                         f'found multiple "{name_counter.most_common(1)[0][0]}".')
     ret = []
     while names or len(ret) < teams:
         team = [n[:16] for n in names[:players]]
@@ -213,6 +216,7 @@ def get_default_options() -> dict:
                 "players": 0,
                 "weights_file_path": "weights.yaml",
                 "meta_file_path": "meta.yaml",
+                "pre_roll": False,
                 "player_name": "",
                 "create_spoiler": 1,
                 "zip_roms": 0,
@@ -220,6 +224,7 @@ def get_default_options() -> dict:
                 "zip_spoiler": 0,
                 "zip_multidata": 1,
                 "zip_format": 1,
+                "glitch_triforce_room": 1,
                 "race": 0,
                 "cpu_threads": 0,
                 "max_attempts": 0,
@@ -329,9 +334,20 @@ def get_adjuster_settings(romfile: str) -> typing.Tuple[str, bool]:
         import Patch
         adjuster_settings.rom = romfile
         adjuster_settings.baserom = Patch.get_base_rom_path()
+        adjuster_settings.world = None
         whitelist = {"disablemusic", "fastmenu", "heartbeep", "heartcolor", "ow_palettes", "quickswap",
                      "uw_palettes", "sprite"}
         printed_options = {name: value for name, value in vars(adjuster_settings).items() if name in whitelist}
+        if hasattr(adjuster_settings, "sprite_pool"):
+            sprite_pool = {}
+            for sprite in getattr(adjuster_settings, "sprite_pool"):
+                if sprite in sprite_pool:
+                    sprite_pool[sprite] += 1
+                else:
+                    sprite_pool[sprite] = 1
+            if sprite_pool:
+                printed_options["sprite_pool"] = sprite_pool
+
 
         if hasattr(get_adjuster_settings, "adjust_wanted"):
             adjust_wanted = getattr(get_adjuster_settings, "adjust_wanted")
@@ -342,9 +358,16 @@ def get_adjuster_settings(romfile: str) -> typing.Tuple[str, bool]:
                                   f"{pprint.pformat(printed_options)}\n"
                                   f"Enter yes, no or never: ")
         if adjust_wanted and adjust_wanted.startswith("y"):
+            if hasattr(adjuster_settings, "sprite_pool"):
+                from Adjuster import AdjusterWorld
+                adjuster_settings.world = AdjusterWorld(getattr(adjuster_settings, "sprite_pool"))
+
             adjusted = True
-            import AdjusterMain
-            _, romfile = AdjusterMain.adjust(adjuster_settings)
+            import Adjuster
+            _, romfile = Adjuster.adjust(adjuster_settings)
+
+            if hasattr(adjuster_settings, "world"):
+                delattr(adjuster_settings, "world")
         elif adjust_wanted and "never" in adjust_wanted:
             persistent_store("adjuster", "never_adjust", True)
             return romfile, False

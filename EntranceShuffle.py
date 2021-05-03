@@ -2054,10 +2054,11 @@ def connect_doors(world, doors, targets, player):
     """This works inplace"""
     world.random.shuffle(doors)
     world.random.shuffle(targets)
-    while doors:
-        door = doors.pop()
-        target = targets.pop()
+    placing = min(len(doors), len(targets))
+    for door, target in zip(doors, targets):
         connect_entrance(world, door, target, player)
+    doors[:] = doors[placing:]
+    targets[:] = targets[placing:]
 
 
 def skull_woods_shuffle(world, player):
@@ -2251,7 +2252,10 @@ def plando_connect(world, player: int):
     if world.plando_connections[player]:
         for connection in world.plando_connections[player]:
             func = lookup[connection.direction]
-            func(world, connection.entrance, connection.exit, player)
+            try:
+                func(world, connection.entrance, connection.exit, player)
+            except Exception as e:
+                raise Exception(f"Could not connect using {connection}") from e
 
 
 LW_Dungeon_Entrances = ['Desert Palace Entrance (South)',

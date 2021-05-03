@@ -38,6 +38,7 @@ def parse_arguments(argv, no_defaults=False):
                              No Logic: Distribute items without regard for
                                              item requirements.
                              ''')
+    parser.add_argument('--glitch_triforce', help='Allow glitching to Triforce from Ganon\'s room', action='store_true')
     parser.add_argument('--mode', default=defval('open'), const='open', nargs='?', choices=['standard', 'open', 'inverted'],
                         help='''\
                              Select game mode. (default: %(default)s)
@@ -222,9 +223,16 @@ def parse_arguments(argv, no_defaults=False):
                              Random: Picks a random value between 0 and 7 (inclusive).
                              0-7:    Number of crystals needed
                              ''')
-    parser.add_argument('--open_pyramid', default=defval(False), help='''\
-                            Pre-opens the pyramid hole, this removes the Agahnim 2 requirement for it
-                             ''', action='store_true')
+    parser.add_argument('--open_pyramid', default=defval('auto'), help='''\
+                            Pre-opens the pyramid hole, this removes the Agahnim 2 requirement for it.
+                            Depending on goal, you might still need to beat Agahnim 2 in order to beat ganon.
+                            fast ganon goals are crystals, ganontriforcehunt, localganontriforcehunt, pedestalganon
+                            auto - Only opens pyramid hole if the goal specifies a fast ganon, and entrance shuffle
+                                   is vanilla, dungeonssimple or dungeonsfull.
+                            goal - Opens pyramid hole if the goal specifies a fast ganon.
+                            yes - Always opens the pyramid hole.
+                            no - Never opens the pyramid hole.
+                             ''', choices=['auto', 'goal', 'yes', 'no'])
     parser.add_argument('--rom', default=defval('Zelda no Densetsu - Kamigami no Triforce (Japan).sfc'),
                         help='Path to an ALttP JAP(1.0) rom to use as a base.')
     parser.add_argument('--loglevel', default=defval('info'), const='info', nargs='?', choices=['error', 'info', 'warning', 'debug'], help='Select level of logging for output.')
@@ -244,6 +252,14 @@ def parse_arguments(argv, no_defaults=False):
                              ''')
     parser.add_argument('--quickswap', help='Enable quick item swapping with L and R.', action='store_true')
     parser.add_argument('--disablemusic', help='Disables game music.', action='store_true')
+    parser.add_argument('--triforcehud', default='hide_goal', const='hide_goal', nargs='?', choices=['normal', 'hide_goal', 'hide_required', 'hide_both'],
+                    help='''\
+                            Hide the triforce hud in certain circumstances.
+                            hide_goal will hide the hud until finding a triforce piece, hide_required will hide the total amount needed to win
+                            (Both can be revealed when speaking to Murahalda)
+                            (default: %(default)s)
+                            ''')
+    parser.add_argument('--enableflashing', help='Reenable flashing animations (unfriendly to epilepsy, always disabled in race roms)', action='store_false', dest="reduceflashing")
     parser.add_argument('--mapshuffle', default=defval(False),
                         help='Maps are no longer restricted to their dungeons, but can be anywhere',
                         action='store_true')
@@ -326,9 +342,17 @@ def parse_arguments(argv, no_defaults=False):
     parser.add_argument('--beemizer', default=defval(0), type=lambda value: min(max(int(value), 0), 4))
     parser.add_argument('--shop_shuffle', default='', help='''\
     combine letters for options:
-    i: shuffle the inventories of the shops around
+    g: generate default inventories for light and dark world shops, and unique shops
+    f: generate default inventories for each shop individually
+    i: shuffle the default inventories of the shops around
     p: randomize the prices of the items in shop inventories
     u: shuffle capacity upgrades into the item pool
+    w: consider witch's hut like any other shop and shuffle/randomize it too
+    ''')
+    parser.add_argument('--shop_shuffle_slots', default=defval(0),
+                        type=lambda value: min(max(int(value), 1), 96),
+                        help='''
+        Maximum amount of shop slots able to be filled by items from the item pool.
     ''')
     parser.add_argument('--shuffle_prizes', default=defval('g'), choices=['', 'g', 'b', 'gb'])
     parser.add_argument('--sprite_pool', help='''\
@@ -362,6 +386,7 @@ def parse_arguments(argv, no_defaults=False):
     ret.plando_items = []
     ret.plando_texts = {}
     ret.plando_connections = []
+    ret.er_seeds = {}
 
     ret.glitch_boots = not ret.disable_glitch_boots
     if ret.timer == "none":
@@ -390,12 +415,13 @@ def parse_arguments(argv, no_defaults=False):
                          'shufflebosses', 'enemy_shuffle', 'enemy_health', 'enemy_damage', 'shufflepots',
                          'ow_palettes', 'uw_palettes', 'sprite', 'disablemusic', 'quickswap', 'fastmenu', 'heartcolor',
                          'heartbeep', "skip_progression_balancing", "triforce_pieces_available",
-                         "triforce_pieces_required", "shop_shuffle", "required_medallions",
-                         "plando_items", "plando_texts", "plando_connections",
+                         "triforce_pieces_required", "shop_shuffle", "shop_shuffle_slots",
+                         "required_medallions",
+                         "plando_items", "plando_texts", "plando_connections", "er_seeds",
                          'remote_items', 'progressive', 'dungeon_counters', 'glitch_boots', 'killable_thieves',
                          'tile_shuffle', 'bush_shuffle', 'shuffle_prizes', 'sprite_pool', 'dark_room_logic',
-                         'restrict_dungeon_item_on_boss',
-                         'hud_palettes', 'sword_palettes', 'shield_palettes', 'link_palettes']:
+                         'restrict_dungeon_item_on_boss', 'reduceflashing',
+                         'hud_palettes', 'sword_palettes', 'shield_palettes', 'link_palettes', 'triforcehud']:
                 value = getattr(defaults, name) if getattr(playerargs, name) is None else getattr(playerargs, name)
                 if player == 1:
                     setattr(ret, name, {1: value})

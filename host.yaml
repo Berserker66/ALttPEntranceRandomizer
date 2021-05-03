@@ -66,6 +66,10 @@ multi_mystery_options:
   weights_file_path: "weights.yaml"
   # Meta file name, within the stated player_files_path location
   meta_file_path: "meta.yaml"
+  # Option to pre-roll a yaml that will be used to roll future seeds with the exact same settings every single time.
+  # If using a pre-rolled yaml fails with "Please fix your yaml.", please file a bug report including both the original yaml
+  # as well as the generated pre-rolled yaml.
+  pre_roll: false
   # Automatically launches {player_name}.yaml's ROM file using the OS's default program once generation completes. (likely your emulator)
   # Does nothing if the name is not found
   # Example: player_name = "Berserker"
@@ -97,6 +101,12 @@ multi_mystery_options:
   # 2 -> 7z is recommended for roms. All of them get the job done.
   # 3 -> bz2
   zip_format: 1
+  # Glitch to Triforce room from Ganon
+  # When disabled, you have to have a weapon that can hurt ganon (master sword or swordless/easy item functionality + hammer)
+  # and have completed the goal required for killing ganon to be able to access the triforce room.
+  # 1 -> Enabled.
+  # 0 -> Disabled (except in no-logic)
+  glitch_triforce_room: 1
   # Create encrypted race roms
   race: 0
   # List of options that can be plando'd. Can be combined, for example "bosses, items"
