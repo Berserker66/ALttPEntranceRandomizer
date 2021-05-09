@@ -58,34 +58,42 @@ pueden tener diferentes opciones
 ### Where do I get a YAML file?
 Un fichero basico yaml para minecraft tendra este aspecto.
 ```yaml
-description: Template Name # Usado para describir tu yaml. Util si tienes multiples ficheros
-name: YourName # Tu nombre en el juego. Los espacios son reemplazados por guiones bajos, limitado a 16 caracteres
+# Usado para describir tu yaml. Util si tienes multiples ficheros
+description: Template Name 
+# Tu nombre en el juego. Los espacios son reemplazados por guiones bajos, limitado a 16 caracteres
+name: YourName 
 game: Minecraft
 accessibility: locations
+# Recomendado no activar esto ya que el pool de objetos de Minecraft es bastante escueto, ademas hay muchas maneras alternativas de obtener los objetivos de Minecraft.
 progression_balancing: off 
+# Cuantos avances se necesitan para hacer aparecer el Ender Dragon y acabar el juego. few = 30, normal = 50 , many = 70
 advancement_goal: 
   few: 0 
   normal: 1 
   many: 0 
+# Modifica el nivel de objetos lógicamente requeridos para explorar areas peligrosas y pelear contra jefes. 
 combat_difficulty: 
   easy: 0
   normal: 1
   hard: 0
+# Avances que sean tediosos o basados en suerte tendran simplemente experiencia o cosas no necesarias
 include_hard_advancements: 
   on: 0
   off: 1
+# Los avances extremadamente difíciles no seran requeridos; esto afecta a How Did We Get Here? y Adventuring Time. 
 include_insane_advancements: 
   on: 0
   off: 1
+# Los avances posteriores a Ender Dragon no tendrán objetos necesarios para que otros jugadores en el caso de un MW acaben su partida.
 include_postgame_advancements:
   on: 0
   off: 1
+# Actualmente desactivado; permite la mezcla de pueblos, puestos, fortalezas, bastiones y cuidades. 
 shuffle_structures: 
   on: 0
   off: 1
 ```
 
-Para mas detalles sobre que hace cada opcion consulta el `PlayerSettings.yaml` por defecto que acompaña a la instalacion de Archipelago.
 
 ## Unirse a un juego MultiWorld
 
