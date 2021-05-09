@@ -3,7 +3,7 @@
 ## Software Requerido
 
 ### Servidor
-- [Minecraft Forge Dedicated Server](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.16.5.html)
+- [Minecraft Forge](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.16.5.html)
 - [Minecraft Archipelago Randomizer Mod](https://github.com/KonoTyran/Minecraft_AP_Randomizer/releases)
 
 ### Jugadores
@@ -19,7 +19,7 @@ Solo una persona ha de realizar este proceso y hospedar un servidor dedicado par
     - En esta pagina elegiras ademas donde instalar el servidor, importante recordar esta localización en el siguiente paso.
 
 3. Navega al directorio donde hayas instalado el servidor y abre `forge-1.16.5-xx.x.x.jar`
-    - La primera vez que lances el servidor se cerrara (o no aparecerá nada en absoluto), debería haber un fichero nuevo en el directorio llamado `eula.txt` que contiene un enlace al EULA de minecraft y el usuario cambia la linea a `eula=true` para aceptar el EULA
+    - La primera vez que lances el servidor se cerrara (o no aparecerá nada en absoluto), debería haber un fichero nuevo en el directorio llamado `eula.txt`, el cual que contiene un enlace al EULA de minecraft, cambia la linea a `eula=true` para aceptar el EULA y poder utilizar el software de servidor.
     - Esto creara la estructura de directorios apropiada para el siguiente paso
 
 4. Coloca el fichero `aprandomizer-x.x.x.jar` del segundo enlace en el directorio `mods`
@@ -44,8 +44,8 @@ Sin embargo lo recomendamos porque hace la experiencia mas llevadera.
 3. Navega a la carpeta de instalación de Minecraft y colocal los mods que quieras en el directorio `mods`
     - Los directorios por defecto de instalación son:
         - Windows `%APPDATA%\.minecraft\mods`
-        - macOS `~/Library/Application Support/minecraft\mods`
-        - Linux `~/.minecraft\mods`
+        - macOS `~/Library/Application Support/minecraft/mods`
+        - Linux `~/.minecraft/mods`
 
 ## Configura tu fichero YAML
 
@@ -60,36 +60,32 @@ Un fichero basico yaml para minecraft tendra este aspecto.
 ```yaml
 description: Template Name # Usado para describir tu yaml. Util si tienes multiples ficheros
 name: YourName # Tu nombre en el juego. Los espacios son reemplazados por guiones bajos, limitado a 16 caracteres
-#{player} sera reemplazado por el numero de slot del jugador
-#{PLAYER} sera reemplazado por el numero de slot del jugador si el numero es mayor que 1.
-#{number} sera reemplazado por el valor de contador del nombre.
-#{NUMBER} sera reemplazado por el valor de contador del nombre si el valor es mayor que 1.
 game: Minecraft
-# Shared Options supported by all games:
 accessibility: locations
-progression_balancing: off # recomedamos apagar esto para for minecraft, ya que tiene un pool de objetos mucho mas pequeño, ademas que se pueden hacer muchos mas saltos de logica que en los otros juegos.
-# Minecraft Specific Options
-advancement_goal: # Numero de avances requeridos (de un total de 92) para hacer aparecer el Ender Dragon y completar el juego. 
-  few: 0 # 30 advancements
-  normal: 1 # 50
-  many: 0 # 70
-combat_difficulty: # Modifica el nivel de objetos logicamente requeridos para explorar areas peligrosas y pelear contra jefes. 
+progression_balancing: off 
+advancement_goal: 
+  few: 0 
+  normal: 1 
+  many: 0 
+combat_difficulty: 
   easy: 0
   normal: 1
   hard: 0
-include_hard_advancements: # Avances que sean tediosos o basados en suerte tendran simplemente experiencia
+include_hard_advancements: 
   on: 0
   off: 1
-include_insane_advancements: # Los avances extremadamente difíciles no seran requeridos; esto afecta a How Did We Get Here? y Adventuring Time. 
+include_insane_advancements: 
   on: 0
   off: 1
-include_postgame_advancements: # Los avances posteriores a Ender Dragon no tendrán objetos.
+include_postgame_advancements:
   on: 0
   off: 1
-shuffle_structures: # Actualmente desactivado; permite la mezcla de pueblos, puestos, fortalezas, bastiones y cuidades. 
+shuffle_structures: 
   on: 0
   off: 1
 ```
+
+Para mas detalles sobre que hace cada opcion consulta el `PlayerSettings.yaml` por defecto que acompaña a la instalacion de Archipelago.
 
 ## Unirse a un juego MultiWorld
 
@@ -107,8 +103,8 @@ Pon tu fichero de datos en el directorio `APData` de tu forge server. Asegurate 
 Despues de poner tu fichero en el directorio `APData`, arranca el Forge server y asegurate que tienes el estado OP
 tecleando `/op TuUsuarioMinecraft` en la consola del servidor y entonces conectate con tu cliente Minecraft.
 
-Una vez en juego introduce `/connect <AP-Address> <Name> (<Password>)` donde `<AP-Address>` es la dirección del servidor
-Archipelago y `<Name>` es el nombre que habia en tu fichero YAML (mayusculas/minusculas importan). `(<Password>)`
+Una vez en juego introduce `/connect <AP-Address> (<Password>)` donde `<AP-Address>` es la dirección del servidor
+Archipelago. `(<Password>)`
 solo se necesita si el servidor Archipleago tiene un password activo.
 
 ### Jugar al juego
